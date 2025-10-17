@@ -1,7 +1,6 @@
 import math
 import sys
 from pathlib import Path
-from typing import Tuple
 
 import pytest
 
@@ -16,7 +15,7 @@ def _build_performance_chain(
     node_count: int = 160,
     total_supply: float = 1200.0,
     seed: int = 24,
-) -> Tuple[NetworkProblem, float]:
+) -> tuple[NetworkProblem, float]:
     # Generate a deterministic medium-sized chain with skip edges for performance sanity checks.
     import random
 
@@ -70,9 +69,7 @@ def test_medium_network_solves_within_budget():
     assert result.iterations < max_iterations
 
     sink_id = f"n{len(problem.nodes) - 1}"
-    delivered = sum(
-        flow for (tail, head), flow in result.flows.items() if head == sink_id
-    )
+    delivered = sum(flow for (tail, head), flow in result.flows.items() if head == sink_id)
     assert math.isclose(delivered, total_supply, rel_tol=0.0, abs_tol=1e-6)
 
     arc_lookup = {(arc.tail, arc.head): arc for arc in problem.arcs}

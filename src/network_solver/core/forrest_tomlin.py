@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 import numpy as np
 
@@ -26,8 +25,8 @@ class ForrestTomlin:
         self,
         matrix: np.ndarray,
         tolerance: float = 1e-9,
-        max_updates: Optional[int] = 128,
-        norm_growth_limit: Optional[float] = None,
+        max_updates: int | None = 128,
+        norm_growth_limit: float | None = None,
     ) -> None:
         self._validate_square(matrix)
         self.size = matrix.shape[0]
@@ -37,14 +36,14 @@ class ForrestTomlin:
         self._initial_matrix = np.array(matrix, dtype=float, copy=True)
         self._current_matrix = self._initial_matrix.copy()
         self._base_factors: LUFactors = build_lu(self._initial_matrix)
-        self._updates: List[FTUpdate] = []
+        self._updates: list[FTUpdate] = []
 
     @staticmethod
     def _validate_square(matrix: np.ndarray) -> None:
         if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
             raise ValueError("ForrestTomlin requires a square basis matrix.")
 
-    def solve(self, rhs: np.ndarray) -> Optional[np.ndarray]:
+    def solve(self, rhs: np.ndarray) -> np.ndarray | None:
         """Solve B^{-1} rhs accounting for accumulated updates."""
         vec = np.asarray(rhs, dtype=float).reshape(-1)
         if vec.shape[0] != self.size:

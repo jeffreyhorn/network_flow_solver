@@ -5,12 +5,11 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .data import FlowResult, NetworkProblem
 from .basis import TreeBasis
+from .data import FlowResult, NetworkProblem
 from .exceptions import (
     InvalidProblemError,
     SolverConfigurationError,
@@ -33,7 +32,7 @@ class ArcState:
     flow: float
     in_tree: bool
     artificial: bool
-    key: Tuple[str, str]
+    key: tuple[str, str]
     shift: float = 0.0
 
     def forward_residual(self) -> float:
@@ -55,15 +54,15 @@ class NetworkSimplex:
         self.logger = logging.getLogger(__name__)
         self.ft_rebuilds = 0
         # Store node ids in a dense index space so core routines can use list lookups.
-        self.node_ids: List[str] = [self.ROOT_NODE] + sorted(problem.nodes.keys())
-        self.node_index: Dict[str, int] = {
+        self.node_ids: list[str] = [self.ROOT_NODE] + sorted(problem.nodes.keys())
+        self.node_index: dict[str, int] = {
             node_id: idx for idx, node_id in enumerate(self.node_ids)
         }
         self.root = 0
         self.tolerance = problem.tolerance
 
-        self.node_supply: List[float] = self._initial_supplies()
-        self.arcs: List[ArcState] = []
+        self.node_supply: list[float] = self._initial_supplies()
+        self.arcs: list[ArcState] = []
         self._build_arcs()
         self.actual_arc_count = len(self.arcs)
         max_cost = max((abs(arc.cost) for arc in self.arcs), default=1.0)
@@ -72,10 +71,10 @@ class NetworkSimplex:
 
         self.node_count = len(self.node_ids)
         self.basis = TreeBasis(self.node_count, self.root, self.tolerance)
-        self.tree_adj: List[List[int]] = [[] for _ in range(self.node_count)]
+        self.tree_adj: list[list[int]] = [[] for _ in range(self.node_count)]
         self.pricing_block = 0
         self.block_size = max(1, self.actual_arc_count // 8)
-        self.devex_weights: List[float] = [1.0] * len(self.arcs)
+        self.devex_weights: list[float] = [1.0] * len(self.arcs)
         self.original_costs = [arc.cost for arc in self.arcs]
         self.perturbed_costs = [arc.cost for arc in self.arcs]
         self._apply_cost_perturbation()
@@ -83,7 +82,7 @@ class NetworkSimplex:
         self._rebuild_tree_structure()
         self._reset_devex_weights()
 
-    def _initial_supplies(self) -> List[float]:
+    def _initial_supplies(self) -> list[float]:
         supplies = [0.0] * len(self.node_ids)
         for idx, node_id in enumerate(self.node_ids[1:], start=1):
             supplies[idx] = self.problem.nodes[node_id].supply
@@ -216,10 +215,10 @@ class NetworkSimplex:
         """Recompute parent pointers and potentials based on active tree arcs."""
         self.basis.rebuild(self.tree_adj, self.arcs)
 
-    def _find_entering_arc(self, allow_zero: bool) -> Optional[Tuple[int, int]]:
+    def _find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
         """Return (arc_idx, direction) for entering arc, where direction is +1 or -1."""
-        zero_candidates: List[Tuple[int, int]] = []
-        best: Optional[Tuple[int, int]] = None
+        zero_candidates: list[tuple[int, int]] = []
+        best: tuple[int, int] | None = None
         best_merit = -math.inf
         block_count = max(1, (self.actual_arc_count + self.block_size - 1) // self.block_size)
 
@@ -441,7 +440,7 @@ class NetworkSimplex:
         for idx in range(self.actual_arc_count, len(self.arcs)):
             self.perturbed_costs[idx] = self.original_costs[idx]
 
-    def solve(self, max_iterations: Optional[int] = None) -> FlowResult:
+    def solve(self, max_iterations: int | None = None) -> FlowResult:
         if max_iterations is None:
             max_iterations = max(100, 5 * len(self.arcs))
 
@@ -478,7 +477,7 @@ class NetworkSimplex:
 
         status = "optimal" if total_iterations < max_iterations else "iteration_limit"
 
-        flows: Dict[Tuple[str, str], float] = {}
+        flows: dict[tuple[str, str], float] = {}
         objective = 0.0
         for idx, arc in enumerate(self.arcs):
             if arc.artificial:

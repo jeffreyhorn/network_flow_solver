@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .exceptions import InvalidProblemError
 
@@ -23,7 +23,7 @@ class Arc:
 
     tail: str
     head: str
-    capacity: Optional[float]
+    capacity: float | None
     cost: float
     lower: float = 0.0
 
@@ -45,8 +45,8 @@ class NetworkProblem:
     """Encapsulates a minimum cost flow problem."""
 
     directed: bool
-    nodes: Dict[str, Node]
-    arcs: List[Arc]
+    nodes: dict[str, Node]
+    arcs: list[Arc]
     tolerance: float = 1e-3
 
     def validate(self) -> None:
@@ -74,7 +74,7 @@ class NetworkProblem:
         """Return arcs expanded to directed equivalents when graph is undirected."""
         if self.directed:
             return tuple(self.arcs)
-        expanded: List[Arc] = []
+        expanded: list[Arc] = []
         # Translate each undirected edge into a directed representation that carries
         # the same capacity while respecting the simplex solver's sign convention.
         for arc in self.arcs:
@@ -112,19 +112,19 @@ class FlowResult:
     """Represents the output of a flow computation."""
 
     objective: float
-    flows: Dict[Tuple[str, str], float] = field(default_factory=dict)
+    flows: dict[tuple[str, str], float] = field(default_factory=dict)
     status: str = "optimal"
     iterations: int = 0
 
 
 def build_problem(
-    nodes: Iterable[Dict[str, float]],
-    arcs: Iterable[Dict[str, float]],
+    nodes: Iterable[dict[str, float]],
+    arcs: Iterable[dict[str, float]],
     directed: bool,
     tolerance: float,
 ) -> NetworkProblem:
     """Factory helper used by IO layer to assemble a NetworkProblem."""
-    node_map: Dict[str, Node] = {}
+    node_map: dict[str, Node] = {}
     for node in nodes:
         node_id = str(node["id"])
         # Deduplicate nodes here so downstream code can index directly.
@@ -135,7 +135,7 @@ def build_problem(
         supply = float(node.get("supply", 0.0))
         node_map[node_id] = Node(id=node_id, supply=supply)
 
-    arc_objs: List[Arc] = []
+    arc_objs: list[Arc] = []
     for arc in arcs:
         tail = str(arc["tail"])
         head = str(arc["head"])

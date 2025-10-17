@@ -8,6 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from network_solver.data import FlowResult, build_problem  # noqa: E402
+from network_solver.exceptions import InvalidProblemError  # noqa: E402
 from network_solver.io import load_problem, save_result  # noqa: E402
 
 # These tests pin the JSON contract implemented by network_solver.io.
@@ -63,7 +64,7 @@ def test_load_problem_requires_tail_and_head(tmp_path: Path):
     }
 
     path = _write_payload(tmp_path, payload)
-    with pytest.raises(KeyError, match="tail and head identifiers"):
+    with pytest.raises(InvalidProblemError, match="tail.*head"):
         load_problem(path)
 
 
@@ -76,7 +77,7 @@ def test_load_problem_requires_list_payloads(tmp_path: Path):
 
     path = _write_payload(tmp_path, payload)
     with pytest.raises(
-        ValueError, match="Problem JSON must include 'nodes' and 'edges' arrays"
+        InvalidProblemError, match="Problem JSON must include|Invalid problem format"
     ):
         load_problem(path)
 
@@ -92,7 +93,7 @@ def test_load_problem_rejects_missing_edges_key(tmp_path: Path):
 
     path = _write_payload(tmp_path, payload)
     with pytest.raises(
-        ValueError, match="Problem JSON must include 'nodes' and 'edges' arrays"
+        InvalidProblemError, match="Problem JSON must include|Invalid problem format"
     ):
         load_problem(path)
 
@@ -107,7 +108,7 @@ def test_build_problem_rejects_lower_greater_than_capacity():
         {"tail": "a", "head": "b", "capacity": 1.0, "cost": 0.0, "lower": 2.0},
     ]
 
-    with pytest.raises(ValueError, match="Arc capacity must be >= lower bound"):
+    with pytest.raises(InvalidProblemError, match="Capacity must be >= lower bound"):
         build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
 
 
@@ -179,7 +180,9 @@ def test_load_problem_handles_empty_file(tmp_path: Path):
     path = tmp_path / "empty.json"
     path.write_text("{}", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="Problem JSON must include"):
+    with pytest.raises(
+        InvalidProblemError, match="Problem JSON must include|Invalid problem format"
+    ):
         load_problem(path)
 
 
@@ -229,7 +232,7 @@ def test_normalize_edges_requires_head(tmp_path: Path):
     }
     path = _write_payload(tmp_path, payload)
 
-    with pytest.raises(KeyError, match="tail and head"):
+    with pytest.raises(InvalidProblemError, match="tail.*head"):
         load_problem(path)
 
 
@@ -313,5 +316,7 @@ def test_load_problem_with_invalid_node_structure(tmp_path: Path):
     }
     path = _write_payload(tmp_path, payload)
 
-    with pytest.raises(ValueError, match="Problem JSON must include"):
+    with pytest.raises(
+        InvalidProblemError, match="Problem JSON must include|Invalid problem format"
+    ):
         load_problem(path)

@@ -2,10 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
-  workflow_dispatch:  # Allow manual triggers
+    branches: [main, develop]
+  workflow_dispatch: # Allow manual triggers
 
 jobs:
   lint:
@@ -87,15 +87,26 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install SuiteSparse (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsuitesparse-dev
+
+      - name: Install SuiteSparse (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install suite-sparse swig
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
             ~/.cache/pypoetry
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-pip-v2-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-v2-${{ matrix.python-version }}-
 
       - name: Install dependencies
         run: |
@@ -138,13 +149,18 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install SuiteSparse
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsuitesparse-dev
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-coverage-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-pip-coverage-v2-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-pip-coverage-
+            ${{ runner.os }}-pip-coverage-v2-
 
       - name: Install dependencies
         run: |
@@ -185,13 +201,18 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install SuiteSparse
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsuitesparse-dev
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-examples-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-pip-examples-v2-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-pip-examples-
+            ${{ runner.os }}-pip-examples-v2-
 
       - name: Install package
         run: |

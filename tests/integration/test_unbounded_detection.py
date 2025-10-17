@@ -7,6 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from network_solver.data import Arc, NetworkProblem, Node  # noqa: E402
+from network_solver.exceptions import UnboundedProblemError  # noqa: E402
 from network_solver.simplex import NetworkSimplex  # noqa: E402
 
 
@@ -27,7 +28,7 @@ def test_unbounded_cycle_raises_runtime_error():
 
     solver = NetworkSimplex(problem)
 
-    with pytest.raises(RuntimeError, match="Unbounded problem detected"):
+    with pytest.raises(UnboundedProblemError, match="Unbounded problem detected"):
         solver.solve()
 
 
