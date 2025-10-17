@@ -1,0 +1,52 @@
+{
+  "directed": true,
+  "tolerance": 0.0001,
+  "nodes": [
+    {
+      "id": "u0",
+      "supply": 5.0
+    },
+    {
+      "id": "u1",
+      "supply": 0.0
+    },
+    {
+      "id": "u2",
+      "supply": 0.0
+    },
+    {
+      "id": "u3",
+      "supply": 0.0
+    },
+    {
+      "id": "u4",
+      "supply": -5.0
+    }
+  ],
+  "edges": [
+    {
+      "tail": "u0",
+      "head": "u1",
+      "capacity": 5.0,
+      "cost": 2.0
+    },
+    {
+      "tail": "u1",
+      "head": "u2",
+      "capacity": 5.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "u2",
+      "head": "u3",
+      "capacity": 5.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "u3",
+      "head": "u4",
+      "capacity": 5.0,
+      "cost": 2.0
+    }
+  ]
+}

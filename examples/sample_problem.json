@@ -1,0 +1,14 @@
+{
+  "directed": true,
+  "tolerance": 0.001,
+  "nodes": [
+    {"id": "s", "supply": 5.0},
+    {"id": "a", "supply": 0.0},
+    {"id": "t", "supply": -5.0}
+  ],
+  "edges": [
+    {"tail": "s", "head": "a", "capacity": 5.0, "cost": 2.0},
+    {"tail": "a", "head": "t", "capacity": 5.0, "cost": 1.0},
+    {"tail": "s", "head": "t", "capacity": 5.0, "cost": 4.0}
+  ]
+}

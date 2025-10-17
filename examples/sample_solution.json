@@ -1,0 +1,17 @@
+{
+  "status": "optimal",
+  "objective": 15.0,
+  "iterations": 2,
+  "flows": [
+    {
+      "tail": "a",
+      "head": "t",
+      "flow": 5.0
+    },
+    {
+      "tail": "s",
+      "head": "a",
+      "flow": 5.0
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "status": "optimal",
+  "objective": 100.0,
+  "iterations": 50,
+  "flows": [
+    {
+      "tail": "S1",
+      "head": "D1",
+      "flow": 10.0
+    },
+    {
+      "tail": "S10",
+      "head": "D10",
+      "flow": 10.0
+    },
+    {
+      "tail": "S2",
+      "head": "D2",
+      "flow": 10.0
+    },
+    {
+      "tail": "S3",
+      "head": "D3",
+      "flow": 10.0
+    },
+    {
+      "tail": "S4",
+      "head": "D4",
+      "flow": 10.0
+    },
+    {
+      "tail": "S5",
+      "head": "D5",
+      "flow": 10.0
+    },
+    {
+      "tail": "S6",
+      "head": "D6",
+      "flow": 10.0
+    },
+    {
+      "tail": "S7",
+      "head": "D7",
+      "flow": 10.0
+    },
+    {
+      "tail": "S8",
+      "head": "D8",
+      "flow": 10.0
+    },
+    {
+      "tail": "S9",
+      "head": "D9",
+      "flow": 10.0
+    }
+  ]
+}
