@@ -460,12 +460,14 @@ class NetworkSimplex:
                     flows={},
                     status="iteration_limit",
                     iterations=total_iterations,
+                    duals={},
                 )
             return FlowResult(
                 objective=0.0,
                 flows={},
                 status="infeasible",
                 iterations=total_iterations,
+                duals={},
             )
 
         remaining = max(0, max_iterations - total_iterations)
@@ -496,11 +498,19 @@ class NetworkSimplex:
             else:
                 flows[key] = float(round(value, 12))
 
+        # Extract dual values (node potentials) for sensitivity analysis
+        # Skip the root node (index 0) as it's artificial
+        duals: dict[str, float] = {}
+        for idx in range(1, len(self.node_ids)):
+            node_id = self.node_ids[idx]
+            duals[node_id] = float(round(self.basis.potential[idx], 12))
+
         return FlowResult(
             objective=float(round(objective, 12)),
             flows=flows,
             status=status,
             iterations=total_iterations,
+            duals=duals,
         )
 
     def _reset_devex_weights(self) -> None:

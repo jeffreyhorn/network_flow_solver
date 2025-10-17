@@ -63,6 +63,7 @@ def save_result(path: str | Path, result: FlowResult) -> None:
             {"tail": tail, "head": head, "flow": flow}
             for (tail, head), flow in sorted(result.flows.items())
         ],
+        "duals": dict(sorted(result.duals.items())),
     }
     with Path(path).open("w", encoding="utf-8") as fh:
         json.dump(data, fh, indent=2, sort_keys=False)

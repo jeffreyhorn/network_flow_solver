@@ -109,12 +109,23 @@ class NetworkProblem:
 
 @dataclass
 class FlowResult:
-    """Represents the output of a flow computation."""
+    """Represents the output of a flow computation.
+
+    Attributes:
+        objective: The objective function value (total cost).
+        flows: Dictionary mapping arc (tail, head) tuples to flow values.
+        status: Solution status ('optimal', 'infeasible', 'unbounded', 'iteration_limit').
+        iterations: Number of simplex iterations performed.
+        duals: Dictionary mapping node IDs to dual values (node potentials).
+               For optimal solutions, these represent shadow prices for supply/demand constraints.
+               Useful for sensitivity analysis.
+    """
 
     objective: float
     flows: dict[tuple[str, str], float] = field(default_factory=dict)
     status: str = "optimal"
     iterations: int = 0
+    duals: dict[str, float] = field(default_factory=dict)
 
 
 def build_problem(
