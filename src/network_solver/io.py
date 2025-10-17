@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping, MutableMapping, Sequence
+from typing import Any
 
 from .data import FlowResult, NetworkProblem, build_problem
 from .exceptions import InvalidProblemError
 
 
-def _normalize_edges(raw: Iterable[Mapping[str, Any]]) -> Sequence[Dict[str, Any]]:
+def _normalize_edges(raw: Iterable[Mapping[str, Any]]) -> Sequence[dict[str, Any]]:
     # Normalize incoming edge dictionaries so downstream dataclasses receive a uniform schema.
     edges = []
     for edge in raw:

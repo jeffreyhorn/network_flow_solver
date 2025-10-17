@@ -1,7 +1,6 @@
 import math
 import sys
 from pathlib import Path
-from typing import Tuple
 
 import pytest
 
@@ -15,7 +14,7 @@ from network_solver.solver import solve_min_cost_flow  # noqa: E402
 def _build_undirected_chain(
     node_count: int = 150,
     total_supply: float = 900.0,
-) -> Tuple[NetworkProblem, float]:
+) -> tuple[NetworkProblem, float]:
     # Produce a large undirected chain to ensure the expansion path scales sensibly.
     if node_count < 2:
         raise ValueError("node_count must be at least 2.")

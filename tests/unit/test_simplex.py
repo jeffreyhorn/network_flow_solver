@@ -170,9 +170,7 @@ def test_phase_one_short_circuit_triggers_before_iteration_cap(monkeypatch):
         phase_one=True,
     )
     assert iterations < 100
-    assert not any(
-        arc.artificial and arc.flow > solver.tolerance for arc in solver.arcs
-    )
+    assert not any(arc.artificial and arc.flow > solver.tolerance for arc in solver.arcs)
 
 
 def test_degenerate_pivots_do_not_inflate_tree_size():
@@ -221,9 +219,7 @@ def test_phase_two_stops_when_no_negative_reduced_costs():
     solver._apply_phase_costs(phase=1)
     solver._rebuild_tree_structure()
     solver._run_simplex_iterations(50, allow_zero=True, phase_one=True)
-    assert not any(
-        arc.artificial and arc.flow > solver.tolerance for arc in solver.arcs
-    )
+    assert not any(arc.artificial and arc.flow > solver.tolerance for arc in solver.arcs)
     solver._apply_phase_costs(phase=2)
     solver._rebuild_tree_structure()
     iters = solver._run_simplex_iterations(50, allow_zero=False)
@@ -294,9 +290,7 @@ def test_initialize_tree_adds_fallback_artificial_arc():
     )
     assert has_fallback
     assert any(
-        idx
-        for idx in solver.tree_adj[solver.node_index["b"]]
-        if solver.arcs[idx].artificial
+        idx for idx in solver.tree_adj[solver.node_index["b"]] if solver.arcs[idx].artificial
     )
 
 
@@ -403,9 +397,7 @@ def test_pivot_fall_back_resets_weights_and_counts(caplog, monkeypatch):
 
     assert solver.ft_rebuilds == 1
     assert all(weight == 1.0 for weight in solver.devex_weights)
-    assert any(
-        "Forrest–Tomlin update failed" in record.message for record in caplog.records
-    )
+    assert any("Forrest–Tomlin update failed" in record.message for record in caplog.records)
 
 
 def test_apply_phase_costs_rejects_invalid_phase():
@@ -430,9 +422,9 @@ def test_solve_reports_infeasible_after_phase_one():
     arcs = [
         {"tail": "s", "head": "m", "capacity": 1.0, "cost": 1.0},
     ]
-    result = NetworkSimplex(
-        build_problem(nodes, arcs, directed=True, tolerance=1e-6)
-    ).solve(max_iterations=5)
+    result = NetworkSimplex(build_problem(nodes, arcs, directed=True, tolerance=1e-6)).solve(
+        max_iterations=5
+    )
     assert result.status == "infeasible"
 
 
@@ -463,9 +455,7 @@ def test_flow_post_processing_removes_and_rounds_near_zero():
         {"tail": "s", "head": "n", "capacity": 2.0, "cost": 0.0},
         {"tail": "n", "head": "m", "capacity": 2.0, "cost": 2.0},
     ]
-    result = NetworkSimplex(
-        build_problem(nodes, arcs, directed=True, tolerance=1e-6)
-    ).solve()
+    result = NetworkSimplex(build_problem(nodes, arcs, directed=True, tolerance=1e-6)).solve()
     assert result.flows == {("s", "m"): pytest.approx(1.0)}
 
 
@@ -735,9 +725,7 @@ def test_degenerate_pivot_with_allow_zero():
     problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
     solver = NetworkSimplex(problem)
 
-    iters = solver._run_simplex_iterations(
-        max_iterations=10, allow_zero=True, phase_one=False
-    )
+    iters = solver._run_simplex_iterations(max_iterations=10, allow_zero=True, phase_one=False)
     assert iters >= 0
 
 

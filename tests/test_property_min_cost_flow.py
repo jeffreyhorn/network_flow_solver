@@ -1,7 +1,6 @@
 import math
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import pytest
 
@@ -17,7 +16,7 @@ from network_solver.solver import solve_min_cost_flow  # noqa: E402
 
 
 @st.composite
-def _network_instances(draw) -> Tuple[List[Dict[str, float]], List[Dict[str, float]]]:
+def _network_instances(draw) -> tuple[list[dict[str, float]], list[dict[str, float]]]:
     # Build moderately sized graphs exercising multiple supply/demand shapes.
     supply_count = draw(st.integers(min_value=1, max_value=4))
     demand_count = draw(st.integers(min_value=1, max_value=4))
@@ -27,18 +26,16 @@ def _network_instances(draw) -> Tuple[List[Dict[str, float]], List[Dict[str, flo
     demand_nodes = [f"t{idx}" for idx in range(demand_count)]
     relay_nodes = [f"m{idx}" for idx in range(intermediary_count)]
 
-    supplies = [
-        draw(st.integers(min_value=1, max_value=18)) for _ in range(supply_count)
-    ]
+    supplies = [draw(st.integers(min_value=1, max_value=18)) for _ in range(supply_count)]
     total_supply = sum(supplies)
 
-    nodes: List[Dict[str, float]] = [
+    nodes: list[dict[str, float]] = [
         {"id": node_id, "supply": float(amount)}
-        for node_id, amount in zip(supply_nodes, supplies)
+        for node_id, amount in zip(supply_nodes, supplies, strict=True)
     ]
 
     remaining = total_supply
-    demand_amounts: List[int] = []
+    demand_amounts: list[int] = []
     if demand_count > 0:
         for idx, node_id in enumerate(demand_nodes):
             if idx == demand_count - 1:
@@ -53,7 +50,7 @@ def _network_instances(draw) -> Tuple[List[Dict[str, float]], List[Dict[str, flo
         nodes.append({"id": node_id, "supply": 0.0})
 
     base_capacity = max(total_supply, 1)
-    arcs: List[Dict[str, float]] = []
+    arcs: list[dict[str, float]] = []
     cost_strategy = st.integers(min_value=1, max_value=12)
 
     for tail in supply_nodes:
@@ -110,8 +107,8 @@ def _network_instances(draw) -> Tuple[List[Dict[str, float]], List[Dict[str, flo
 
 
 def _compute_node_balance(
-    flows: Dict[Tuple[str, str], float], supplies: Dict[str, float]
-) -> Dict[str, float]:
+    flows: dict[tuple[str, str], float], supplies: dict[str, float]
+) -> dict[str, float]:
     balance = dict(supplies)
     for (tail, head), flow in flows.items():
         balance[tail] = balance.get(tail, 0.0) - flow
@@ -120,15 +117,17 @@ def _compute_node_balance(
 
 
 def _objective_from_flows(
-    flows: Dict[Tuple[str, str], float],
-    costs: Dict[Tuple[str, str], float],
+    flows: dict[tuple[str, str], float],
+    costs: dict[tuple[str, str], float],
 ) -> float:
     return sum(flow * costs[key] for key, flow in flows.items())
 
 
 @settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow], deadline=None)
 @given(_network_instances())
-def test_min_cost_flow_respects_mass_balance(instance: Tuple[List[Dict[str, float]], List[Dict[str, float]]]):
+def test_min_cost_flow_respects_mass_balance(
+    instance: tuple[list[dict[str, float]], list[dict[str, float]]],
+):
     # Property: solutions should balance all nodes and remain within capacity regardless of random draw.
     nodes, arcs = instance
     problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
@@ -157,4 +156,6 @@ def test_min_cost_flow_respects_mass_balance(instance: Tuple[List[Dict[str, floa
     balance = _compute_node_balance(first.flows, supplies)
 
     for node_id, residual in balance.items():
-        assert math.isclose(residual, 0.0, rel_tol=0.0, abs_tol=1e-5), f"Node {node_id} imbalance {residual}"
+        assert math.isclose(residual, 0.0, rel_tol=0.0, abs_tol=1e-5), (
+            f"Node {node_id} imbalance {residual}"
+        )
