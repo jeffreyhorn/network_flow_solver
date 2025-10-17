@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -18,8 +17,8 @@ except ModuleNotFoundError:  # pragma: no cover - exercised when SciPy missing.
 @dataclass
 class LUFactors:
     dense_matrix: np.ndarray
-    sparse_matrix: Optional["csc_matrix"]
-    lu: Optional["splu"]
+    sparse_matrix: csc_matrix | None
+    lu: splu | None
 
 
 def build_lu(matrix: np.ndarray) -> LUFactors:
@@ -37,7 +36,7 @@ def build_lu(matrix: np.ndarray) -> LUFactors:
     return LUFactors(dense_matrix=dense_matrix, sparse_matrix=sparse_mat, lu=lu)
 
 
-def solve_lu(factors: LUFactors, rhs: np.ndarray) -> Optional[np.ndarray]:
+def solve_lu(factors: LUFactors, rhs: np.ndarray) -> np.ndarray | None:
     vec = np.asarray(rhs, dtype=float).reshape(-1)
     if vec.shape[0] != factors.dense_matrix.shape[0]:
         raise ValueError("Right-hand side dimension does not match factor dimensions.")

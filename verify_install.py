@@ -15,7 +15,7 @@ def main():
     try:
         import network_solver
 
-        print(f"    ✓ Package imported successfully")
+        print("    ✓ Package imported successfully")
         print(f"    ✓ Version: {network_solver.__version__}")
     except ImportError as e:
         print(f"    ✗ Failed to import package: {e}")
@@ -24,7 +24,7 @@ def main():
     # Test 2: Check API exports
     print("\n[2/5] Testing API exports...")
     try:
-        from network_solver import load_problem, solve_min_cost_flow, save_result
+        from network_solver import load_problem, save_result, solve_min_cost_flow
 
         print(f"    ✓ All public APIs available: {network_solver.__all__}")
     except ImportError as e:
@@ -48,9 +48,9 @@ def main():
     try:
         import scikits.umfpack
 
-        print(f"    ✓ scikit-umfpack available (enhanced performance)")
+        print("    ✓ scikit-umfpack available (enhanced performance)")
     except ImportError:
-        print(f"    ⚠ scikit-umfpack not available (optional, Linux/macOS only)")
+        print("    ⚠ scikit-umfpack not available (optional, Linux/macOS only)")
 
     # Test 5: Run a simple solve
     print("\n[5/5] Testing solver with simple problem...")
@@ -69,7 +69,7 @@ def main():
         result = solve_min_cost_flow(problem)
 
         if result.status == "optimal" and result.objective == 10.0:
-            print(f"    ✓ Solver works correctly")
+            print("    ✓ Solver works correctly")
             print(f"    ✓ Status: {result.status}, Objective: {result.objective}")
         else:
             print(f"    ✗ Unexpected result: {result.status}, {result.objective}")

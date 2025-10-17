@@ -9,8 +9,8 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from network_solver.data import build_problem  # noqa: E402
 from network_solver import data  # noqa: E402
+from network_solver.data import build_problem  # noqa: E402
 from network_solver.simplex import NetworkSimplex  # noqa: E402
 
 
@@ -234,7 +234,7 @@ def test_replace_arc_applies_sherman_morrison_update():
     solver = NetworkSimplex(problem)
     basis = solver.basis
     entering_idx = next(
-        idx for idx, arc in enumerate(solver.arcs[:solver.actual_arc_count]) if not arc.in_tree
+        idx for idx, arc in enumerate(solver.arcs[: solver.actual_arc_count]) if not arc.in_tree
     )
     leaving_idx = basis.tree_arc_indices[0]
     assert basis.replace_arc(leaving_idx, entering_idx, solver.arcs, solver.tolerance)
@@ -262,7 +262,9 @@ def test_replace_arc_rebuilds_lu_when_only_sparse_available(monkeypatch):
     basis = solver.basis
     basis.ft_engine = None
     basis.basis_inverse = None
-    entering_idx = next(idx for idx, arc in enumerate(solver.arcs[:solver.actual_arc_count]) if not arc.in_tree)
+    entering_idx = next(
+        idx for idx, arc in enumerate(solver.arcs[: solver.actual_arc_count]) if not arc.in_tree
+    )
     leaving_idx = basis.tree_arc_indices[0]
     original_column_vector = basis._column_vector
 
@@ -316,7 +318,9 @@ def test_replace_arc_handles_forrest_tomlin_failures(monkeypatch):
     )
     solver = NetworkSimplex(problem)
     basis = solver.basis
-    entering_idx = next(idx for idx, arc in enumerate(solver.arcs[:solver.actual_arc_count]) if not arc.in_tree)
+    entering_idx = next(
+        idx for idx, arc in enumerate(solver.arcs[: solver.actual_arc_count]) if not arc.in_tree
+    )
     leaving_idx = basis.tree_arc_indices[0]
 
     class FalseFT:

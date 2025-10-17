@@ -10,6 +10,7 @@ from network_solver.solver import solve_min_cost_flow  # noqa: E402
 
 # These integration-style unit tests stress large directed graphs without the CLI overhead.
 
+
 def test_large_chain_flow_distribution():
     node_count = 120
     total_supply = 750.0
@@ -123,5 +124,5 @@ def test_large_undirected_chain_expansion():
     assert len(result.flows) == node_count - 1
     expected_objective = sum(edge["cost"] * total_supply for edge in edges)
     assert math.isclose(result.objective, expected_objective, rel_tol=0.0, abs_tol=1e-5)
-    for key, flow in result.flows.items():
+    for _key, flow in result.flows.items():
         assert math.isclose(flow, total_supply, rel_tol=0.0, abs_tol=1e-8)
