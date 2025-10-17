@@ -1,0 +1,27 @@
+{
+  "status": "optimal",
+  "objective": 30.0,
+  "iterations": 4,
+  "flows": [
+    {
+      "tail": "u0",
+      "head": "u1",
+      "flow": 5.0
+    },
+    {
+      "tail": "u1",
+      "head": "u2",
+      "flow": 5.0
+    },
+    {
+      "tail": "u2",
+      "head": "u3",
+      "flow": 5.0
+    },
+    {
+      "tail": "u3",
+      "head": "u4",
+      "flow": 5.0
+    }
+  ]
+}

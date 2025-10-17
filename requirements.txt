@@ -1,0 +1,17 @@
+# Development installation
+# Install with: pip install -e ".[dev,umfpack]"
+# Or for basic runtime: pip install -e .
+
+# Runtime dependencies (also in pyproject.toml)
+numpy>=1.26
+scipy>=1.11
+
+# Development dependencies (also in pyproject.toml [project.optional-dependencies])
+hypothesis>=6.88,<7
+pytest>=7.0
+pytest-cov>=4.1
+mypy>=1.0
+ruff>=0.1.0
+
+# Optional: Better sparse solver performance (Linux/macOS only)
+scikit-umfpack>=0.3.7; platform_system != "Windows"

@@ -1,0 +1,688 @@
+{
+  "directed": true,
+  "tolerance": 0.0001,
+  "nodes": [
+    {
+      "id": "S1",
+      "supply": 10.0
+    },
+    {
+      "id": "S2",
+      "supply": 10.0
+    },
+    {
+      "id": "S3",
+      "supply": 10.0
+    },
+    {
+      "id": "S4",
+      "supply": 10.0
+    },
+    {
+      "id": "S5",
+      "supply": 10.0
+    },
+    {
+      "id": "S6",
+      "supply": 10.0
+    },
+    {
+      "id": "S7",
+      "supply": 10.0
+    },
+    {
+      "id": "S8",
+      "supply": 10.0
+    },
+    {
+      "id": "S9",
+      "supply": 10.0
+    },
+    {
+      "id": "S10",
+      "supply": 10.0
+    },
+    {
+      "id": "D1",
+      "supply": -10.0
+    },
+    {
+      "id": "D2",
+      "supply": -10.0
+    },
+    {
+      "id": "D3",
+      "supply": -10.0
+    },
+    {
+      "id": "D4",
+      "supply": -10.0
+    },
+    {
+      "id": "D5",
+      "supply": -10.0
+    },
+    {
+      "id": "D6",
+      "supply": -10.0
+    },
+    {
+      "id": "D7",
+      "supply": -10.0
+    },
+    {
+      "id": "D8",
+      "supply": -10.0
+    },
+    {
+      "id": "D9",
+      "supply": -10.0
+    },
+    {
+      "id": "D10",
+      "supply": -10.0
+    }
+  ],
+  "edges": [
+    {
+      "tail": "S1",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "S1",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S1",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S1",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S1",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S1",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S1",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S1",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S1",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S1",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S2",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S2",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "S2",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S2",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S2",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S2",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S2",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S2",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S2",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S2",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S3",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S3",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S3",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "S3",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S3",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S3",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S3",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S3",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S3",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S3",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S4",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S4",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S4",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S4",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "S4",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S4",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S4",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S4",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S4",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S4",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S5",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S5",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S5",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S5",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S5",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "S5",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S5",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S5",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S5",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S5",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S6",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S6",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S6",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S6",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S6",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S6",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "S6",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S6",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S6",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S6",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S7",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S7",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S7",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S7",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S7",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S7",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S7",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "S7",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S7",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S7",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S8",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S8",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S8",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S8",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S8",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S8",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S8",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S8",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "S8",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S8",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S9",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S9",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S9",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S9",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S9",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S9",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S9",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S9",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S9",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 1.0
+    },
+    {
+      "tail": "S9",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D1",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D2",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D3",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D4",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D5",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D6",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D7",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D8",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D9",
+      "capacity": 10.0,
+      "cost": 5.0
+    },
+    {
+      "tail": "S10",
+      "head": "D10",
+      "capacity": 10.0,
+      "cost": 1.0
+    }
+  ]
+}
