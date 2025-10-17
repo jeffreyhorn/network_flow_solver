@@ -104,9 +104,9 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.cache/pypoetry
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-pip-v2-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-v2-${{ matrix.python-version }}-
 
       - name: Install dependencies
         run: |
@@ -158,9 +158,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-coverage-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-pip-coverage-v2-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-pip-coverage-
+            ${{ runner.os }}-pip-coverage-v2-
 
       - name: Install dependencies
         run: |
@@ -210,9 +210,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-examples-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-pip-examples-v2-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-pip-examples-
+            ${{ runner.os }}-pip-examples-v2-
 
       - name: Install package
         run: |
