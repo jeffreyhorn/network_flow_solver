@@ -173,11 +173,9 @@ act pull_request
 Add to README.md:
 
 ```markdown
-[![CI](https://github.com/yourusername/network_flow_solver/workflows/CI/badge.svg)](https://github.com/yourusername/network_flow_solver/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/yourusername/network_flow_solver/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/network_flow_solver)
+[![CI](https://github.com/jeffreyhorn/network_flow_solver/workflows/CI/badge.svg)](https://github.com/jeffreyhorn/network_flow_solver/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jeffreyhorn/network_flow_solver/branch/main/graph/badge.svg)](https://codecov.io/gh/jeffreyhorn/network_flow_solver)
 ```
-
-Replace `yourusername` with your GitHub username.
 
 ## Troubleshooting
 

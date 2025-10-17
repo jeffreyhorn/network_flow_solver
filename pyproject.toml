@@ -57,10 +57,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/network_flow_solver"
-Repository = "https://github.com/yourusername/network_flow_solver"
-Issues = "https://github.com/yourusername/network_flow_solver/issues"
-Documentation = "https://github.com/yourusername/network_flow_solver#readme"
+Homepage = "https://github.com/jeffreyhorn/network_flow_solver"
+Repository = "https://github.com/jeffreyhorn/network_flow_solver"
+Issues = "https://github.com/jeffreyhorn/network_flow_solver/issues"
+Documentation = "https://github.com/jeffreyhorn/network_flow_solver#readme"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
