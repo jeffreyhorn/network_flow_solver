@@ -176,7 +176,7 @@ def test_cli_fails_with_missing_edges(tmp_path: Path):
     )
 
     assert proc.returncode != 0
-    assert "Problem JSON must include 'nodes' and 'edges' arrays" in proc.stderr
+    assert "JSON must include 'nodes' and 'edges'" in proc.stderr
 
 
 def test_cli_fails_when_lower_exceeds_capacity(tmp_path: Path):
@@ -196,4 +196,4 @@ def test_cli_fails_when_lower_exceeds_capacity(tmp_path: Path):
     )
 
     assert proc.returncode != 0
-    assert "Arc capacity must be >= lower bound" in proc.stderr
+    assert "Capacity must be >= lower bound" in proc.stderr

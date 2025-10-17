@@ -10,6 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from network_solver.data import build_problem  # noqa: E402
+from network_solver.exceptions import InvalidProblemError, SolverConfigurationError  # noqa: E402
 from network_solver.simplex import NetworkSimplex  # noqa: E402
 from network_solver.solver import solve_min_cost_flow  # noqa: E402
 
@@ -255,7 +256,7 @@ def test_constructor_rejects_unbalanced_supplies_after_lower_bound_adjustment():
         def validate(self):
             pass
 
-    with pytest.raises(ValueError, match="Supplies do not balance"):
+    with pytest.raises(InvalidProblemError, match="Supplies do not balance"):
         NetworkSimplex(BareProblem())
 
 
@@ -269,7 +270,7 @@ def test_constructor_rejects_capacity_lower_violation():
         {"tail": "a", "head": "b", "capacity": 1.0, "cost": 1.0, "lower": 2.0},
         {"tail": "b", "head": "c", "capacity": 1.0, "cost": 1.0},
     ]
-    with pytest.raises(ValueError, match="capacity must be >= lower bound"):
+    with pytest.raises(InvalidProblemError, match="Capacity must be >= lower bound"):
         build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
 
 
@@ -409,7 +410,7 @@ def test_apply_phase_costs_rejects_invalid_phase():
         {"tail": "s", "head": "t", "capacity": 1.0, "cost": 1.0},
     ]
     solver = NetworkSimplex(build_problem(nodes, arcs, directed=True, tolerance=1e-6))
-    with pytest.raises(ValueError, match="Unsupported phase"):
+    with pytest.raises(SolverConfigurationError, match="Invalid phase"):
         solver._apply_phase_costs(phase=3)
 
 

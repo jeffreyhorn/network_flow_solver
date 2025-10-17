@@ -7,6 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from network_solver.data import build_problem  # noqa: E402
+from network_solver.exceptions import InvalidProblemError  # noqa: E402
 
 # These tests assert the light-weight validation in data.build_problem so callers
 # receive actionable errors before the solver begins expensive work.
@@ -21,7 +22,7 @@ def test_build_problem_rejects_unbalanced_supply():
         {"tail": "s", "head": "t", "capacity": 10.0, "cost": 1.0},
     ]
 
-    with pytest.raises(ValueError, match="Problem is unbalanced"):
+    with pytest.raises(InvalidProblemError, match="Problem is unbalanced"):
         build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
 
 
@@ -34,9 +35,9 @@ def test_build_problem_checks_missing_tail():
         {"tail": "missing", "head": "t", "capacity": 5.0, "cost": 2.0},
     ]
 
-    with pytest.raises(KeyError) as excinfo:
+    with pytest.raises(InvalidProblemError) as excinfo:
         build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
-    assert "Arc tail missing" in str(excinfo.value)
+    assert "Arc tail 'missing'" in str(excinfo.value)
 
 
 def test_build_problem_checks_missing_head():
@@ -48,9 +49,9 @@ def test_build_problem_checks_missing_head():
         {"tail": "s", "head": "absent", "capacity": 4.0, "cost": 3.0},
     ]
 
-    with pytest.raises(KeyError) as excinfo:
+    with pytest.raises(InvalidProblemError) as excinfo:
         build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
-    assert "Arc head absent" in str(excinfo.value)
+    assert "Arc head 'absent'" in str(excinfo.value)
 
 
 def test_build_problem_rejects_duplicate_nodes():
@@ -60,7 +61,7 @@ def test_build_problem_rejects_duplicate_nodes():
     ]
     arcs = []
 
-    with pytest.raises(ValueError, match="Duplicate node id dup"):
+    with pytest.raises(InvalidProblemError, match="Duplicate node id 'dup'"):
         build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
 
 
@@ -110,7 +111,7 @@ def test_undirected_expansion_requires_finite_capacity():
     ]
 
     problem = build_problem(nodes=nodes, arcs=arcs, directed=False, tolerance=1e-6)
-    with pytest.raises(ValueError, match="Undirected arcs require finite capacity"):
+    with pytest.raises(InvalidProblemError, match="Undirected.*finite capacity"):
         problem.undirected_expansion()
 
 
@@ -124,7 +125,7 @@ def test_undirected_expansion_rejects_custom_lower_bounds():
     ]
 
     problem = build_problem(nodes=nodes, arcs=arcs, directed=False, tolerance=1e-6)
-    with pytest.raises(ValueError, match="do not support custom lower bounds"):
+    with pytest.raises(InvalidProblemError, match="do not support custom lower bounds"):
         problem.undirected_expansion()
 
 
@@ -132,7 +133,7 @@ def test_arc_rejects_self_loops():
     """Test that Arc __post_init__ rejects self-loops."""
     from network_solver.data import Arc
 
-    with pytest.raises(ValueError, match="Self-loops are not supported"):
+    with pytest.raises(InvalidProblemError, match="Self-loops are not supported"):
         Arc(tail="a", head="a", capacity=5.0, cost=1.0)
 
 
@@ -140,7 +141,7 @@ def test_arc_rejects_capacity_less_than_lower():
     """Test that Arc __post_init__ rejects capacity < lower bound."""
     from network_solver.data import Arc
 
-    with pytest.raises(ValueError, match="Arc capacity must be >= lower bound"):
+    with pytest.raises(InvalidProblemError, match="Capacity must be >= lower bound"):
         Arc(tail="a", head="b", capacity=5.0, cost=1.0, lower=10.0)
 
 
@@ -207,7 +208,7 @@ def test_build_problem_validates_tolerance():
         {"id": "a", "supply": 1.0},
         {"id": "b", "supply": -0.5},
     ]
-    with pytest.raises(ValueError, match="Problem is unbalanced"):
+    with pytest.raises(InvalidProblemError, match="Problem is unbalanced"):
         build_problem(nodes=nodes_unbalanced, arcs=[], directed=True, tolerance=1e-6)
 
 
@@ -219,7 +220,7 @@ def test_network_problem_validate_called_in_build():
     ]
     arcs = []
 
-    with pytest.raises(ValueError, match="Problem is unbalanced"):
+    with pytest.raises(InvalidProblemError, match="Problem is unbalanced"):
         build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-3)
 
 
@@ -253,7 +254,7 @@ def test_negative_capacity():
     from network_solver.data import Arc
 
     # Negative capacity with lower=0 should fail
-    with pytest.raises(ValueError, match="Arc capacity must be >= lower bound"):
+    with pytest.raises(InvalidProblemError, match="Capacity must be >= lower bound"):
         Arc(tail="a", head="b", capacity=-5.0, cost=1.0, lower=0.0)
 
 

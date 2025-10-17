@@ -9,6 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from network_solver.data import FlowResult, NetworkProblem, build_problem  # noqa: E402
+from network_solver.exceptions import InvalidProblemError  # noqa: E402
 from network_solver.solver import (  # noqa: E402
     load_problem,
     save_result,
@@ -120,7 +121,7 @@ class TestSolveMinCostFlow:
         )
 
         # Validation should catch this unbalanced supply
-        with pytest.raises(ValueError, match="Problem is unbalanced"):
+        with pytest.raises(InvalidProblemError, match="Problem is unbalanced"):
             problem.validate()
 
     def test_solve_min_cost_flow_fresh_solver_instance(self):
