@@ -22,11 +22,7 @@ from network_solver.basis_lu import (  # noqa: E402
 @contextlib.contextmanager
 def _suppress_scipy(monkeypatch):
     """Temporarily make scipy imports fail so the dense fallback gets exercised."""
-    cached = {
-        name: sys.modules.pop(name)
-        for name in list(sys.modules)
-        if name.startswith("scipy")
-    }
+    cached = {name: sys.modules.pop(name) for name in list(sys.modules) if name.startswith("scipy")}
 
     def _raise_import_error(name, *args, **kwargs):
         if name.startswith("scipy"):

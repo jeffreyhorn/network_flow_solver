@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from .data import FlowResult, NetworkProblem
-from .io import load_problem as load_problem_file, save_result as save_result_file
+from .io import load_problem as load_problem_file
+from .io import save_result as save_result_file
 from .simplex import NetworkSimplex
 
 
-def solve_min_cost_flow(
-    problem: NetworkProblem, max_iterations: Optional[int] = None
-) -> FlowResult:
+def solve_min_cost_flow(problem: NetworkProblem, max_iterations: int | None = None) -> FlowResult:
     """Run the network simplex solver on the provided problem definition."""
     # Instantiate a fresh solver each call to avoid cross-run state sharing.
     solver = NetworkSimplex(problem)

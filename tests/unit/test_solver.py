@@ -103,7 +103,7 @@ class TestSolveMinCostFlow:
 
     def test_solve_min_cost_flow_propagates_validation_errors(self):
         """Test that solve_min_cost_flow propagates validation errors."""
-        from network_solver.data import NetworkProblem, Node, Arc
+        from network_solver.data import Arc, NetworkProblem, Node
 
         # Create problem that will fail validation
         nodes = {

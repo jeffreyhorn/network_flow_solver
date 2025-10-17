@@ -73,9 +73,7 @@ def test_reset_requires_matching_shape():
 def test_solve_falls_back_to_numpy_when_lu_missing(monkeypatch):
     base = np.array([[1.0, 2.0], [3.0, 4.0]])
     engine = ForrestTomlin(base)
-    monkeypatch.setattr(
-        "network_solver.core.forrest_tomlin.solve_lu", lambda _f, _rhs: None
-    )
+    monkeypatch.setattr("network_solver.core.forrest_tomlin.solve_lu", lambda _f, _rhs: None)
     rhs = np.array([1.0, 0.0])
     expected = np.linalg.solve(base, rhs)
     assert np.allclose(engine.solve(rhs), expected)
@@ -84,9 +82,7 @@ def test_solve_falls_back_to_numpy_when_lu_missing(monkeypatch):
 def test_solve_returns_none_for_singular_matrix(monkeypatch):
     base = np.array([[1.0, 2.0], [2.0, 4.0]])
     engine = ForrestTomlin(base)
-    monkeypatch.setattr(
-        "network_solver.core.forrest_tomlin.solve_lu", lambda _f, _rhs: None
-    )
+    monkeypatch.setattr("network_solver.core.forrest_tomlin.solve_lu", lambda _f, _rhs: None)
     assert engine.solve(np.array([1.0, 0.0])) is None
 
 
@@ -155,22 +151,22 @@ def test_reset_successfully_resets_engine():
     """Test that reset() successfully resets the engine with a new matrix."""
     base = np.eye(2)
     engine = ForrestTomlin(base)
-    
+
     # Apply some updates
     engine.update(0, np.array([2.0, 0.0]))
     assert len(engine._updates) > 0
-    
+
     # Reset with a new matrix of the same size
     new_matrix = np.array([[3.0, 1.0], [1.0, 2.0]])
     engine.reset(new_matrix)
-    
+
     # Verify updates are cleared
     assert len(engine._updates) == 0
-    
+
     # Verify the matrix was updated
     assert np.allclose(engine._initial_matrix, new_matrix)
     assert np.allclose(engine._current_matrix, new_matrix)
-    
+
     # Verify solving works with the new matrix
     rhs = np.array([1.0, 1.0])
     result = engine.solve(rhs)

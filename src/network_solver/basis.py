@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import numpy as np
-from .basis_lu import LUFactors, build_lu, solve_lu, reconstruct_matrix
+
+from .basis_lu import LUFactors, build_lu, reconstruct_matrix, solve_lu
 from .core.forrest_tomlin import ForrestTomlin
 
 if TYPE_CHECKING:
@@ -20,23 +22,28 @@ class TreeBasis:
         self.node_count = node_count
         self.root = root
         self.tolerance = tolerance
-        self.parent: List[Optional[int]] = [None] * node_count
-        self.parent_arc: List[Optional[int]] = [None] * node_count
-        self.parent_dir: List[int] = [0] * node_count
-        self.potential: List[float] = [0.0] * node_count
-        self.depth: List[int] = [0] * node_count
-        self.tree_arc_indices: List[int] = []
-        self.basis_matrix: Optional[np.ndarray] = None
-        self.basis_inverse: Optional[np.ndarray] = None
-        self.lu_factors: Optional[LUFactors] = None
-        self.ft_engine: Optional[ForrestTomlin] = None
+        self.parent: list[int | None] = [None] * node_count
+        self.parent_arc: list[int | None] = [None] * node_count
+        self.parent_dir: list[int] = [0] * node_count
+        self.potential: list[float] = [0.0] * node_count
+        self.depth: list[int] = [0] * node_count
+        self.tree_arc_indices: list[int] = []
+        self.basis_matrix: np.ndarray | None = None
+        self.basis_inverse: np.ndarray | None = None
+        self.lu_factors: LUFactors | None = None
+        self.ft_engine: ForrestTomlin | None = None
         self.ft_update_limit = 64
-        self.ft_norm_limit: Optional[float] = 1e8
-        self.row_nodes: List[int] = []
+        self.ft_norm_limit: float | None = 1e8
+        self.row_nodes: list[int] = []
         self.node_to_row: dict[int, int] = {}
         self.arc_to_pos: dict[int, int] = {}
 
-    def rebuild(self, tree_adj: Sequence[Sequence[int]], arcs: Sequence[ArcState], build_numeric: bool = True) -> None:
+    def rebuild(
+        self,
+        tree_adj: Sequence[Sequence[int]],
+        arcs: Sequence[ArcState],
+        build_numeric: bool = True,
+    ) -> None:
         """Recompute parent pointers and node potentials from the current tree."""
         for idx in range(self.node_count):
             self.parent[idx] = None
@@ -78,12 +85,12 @@ class TreeBasis:
 
     def collect_cycle(
         self, tree_adj: Sequence[Sequence[int]], arcs: Sequence[ArcState], tail: int, head: int
-    ) -> List[Tuple[int, int]]:
+    ) -> list[tuple[int, int]]:
         """Return tree arcs forming the unique path between tail and head."""
         if tail == head:
             return []
 
-        prev: dict[int, Tuple[int, int]] = {head: (head, -1)}
+        prev: dict[int, tuple[int, int]] = {head: (head, -1)}
         queue = deque([head])
 
         found = False
@@ -105,20 +112,17 @@ class TreeBasis:
         if not found:
             raise RuntimeError("Failed to locate cycle path in spanning tree.")
 
-        steps: List[Tuple[int, int, int]] = []
+        steps: list[tuple[int, int, int]] = []
         node = tail
         while node != head:
             parent, arc_idx = prev[node]
             steps.append((parent, node, arc_idx))
             node = parent
 
-        path: List[Tuple[int, int]] = []
+        path: list[tuple[int, int]] = []
         for parent, child, arc_idx in reversed(steps):
             arc = arcs[arc_idx]
-            if arc.tail == parent and arc.head == child:
-                sign = 1
-            else:
-                sign = -1
+            sign = 1 if arc.tail == parent and arc.head == child else -1
             path.append((arc_idx, sign))
         return path
 
@@ -170,7 +174,7 @@ class TreeBasis:
             vec[self.node_to_row[arc.head]] = -1.0
         return vec
 
-    def project_column(self, arc: ArcState) -> Optional[np.ndarray]:
+    def project_column(self, arc: ArcState) -> np.ndarray | None:
         column = self._column_vector(arc)
         if self.ft_engine is not None:
             # Prefer Forrest–Tomlin solves so Devex stays in sync with incremental updates.
@@ -186,7 +190,9 @@ class TreeBasis:
                 return solved
         return None
 
-    def replace_arc(self, leaving_idx: int, entering_idx: int, arcs: Sequence[ArcState], tol: float) -> bool:
+    def replace_arc(
+        self, leaving_idx: int, entering_idx: int, arcs: Sequence[ArcState], tol: float
+    ) -> bool:
         if self.basis_matrix is None or self.arc_to_pos is None:
             return False
 
@@ -224,13 +230,13 @@ class TreeBasis:
             return True
 
         if self.basis_inverse is not None:
-            B_inv = self.basis_inverse
-            row = B_inv[pos, :]
+            b_inv = self.basis_inverse
+            row = b_inv[pos, :]
             denom = 1.0 + row @ u
             if abs(denom) <= tol:
                 return False
-            Bu = B_inv @ u
-            self.basis_inverse = B_inv - np.outer(Bu, row) / denom
+            b_u = b_inv @ u
+            self.basis_inverse = b_inv - np.outer(b_u, row) / denom
             self.basis_matrix[:, pos] = new_col
             self.arc_to_pos.pop(leaving_idx, None)
             self.arc_to_pos[entering_idx] = pos

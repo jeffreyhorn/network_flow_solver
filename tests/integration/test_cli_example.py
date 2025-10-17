@@ -61,7 +61,7 @@ def test_example_cli_script_produces_solution(tmp_path: Path):
 
     assert contents["status"] == "optimal"
     assert pytest.approx(contents["objective"]) == 15.0
-    flows = {tuple((entry["tail"], entry["head"])): entry["flow"] for entry in contents["flows"]}
+    flows = {(entry["tail"], entry["head"]): entry["flow"] for entry in contents["flows"]}
     assert flows[("s", "a")] == pytest.approx(5.0)
     assert flows[("a", "t")] == pytest.approx(5.0)
 
@@ -153,7 +153,7 @@ def test_large_transport_cli_script(tmp_path: Path):
     assert result["status"] in {"optimal", "iteration_limit"}
     if result["status"] == "optimal":
         assert pytest.approx(result["objective"], abs=1e-6) == 100.0
-        diagonal = {(f"S{i+1}", f"D{i+1}"): 10.0 for i in range(10)}
+        diagonal = {(f"S{i + 1}", f"D{i + 1}"): 10.0 for i in range(10)}
         for entry in result["flows"]:
             tail, head, flow = entry["tail"], entry["head"], entry["flow"]
             if (tail, head) in diagonal:

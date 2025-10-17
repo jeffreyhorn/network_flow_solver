@@ -75,9 +75,7 @@ def test_load_problem_requires_list_payloads(tmp_path: Path):
     }
 
     path = _write_payload(tmp_path, payload)
-    with pytest.raises(
-        ValueError, match="Problem JSON must include 'nodes' and 'edges' arrays"
-    ):
+    with pytest.raises(ValueError, match="Problem JSON must include 'nodes' and 'edges' arrays"):
         load_problem(path)
 
 
@@ -91,9 +89,7 @@ def test_load_problem_rejects_missing_edges_key(tmp_path: Path):
     }
 
     path = _write_payload(tmp_path, payload)
-    with pytest.raises(
-        ValueError, match="Problem JSON must include 'nodes' and 'edges' arrays"
-    ):
+    with pytest.raises(ValueError, match="Problem JSON must include 'nodes' and 'edges' arrays"):
         load_problem(path)
 
 
