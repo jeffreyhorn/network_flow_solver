@@ -1,7 +1,7 @@
 # Network Programming Solver
 
-[![CI](https://github.com/yourusername/network_flow_solver/workflows/CI/badge.svg)](https://github.com/yourusername/network_flow_solver/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/yourusername/network_flow_solver/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/network_flow_solver)
+[![CI](https://github.com/jeffreyhorn/network_flow_solver/workflows/CI/badge.svg)](https://github.com/jeffreyhorn/network_flow_solver/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jeffreyhorn/network_flow_solver/branch/main/graph/badge.svg)](https://codecov.io/gh/jeffreyhorn/network_flow_solver)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
