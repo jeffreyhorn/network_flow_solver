@@ -24,7 +24,7 @@ def main():
     # Test 2: Check API exports
     print("\n[2/5] Testing API exports...")
     try:
-        from network_solver import load_problem, save_result, solve_min_cost_flow
+        from network_solver import load_problem, save_result, solve_min_cost_flow  # noqa: F401
 
         print(f"    ✓ All public APIs available: {network_solver.__all__}")
     except ImportError as e:
@@ -46,7 +46,7 @@ def main():
     # Test 4: Check optional UMFPACK
     print("\n[4/5] Testing optional dependencies...")
     try:
-        import scikits.umfpack
+        import scikits.umfpack  # noqa: F401
 
         print("    ✓ scikit-umfpack available (enhanced performance)")
     except ImportError:

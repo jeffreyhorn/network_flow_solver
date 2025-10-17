@@ -19,7 +19,14 @@ def main() -> None:
     problem = load_problem(problem_path)
     result = solve_min_cost_flow(problem)
     save_result(output_path, result)
+
     print(f"Solved {problem_path.name}: status={result.status}, objective={result.objective}")
+
+    # Display dual values (node potentials) for sensitivity analysis
+    if result.duals:
+        print("\nDual values (shadow prices):")
+        for node_id, dual in sorted(result.duals.items()):
+            print(f"  {node_id}: {dual:.6f}")
 
 
 if __name__ == "__main__":
