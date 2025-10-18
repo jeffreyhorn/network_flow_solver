@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import logging
 import math
+import time
 from dataclasses import dataclass
 
 import numpy as np
 
 from .basis import TreeBasis
-from .data import FlowResult, NetworkProblem
+from .data import FlowResult, NetworkProblem, ProgressCallback, ProgressInfo
 from .exceptions import (
     InvalidProblemError,
     SolverConfigurationError,
@@ -299,7 +300,15 @@ class NetworkSimplex:
                 self.tree_adj[arc.head].append(idx)
 
     def _run_simplex_iterations(
-        self, max_iterations: int, allow_zero: bool, phase_one: bool = False
+        self,
+        max_iterations: int,
+        allow_zero: bool,
+        phase_one: bool = False,
+        progress_callback: ProgressCallback | None = None,
+        progress_interval: int = 100,
+        phase: int = 1,
+        total_iterations_offset: int = 0,
+        start_time: float | None = None,
     ) -> int:
         iterations = 0
         while iterations < max_iterations:
@@ -309,6 +318,21 @@ class NetworkSimplex:
             arc_idx, direction = entering
             self._pivot(arc_idx, direction)
             iterations += 1
+
+            # Call progress callback at specified interval
+            if progress_callback is not None and iterations % progress_interval == 0:
+                objective_estimate = self._compute_objective_estimate()
+                elapsed = time.time() - start_time if start_time is not None else 0.0
+                progress_info = ProgressInfo(
+                    iteration=total_iterations_offset + iterations,
+                    max_iterations=total_iterations_offset + max_iterations,
+                    phase=phase,
+                    phase_iterations=iterations,
+                    objective_estimate=objective_estimate,
+                    elapsed_time=elapsed,
+                )
+                progress_callback(progress_info)
+
             if phase_one and not any(
                 arc.artificial and arc.flow > self.tolerance for arc in self.arcs
             ):
@@ -440,16 +464,41 @@ class NetworkSimplex:
         for idx in range(self.actual_arc_count, len(self.arcs)):
             self.perturbed_costs[idx] = self.original_costs[idx]
 
-    def solve(self, max_iterations: int | None = None) -> FlowResult:
+    def solve(
+        self,
+        max_iterations: int | None = None,
+        progress_callback: ProgressCallback | None = None,
+        progress_interval: int = 100,
+    ) -> FlowResult:
+        """Solve the minimum-cost flow problem.
+
+        Args:
+            max_iterations: Maximum number of simplex iterations (default: max(100, 5*num_arcs)).
+            progress_callback: Optional callback function to receive progress updates.
+            progress_interval: Number of iterations between progress callbacks (default: 100).
+
+        Returns:
+            FlowResult containing solution, dual values, and solver statistics.
+        """
         if max_iterations is None:
             max_iterations = max(100, 5 * len(self.arcs))
 
         total_iterations = 0
+        start_time = time.time()
 
         # Phase 1: find feasible flow minimizing artificial usage.
         self._apply_phase_costs(phase=1)
         self._rebuild_tree_structure()
-        iters = self._run_simplex_iterations(max_iterations, allow_zero=True, phase_one=True)
+        iters = self._run_simplex_iterations(
+            max_iterations,
+            allow_zero=True,
+            phase_one=True,
+            progress_callback=progress_callback,
+            progress_interval=progress_interval,
+            phase=1,
+            total_iterations_offset=0,
+            start_time=start_time,
+        )
         total_iterations += iters
 
         infeasible = any(arc.artificial and arc.flow > self.tolerance for arc in self.arcs)
@@ -474,7 +523,16 @@ class NetworkSimplex:
         # Phase 2 restores original costs and seeks an optimal solution given the feasible basis.
         self._apply_phase_costs(phase=2)
         self._rebuild_tree_structure()
-        iters = self._run_simplex_iterations(remaining, allow_zero=False)
+        iters = self._run_simplex_iterations(
+            remaining,
+            allow_zero=False,
+            phase_one=False,
+            progress_callback=progress_callback,
+            progress_interval=progress_interval,
+            phase=2,
+            total_iterations_offset=total_iterations,
+            start_time=start_time,
+        )
         total_iterations += iters
 
         status = "optimal" if total_iterations < max_iterations else "iteration_limit"
@@ -516,3 +574,14 @@ class NetworkSimplex:
     def _reset_devex_weights(self) -> None:
         for idx in range(len(self.devex_weights)):
             self.devex_weights[idx] = 1.0
+
+    def _compute_objective_estimate(self) -> float:
+        """Compute current objective value estimate based on current flows and costs."""
+        objective = 0.0
+        for idx, arc in enumerate(self.arcs):
+            if arc.artificial:
+                continue
+            flow_value = arc.flow + arc.shift
+            # Use original costs for meaningful estimate
+            objective += flow_value * self.original_costs[idx]
+        return objective
