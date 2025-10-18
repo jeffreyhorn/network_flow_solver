@@ -1,6 +1,6 @@
 """High-level entrypoints for the network simplex solver library."""
 
-from .data import ProgressCallback, ProgressInfo, build_problem
+from .data import ProgressCallback, ProgressInfo, SolverOptions, build_problem
 from .exceptions import (
     InfeasibleProblemError,
     InvalidProblemError,
@@ -20,6 +20,8 @@ __all__ = [
     "load_problem",
     "solve_min_cost_flow",
     "save_result",
+    # Configuration
+    "SolverOptions",
     # Progress tracking
     "ProgressCallback",
     "ProgressInfo",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .data import FlowResult, NetworkProblem, ProgressCallback
+from .data import FlowResult, NetworkProblem, ProgressCallback, SolverOptions
 from .io import load_problem as load_problem_file
 from .io import save_result as save_result_file
 from .simplex import NetworkSimplex
@@ -12,6 +12,7 @@ from .simplex import NetworkSimplex
 
 def solve_min_cost_flow(
     problem: NetworkProblem,
+    options: SolverOptions | None = None,
     max_iterations: int | None = None,
     progress_callback: ProgressCallback | None = None,
     progress_interval: int = 100,
@@ -20,15 +21,21 @@ def solve_min_cost_flow(
 
     Args:
         problem: The network flow problem to solve.
-        max_iterations: Maximum number of simplex iterations (default: max(100, 5*num_arcs)).
+        options: Solver configuration options. If None, uses defaults.
+        max_iterations: Maximum number of simplex iterations. Overrides options.max_iterations if provided.
         progress_callback: Optional callback function to receive progress updates.
         progress_interval: Number of iterations between progress callbacks (default: 100).
 
     Returns:
         FlowResult containing solution, dual values, and solver statistics.
+
+    Note:
+        For convenience, max_iterations can be passed directly as a parameter, which will
+        override the value in options if both are provided. For full control over solver
+        behavior, use the SolverOptions parameter.
     """
     # Instantiate a fresh solver each call to avoid cross-run state sharing.
-    solver = NetworkSimplex(problem)
+    solver = NetworkSimplex(problem, options=options)
     return solver.solve(
         max_iterations=max_iterations,
         progress_callback=progress_callback,
