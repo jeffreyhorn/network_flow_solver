@@ -187,6 +187,88 @@ result = solve_min_cost_flow(problem, options=options)
 
 See `examples/solver_options_example.py` for a comprehensive demonstration.
 
+### Utility Functions for Flow Analysis
+
+The library provides utilities for analyzing and validating flow solutions:
+
+#### Extract Flow Paths
+
+Find specific routes that flow takes through the network:
+
+```python
+from network_solver import extract_path
+
+# Find a flow-carrying path from source to target
+path = extract_path(result, problem, source="factory_a", target="warehouse_1")
+
+if path:
+    print(f"Route: {' -> '.join(path.nodes)}")
+    print(f"Flow: {path.flow} units")
+    print(f"Cost: ${path.cost}")
+    print(f"Arcs: {path.arcs}")  # List of (tail, head) tuples
+```
+
+**Use cases:**
+- Trace shipment routes in supply chains
+- Understand flow patterns in networks
+- Visualize solution paths
+- Debug unexpected routing
+
+#### Validate Solutions
+
+Verify that a flow solution satisfies all constraints:
+
+```python
+from network_solver import validate_flow
+
+validation = validate_flow(problem, result)
+
+if validation.is_valid:
+    print("✓ Solution is valid")
+else:
+    print("✗ Solution has violations:")
+    for error in validation.errors:
+        print(f"  - {error}")
+    
+    # Check specific violation types
+    if validation.capacity_violations:
+        print(f"Capacity violations: {validation.capacity_violations}")
+    if validation.lower_bound_violations:
+        print(f"Lower bound violations: {validation.lower_bound_violations}")
+```
+
+**Validation checks:**
+- Flow conservation at each node (inflow - outflow = supply)
+- Capacity constraints (flow ≤ capacity)
+- Lower bound constraints (flow ≥ lower)
+- Configurable numerical tolerance
+
+#### Identify Bottlenecks
+
+Find arcs that limit network capacity:
+
+```python
+from network_solver import compute_bottleneck_arcs
+
+# Find arcs at 90% or higher utilization
+bottlenecks = compute_bottleneck_arcs(problem, result, threshold=0.90)
+
+for bottleneck in bottlenecks:
+    print(f"Arc ({bottleneck.tail} -> {bottleneck.head}):")
+    print(f"  Utilization: {bottleneck.utilization * 100:.1f}%")
+    print(f"  Flow: {bottleneck.flow} / Capacity: {bottleneck.capacity}")
+    print(f"  Slack: {bottleneck.slack} units remaining")
+    print(f"  Cost: ${bottleneck.cost}/unit")
+```
+
+**Use cases:**
+- Identify capacity constraints limiting throughput
+- Prioritize infrastructure investments
+- Perform what-if analysis for capacity expansion
+- Sensitivity analysis for network planning
+
+See `examples/utils_example.py` for a complete demonstration of all utility functions.
+
 ### Sensitivity Analysis with Dual Values
 
 The solver returns dual values (node potentials) which represent shadow prices for supply/demand constraints:
@@ -217,6 +299,7 @@ python examples/solve_large_transport.py  # 10×10 transportation instance
 python examples/sensitivity_analysis_example.py  # Dual values and shadow prices
 python examples/progress_logging_example.py  # Progress monitoring
 python examples/solver_options_example.py  # Solver configuration and tuning
+python examples/utils_example.py  # Flow analysis utilities
 ```
 
 These scripts write companion solution files and print detailed results including dual values and solver statistics.
