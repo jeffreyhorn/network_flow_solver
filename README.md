@@ -143,6 +143,50 @@ result = solve_min_cost_flow(
 
 See `examples/progress_logging_example.py` for a complete demonstration.
 
+### Solver Configuration
+
+Customize solver behavior using `SolverOptions` for fine-grained control:
+
+```python
+from network_solver import solve_min_cost_flow, SolverOptions
+
+# Default settings
+options = SolverOptions()
+
+# Custom configuration
+options = SolverOptions(
+    max_iterations=10000,        # Override default iteration limit
+    tolerance=1e-9,              # Tighter numerical precision
+    pricing_strategy="dantzig",  # Use Dantzig pricing (default: "devex")
+    block_size=50,               # Custom pricing block size
+    ft_update_limit=100,         # Basis refactorization frequency
+)
+
+result = solve_min_cost_flow(problem, options=options)
+```
+
+**SolverOptions parameters:**
+- `max_iterations` - Maximum simplex iterations (default: `max(100, 5*num_arcs)`)
+- `tolerance` - Numerical tolerance for feasibility/optimality (default: `1e-6`)
+- `pricing_strategy` - Arc selection strategy:
+  - `"devex"` (default) - Normalized reduced costs with block pricing (faster convergence)
+  - `"dantzig"` - Most negative reduced cost (simpler, may be slower)
+- `block_size` - Number of arcs examined per pricing block (default: `num_arcs/8`)
+- `ft_update_limit` - Forrest-Tomlin updates before full basis rebuild (default: `64`)
+
+**Pricing strategies:**
+- **Devex pricing** (default): Uses normalized reduced costs and block-based search for efficient arc selection. Generally faster on large problems.
+- **Dantzig pricing**: Selects the arc with the most negative reduced cost. Simpler but may require more iterations.
+
+**Performance tuning:**
+- Increase `tolerance` for faster (less precise) solutions
+- Decrease `tolerance` for high-precision requirements
+- Adjust `block_size` based on problem sparsity
+- Lower `ft_update_limit` for better numerical stability (more rebuilds)
+- Raise `ft_update_limit` for faster performance (fewer rebuilds)
+
+See `examples/solver_options_example.py` for a comprehensive demonstration.
+
 ### Sensitivity Analysis with Dual Values
 
 The solver returns dual values (node potentials) which represent shadow prices for supply/demand constraints:
@@ -172,6 +216,7 @@ python examples/solve_textbook_transport.py  # Textbook transportation problem
 python examples/solve_large_transport.py  # 10×10 transportation instance
 python examples/sensitivity_analysis_example.py  # Dual values and shadow prices
 python examples/progress_logging_example.py  # Progress monitoring
+python examples/solver_options_example.py  # Solver configuration and tuning
 ```
 
 These scripts write companion solution files and print detailed results including dual values and solver statistics.

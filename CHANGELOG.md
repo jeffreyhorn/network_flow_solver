@@ -131,6 +131,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zero performance impact when progress_callback is None
 - Fully type-annotated for IDE support
 
+### Added (Solver Configuration)
+- **SolverOptions for configurable solver behavior**
+  - `SolverOptions` dataclass for centralized solver configuration
+  - `max_iterations` - Override default iteration limit
+  - `tolerance` - Numerical precision control (default: 1e-6)
+  - `pricing_strategy` - Choose "devex" (default) or "dantzig" pricing
+  - `block_size` - Control pricing block size for arc selection
+  - `ft_update_limit` - Forrest-Tomlin refactorization frequency (default: 64)
+  - Comprehensive validation with helpful error messages
+- **Dantzig pricing strategy implementation**
+  - Most negative reduced cost selection
+  - Alternative to Devex pricing for different problem characteristics
+- **Forrest-Tomlin update limit enforcement**
+  - Periodic basis rebuilds for numerical stability
+  - Configurable via `ft_update_limit` parameter
+  - Tracking of basis updates between rebuilds
+- **New test suite for SolverOptions** (`tests/unit/test_solver_options.py`)
+  - Default values validation
+  - Custom configuration testing
+  - Invalid parameter detection
+  - Pricing strategy comparison
+  - Block size and FT limit verification (15 new tests)
+- **New example: `solver_options_example.py`**
+  - Demonstrates all configuration options
+  - Shows impact of different settings on performance
+  - Transportation problem with 8 configuration scenarios
+  - Comparison of Devex vs Dantzig pricing
+
+### Changed (Solver Configuration)
+- `NetworkSimplex` constructor accepts optional `SolverOptions` parameter
+- `solve_min_cost_flow()` accepts `SolverOptions` for full configuration control
+- Tolerance now configurable via `SolverOptions` (previously fixed to problem tolerance)
+- `max_iterations` parameter overrides options value for convenience
+- Backward compatible - all parameters are optional with sensible defaults
+
+### Infrastructure (Solver Configuration)
+- All tests passing (211 tests total, including 15 new SolverOptions tests)
+- Full type annotations for SolverOptions
+- Comprehensive documentation in docstrings
+
 ### Planned
 - Performance benchmarking suite
 - PyPI publication
