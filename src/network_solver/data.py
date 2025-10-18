@@ -153,6 +153,46 @@ class ProgressInfo:
 ProgressCallback = Callable[[ProgressInfo], None]
 
 
+@dataclass
+class SolverOptions:
+    """Configuration options for the network simplex solver.
+
+    Attributes:
+        max_iterations: Maximum number of simplex iterations. If None, defaults to max(100, 5*num_arcs).
+        tolerance: Numerical tolerance for feasibility and optimality checks (default: 1e-6).
+        pricing_strategy: Arc pricing strategy - "devex" (default) or "dantzig" (first eligible).
+        block_size: Number of arcs to examine per pricing block. If None, defaults to num_arcs/8.
+        ft_update_limit: Maximum number of Forrest-Tomlin basis updates before rebuild (default: 64).
+    """
+
+    max_iterations: int | None = None
+    tolerance: float = 1e-6
+    pricing_strategy: str = "devex"
+    block_size: int | None = None
+    ft_update_limit: int = 64
+
+    def __post_init__(self) -> None:
+        if self.tolerance <= 0:
+            raise InvalidProblemError(
+                f"Tolerance must be positive, got {self.tolerance}. "
+                f"Tolerance controls numerical precision for feasibility and optimality checks."
+            )
+        if self.pricing_strategy not in ("devex", "dantzig"):
+            raise InvalidProblemError(
+                f"Invalid pricing strategy '{self.pricing_strategy}'. Must be 'devex' or 'dantzig'."
+            )
+        if self.block_size is not None and self.block_size <= 0:
+            raise InvalidProblemError(
+                f"Block size must be positive, got {self.block_size}. "
+                f"Block size controls how many arcs are examined per pricing iteration."
+            )
+        if self.ft_update_limit <= 0:
+            raise InvalidProblemError(
+                f"FT update limit must be positive, got {self.ft_update_limit}. "
+                f"This controls how often the basis factorization is rebuilt."
+            )
+
+
 def build_problem(
     nodes: Iterable[dict[str, float]],
     arcs: Iterable[dict[str, float]],
