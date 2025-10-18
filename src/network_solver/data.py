@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 
 from .exceptions import InvalidProblemError
@@ -126,6 +126,31 @@ class FlowResult:
     status: str = "optimal"
     iterations: int = 0
     duals: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ProgressInfo:
+    """Progress information provided during solver execution.
+
+    Attributes:
+        iteration: Current iteration number.
+        max_iterations: Maximum allowed iterations.
+        phase: Current phase (1 for feasibility, 2 for optimality).
+        phase_iterations: Iterations completed in current phase.
+        objective_estimate: Current estimate of objective value (may be inaccurate during phase 1).
+        elapsed_time: Elapsed time in seconds since solve started.
+    """
+
+    iteration: int
+    max_iterations: int
+    phase: int
+    phase_iterations: int
+    objective_estimate: float
+    elapsed_time: float
+
+
+# Type alias for progress callback function
+ProgressCallback = Callable[[ProgressInfo], None]
 
 
 def build_problem(
