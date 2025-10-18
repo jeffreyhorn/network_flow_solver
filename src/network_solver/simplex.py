@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .basis import TreeBasis
-from .data import FlowResult, NetworkProblem, ProgressCallback, ProgressInfo
+from .data import FlowResult, NetworkProblem, ProgressCallback, ProgressInfo, SolverOptions
 from .exceptions import (
     InvalidProblemError,
     SolverConfigurationError,
@@ -50,17 +50,19 @@ class NetworkSimplex:
 
     ROOT_NODE = "__network_simplex_root__"
 
-    def __init__(self, problem: NetworkProblem):
+    def __init__(self, problem: NetworkProblem, options: SolverOptions | None = None):
         self.problem = problem
+        self.options = options if options is not None else SolverOptions()
         self.logger = logging.getLogger(__name__)
         self.ft_rebuilds = 0
+        self.ft_updates_since_rebuild = 0
         # Store node ids in a dense index space so core routines can use list lookups.
         self.node_ids: list[str] = [self.ROOT_NODE] + sorted(problem.nodes.keys())
         self.node_index: dict[str, int] = {
             node_id: idx for idx, node_id in enumerate(self.node_ids)
         }
         self.root = 0
-        self.tolerance = problem.tolerance
+        self.tolerance = self.options.tolerance
 
         self.node_supply: list[float] = self._initial_supplies()
         self.arcs: list[ArcState] = []
@@ -74,7 +76,10 @@ class NetworkSimplex:
         self.basis = TreeBasis(self.node_count, self.root, self.tolerance)
         self.tree_adj: list[list[int]] = [[] for _ in range(self.node_count)]
         self.pricing_block = 0
-        self.block_size = max(1, self.actual_arc_count // 8)
+        if self.options.block_size is not None:
+            self.block_size = self.options.block_size
+        else:
+            self.block_size = max(1, self.actual_arc_count // 8)
         self.devex_weights: list[float] = [1.0] * len(self.arcs)
         self.original_costs = [arc.cost for arc in self.arcs]
         self.perturbed_costs = [arc.cost for arc in self.arcs]
@@ -218,6 +223,18 @@ class NetworkSimplex:
 
     def _find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
         """Return (arc_idx, direction) for entering arc, where direction is +1 or -1."""
+        if self.options.pricing_strategy == "devex":
+            return self._find_entering_arc_devex(allow_zero)
+        elif self.options.pricing_strategy == "dantzig":
+            return self._find_entering_arc_dantzig(allow_zero)
+        else:
+            raise SolverConfigurationError(
+                f"Unknown pricing strategy '{self.options.pricing_strategy}'. "
+                f"Valid options: 'devex', 'dantzig'."
+            )
+
+    def _find_entering_arc_devex(self, allow_zero: bool) -> tuple[int, int] | None:
+        """Devex pricing: block-based search with normalized reduced costs."""
         zero_candidates: list[tuple[int, int]] = []
         best: tuple[int, int] | None = None
         best_merit = -math.inf
@@ -291,6 +308,44 @@ class NetworkSimplex:
             self.pricing_block = (self.pricing_block + 1) % block_count
 
         return None
+
+    def _find_entering_arc_dantzig(self, allow_zero: bool) -> tuple[int, int] | None:
+        """Dantzig pricing: simple first-eligible arc with most negative reduced cost."""
+        best: tuple[int, int] | None = None
+        best_rc = 0.0
+
+        for idx in range(self.actual_arc_count):
+            arc = self.arcs[idx]
+            if arc.in_tree or arc.artificial:
+                continue
+            rc = arc.cost + self.basis.potential[arc.tail] - self.basis.potential[arc.head]
+            forward_res = arc.forward_residual()
+            backward_res = arc.backward_residual()
+
+            if forward_res > self.tolerance and rc < -self.tolerance:
+                if best is None or rc < best_rc:
+                    best = (idx, 1)
+                    best_rc = rc
+            elif backward_res > self.tolerance and rc > self.tolerance:
+                if best is None or -rc < best_rc:
+                    best = (idx, -1)
+                    best_rc = -rc
+            elif (
+                allow_zero
+                and forward_res > self.tolerance
+                and abs(rc) <= self.tolerance
+                and best is None
+            ):
+                best = (idx, 1)
+            elif (
+                allow_zero
+                and backward_res > self.tolerance
+                and abs(rc) <= self.tolerance
+                and best is None
+            ):
+                best = (idx, -1)
+
+        return best
 
     def _update_tree_sets(self) -> None:
         self.tree_adj = [[] for _ in range(self.node_count)]
@@ -440,18 +495,43 @@ class NetworkSimplex:
         leaving_arc = self.arcs[leaving_idx]
         leaving_arc.in_tree = False
         self.devex_weights[leaving_idx] = 1.0
+
+        # Check if we've hit the FT update limit and need a full rebuild
+        force_rebuild = self.ft_updates_since_rebuild >= self.options.ft_update_limit
+
         basis_updated = self.basis.replace_arc(leaving_idx, arc_idx, self.arcs, self.tolerance)
         self._update_tree_sets()
-        self.basis.rebuild(self.tree_adj, self.arcs, build_numeric=not basis_updated)
-        if not basis_updated:
-            # FT update failed: refresh the numeric basis and reset Devex heuristics.
+
+        if force_rebuild:
+            # Periodic rebuild to maintain numerical stability
+            self.basis.rebuild(self.tree_adj, self.arcs, build_numeric=True)
             self.ft_rebuilds += 1
+            self.ft_updates_since_rebuild = 0
+            if self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug(
+                    "FT update limit reached; rebuilding basis",
+                    extra={
+                        "leaving_idx": leaving_idx,
+                        "entering_idx": arc_idx,
+                        "ft_updates": self.options.ft_update_limit,
+                    },
+                )
+            self._reset_devex_weights()
+        elif not basis_updated:
+            # FT update failed: refresh the numeric basis and reset Devex heuristics.
+            self.basis.rebuild(self.tree_adj, self.arcs, build_numeric=True)
+            self.ft_rebuilds += 1
+            self.ft_updates_since_rebuild = 0
             if self.logger.isEnabledFor(logging.DEBUG):
                 self.logger.debug(
                     "Forrest–Tomlin update failed; rebuilding basis",
                     extra={"leaving_idx": leaving_idx, "entering_idx": arc_idx},
                 )
             self._reset_devex_weights()
+        else:
+            # Successful FT update
+            self.basis.rebuild(self.tree_adj, self.arcs, build_numeric=False)
+            self.ft_updates_since_rebuild += 1
 
     def _apply_cost_perturbation(self) -> None:
         base_eps = PERTURB_EPS_BASE
@@ -473,7 +553,8 @@ class NetworkSimplex:
         """Solve the minimum-cost flow problem.
 
         Args:
-            max_iterations: Maximum number of simplex iterations (default: max(100, 5*num_arcs)).
+            max_iterations: Maximum number of simplex iterations. If None, uses value from
+                           SolverOptions (default: max(100, 5*num_arcs)).
             progress_callback: Optional callback function to receive progress updates.
             progress_interval: Number of iterations between progress callbacks (default: 100).
 
@@ -481,7 +562,10 @@ class NetworkSimplex:
             FlowResult containing solution, dual values, and solver statistics.
         """
         if max_iterations is None:
-            max_iterations = max(100, 5 * len(self.arcs))
+            if self.options.max_iterations is not None:
+                max_iterations = self.options.max_iterations
+            else:
+                max_iterations = max(100, 5 * len(self.arcs))
 
         total_iterations = 0
         start_time = time.time()
