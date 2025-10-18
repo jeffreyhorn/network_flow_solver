@@ -11,6 +11,14 @@ from .exceptions import (
     UnboundedProblemError,
 )
 from .solver import load_problem, save_result, solve_min_cost_flow
+from .utils import (
+    BottleneckArc,
+    FlowPath,
+    ValidationResult,
+    compute_bottleneck_arcs,
+    extract_path,
+    validate_flow,
+)
 
 __version__ = "0.1.0"
 
@@ -25,6 +33,13 @@ __all__ = [
     # Progress tracking
     "ProgressCallback",
     "ProgressInfo",
+    # Utilities
+    "extract_path",
+    "validate_flow",
+    "compute_bottleneck_arcs",
+    "FlowPath",
+    "ValidationResult",
+    "BottleneckArc",
     # Exceptions
     "NetworkSolverError",
     "InvalidProblemError",
