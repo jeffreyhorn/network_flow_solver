@@ -306,6 +306,7 @@ def compute_bottleneck_arcs(
             )
 
     # Sort by utilization (highest first), then by slack (lowest first)
-    bottlenecks.sort(key=lambda x: (-x.utilization, x.slack))
+    # Note: utilization is never None here because we filter out infinite capacity arcs
+    bottlenecks.sort(key=lambda x: (-(x.utilization or 0.0), x.slack))
 
     return bottlenecks
