@@ -171,6 +171,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full type annotations for SolverOptions
 - Comprehensive documentation in docstrings
 
+### Added (Utility Functions)
+- **extract_path() for flow path discovery**
+  - BFS-based algorithm to find flow-carrying paths between nodes
+  - Returns `FlowPath` dataclass with nodes, arcs, flow value, and total cost
+  - Handles edge cases (no path exists, source equals target, invalid nodes)
+  - Useful for tracing shipment routes and understanding flow patterns
+- **validate_flow() for solution verification**
+  - Verifies flow conservation at all nodes
+  - Checks capacity and lower bound constraints
+  - Returns `ValidationResult` with detailed violation information
+  - Works with both directed and undirected problems (uses expanded arcs)
+  - Configurable tolerance for numerical precision
+- **compute_bottleneck_arcs() for capacity analysis**
+  - Identifies arcs at or near capacity (default: 95% utilization threshold)
+  - Returns list of `BottleneckArc` objects with utilization metrics
+  - Sorted by utilization (highest first) for priority identification
+  - Includes slack, cost, and capacity information
+  - Excludes infinite capacity arcs
+  - Enables sensitivity analysis for capacity expansion planning
+- **New dataclasses for utility results**
+  - `FlowPath` - Path representation with nodes, arcs, flow, cost
+  - `ValidationResult` - Validation report with errors and violations
+  - `BottleneckArc` - Bottleneck information with utilization metrics
+- **New test suite** (`tests/unit/test_utils.py`)
+  - Path extraction tests (simple, multi-hop, branching, edge cases) - 6 tests
+  - Flow validation tests (valid solutions, violations, tolerance) - 5 tests
+  - Bottleneck detection tests (thresholds, sorting, integration) - 7 tests
+  - Total: 18 new comprehensive tests
+- **New example: `utils_example.py`**
+  - Demonstrates all three utility functions
+  - Transportation problem with validation, path extraction, bottleneck analysis
+  - Shows sensitivity analysis using bottleneck information
+  - Real-world interpretation with factories and warehouses
+
+### Changed (Utility Functions)
+- All utility functions exported from main `network_solver` module
+- Type-safe with full annotations for IDE support
+- Comprehensive docstrings with usage examples
+
+### Infrastructure (Utility Functions)
+- All tests passing (229 tests total, including 18 new utility tests)
+- Full type annotations for all utilities
+- Example demonstrates practical usage patterns
+
 ### Planned
 - Performance benchmarking suite
 - PyPI publication
