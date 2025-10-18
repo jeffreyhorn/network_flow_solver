@@ -103,6 +103,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI/CD pipeline fully operational across all platforms
 - Code formatted and linted with ruff
 
+### Added (Progress Logging)
+- **Progress logging for long-running solves**
+  - `ProgressInfo` dataclass with solver state (iteration, phase, objective, elapsed time)
+  - `ProgressCallback` type alias for type-safe callback functions
+  - Optional `progress_callback` parameter in `solve()` and `solve_min_cost_flow()`
+  - Configurable `progress_interval` to control callback frequency (default: 100)
+  - Real-time tracking of Phase 1 (feasibility) and Phase 2 (optimality)
+  - Objective estimate computation during solve
+- **New test suite for progress logging** (`tests/unit/test_progress_logging.py`)
+  - Callback invocation verification
+  - ProgressInfo field validation
+  - Interval control testing
+  - Phase tracking and iteration monotonicity (6 new tests)
+- **New example: `progress_logging_example.py`**
+  - Real-time progress bar with percentage, iterations, objective, time
+  - Phase-aware formatting
+  - Demonstrates custom progress formatting and monitoring
+
+### Changed (Progress Logging)
+- Extended `solve()` API with progress tracking capabilities
+- Enhanced `solve_min_cost_flow()` to support progress callbacks
+- Backward compatible - all progress parameters are optional
+
+### Infrastructure (Progress Logging)
+- All tests passing (196 tests total, including 6 new progress logging tests)
+- Zero performance impact when progress_callback is None
+- Fully type-annotated for IDE support
+
 ### Planned
 - Performance benchmarking suite
 - PyPI publication

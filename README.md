@@ -103,18 +103,78 @@ except NetworkSolverError as e:
 - `SolverConfigurationError` - Invalid solver parameters or configuration
 - `IterationLimitError` - Optional exception type (solver returns status instead by default)
 
-## CLI Example
+### Progress Logging
 
-Run the bundled example to see the solver end-to-end:
+For long-running optimizations, you can monitor solver progress in real-time using a progress callback:
 
-```bash
-python examples/solve_example.py
-python examples/solve_dimacs_example.py  # DIMACS-style instance
-python examples/solve_textbook_transport.py  # textbook transportation problem
-python examples/solve_large_transport.py  # 10×10 transportation instance
+```python
+from network_solver import solve_min_cost_flow, ProgressInfo
+
+def progress_callback(info: ProgressInfo) -> None:
+    """Called periodically during solve with progress information."""
+    percent = 100 * info.iteration / info.max_iterations
+    phase_name = "Phase 1" if info.phase == 1 else "Phase 2"
+    print(f"{phase_name}: {percent:.1f}% | "
+          f"Iter {info.iteration}/{info.max_iterations} | "
+          f"Objective: ${info.objective_estimate:,.2f} | "
+          f"Time: {info.elapsed_time:.2f}s")
+
+result = solve_min_cost_flow(
+    problem,
+    progress_callback=progress_callback,
+    progress_interval=100  # Callback every 100 iterations
+)
 ```
 
-These scripts write companion solution files and print a one-line summary.
+**ProgressInfo attributes:**
+- `iteration` - Current total iteration count
+- `max_iterations` - Maximum allowed iterations
+- `phase` - Current phase (1 for feasibility, 2 for optimality)
+- `phase_iterations` - Iterations in current phase
+- `objective_estimate` - Current objective value estimate
+- `elapsed_time` - Seconds since solve started
+
+**Use cases:**
+- Monitor long-running optimizations
+- Implement custom progress bars or GUIs
+- Log progress to monitoring systems
+- Detect slow convergence issues
+- Cancel solver by raising exception in callback
+
+See `examples/progress_logging_example.py` for a complete demonstration.
+
+### Sensitivity Analysis with Dual Values
+
+The solver returns dual values (node potentials) which represent shadow prices for supply/demand constraints:
+
+```python
+result = solve_min_cost_flow(problem)
+
+# Access dual values (shadow prices)
+for node_id, dual in result.duals.items():
+    print(f"Node {node_id}: dual value = {dual:.6f}")
+
+# Dual values indicate marginal cost of changing supply/demand
+# For optimal solutions with arc (i,j) at positive flow:
+#   cost[i,j] + dual[i] - dual[j] ≈ 0  (complementary slackness)
+```
+
+Dual values enable sensitivity analysis to understand how the objective changes with supply/demand perturbations. See `examples/sensitivity_analysis_example.py` for detailed examples.
+
+## CLI Example
+
+Run the bundled examples to see the solver end-to-end:
+
+```bash
+python examples/solve_example.py  # Basic example with dual values
+python examples/solve_dimacs_example.py  # DIMACS-style instance
+python examples/solve_textbook_transport.py  # Textbook transportation problem
+python examples/solve_large_transport.py  # 10×10 transportation instance
+python examples/sensitivity_analysis_example.py  # Dual values and shadow prices
+python examples/progress_logging_example.py  # Progress monitoring
+```
+
+These scripts write companion solution files and print detailed results including dual values and solver statistics.
 
 ## Problem File Format
 
