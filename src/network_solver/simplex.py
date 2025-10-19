@@ -655,6 +655,9 @@ class NetworkSimplex:
         total_iterations = 0
         start_time = time.time()
 
+        # Calculate total supply for logging
+        total_supply = sum(abs(s) for s in self.node_supply)
+
         self.logger.info(
             "Starting network simplex solver",
             extra={
@@ -662,11 +665,13 @@ class NetworkSimplex:
                 "arcs": self.actual_arc_count,
                 "max_iterations": max_iterations,
                 "pricing_strategy": self.options.pricing_strategy,
+                "total_supply": total_supply,
+                "tolerance": self.tolerance,
             },
         )
 
         # Phase 1: find feasible flow minimizing artificial usage.
-        self.logger.info("Phase 1: Finding initial feasible solution")
+        self.logger.info("Phase 1: Finding initial feasible solution", extra={"elapsed_ms": 0.0})
         self._apply_phase_costs(phase=1)
         self._rebuild_tree_structure()
         iters = self._run_simplex_iterations(
@@ -680,9 +685,19 @@ class NetworkSimplex:
             start_time=start_time,
         )
         total_iterations += iters
+        # Calculate total artificial flow for diagnostics
+        artificial_flow = sum(
+            arc.flow for arc in self.arcs if arc.artificial and arc.flow > self.tolerance
+        )
+        elapsed_ms = (time.time() - start_time) * 1000
         self.logger.info(
             "Phase 1 complete",
-            extra={"iterations": iters, "total_iterations": total_iterations},
+            extra={
+                "iterations": iters,
+                "total_iterations": total_iterations,
+                "artificial_flow": artificial_flow,
+                "elapsed_ms": elapsed_ms,
+            },
         )
 
         infeasible = any(arc.artificial and arc.flow > self.tolerance for arc in self.arcs)
@@ -730,9 +745,23 @@ class NetworkSimplex:
             start_time=start_time,
         )
         total_iterations += iters
+        elapsed_ms = (time.time() - start_time) * 1000
+
+        # Calculate preliminary objective for logging
+        preliminary_objective = sum(
+            (arc.flow + arc.shift) * self.original_costs[idx]
+            for idx, arc in enumerate(self.arcs)
+            if not arc.artificial
+        )
+
         self.logger.info(
             "Phase 2 complete",
-            extra={"iterations": iters, "total_iterations": total_iterations},
+            extra={
+                "iterations": iters,
+                "total_iterations": total_iterations,
+                "objective": preliminary_objective,
+                "elapsed_ms": elapsed_ms,
+            },
         )
 
         status = "optimal" if total_iterations < max_iterations else "iteration_limit"
@@ -768,6 +797,24 @@ class NetworkSimplex:
         for idx in range(1, len(self.node_ids)):
             node_id = self.node_ids[idx]
             duals[node_id] = float(round(self.basis.potential[idx], 12))
+
+        # Final solution logging with comprehensive metrics
+        elapsed_ms = (time.time() - start_time) * 1000
+        tree_arcs = sum(1 for arc in self.arcs if arc.in_tree and not arc.artificial)
+        nonzero_flows = len(flows)
+
+        self.logger.info(
+            "Solver complete",
+            extra={
+                "status": status,
+                "objective": float(round(objective, 12)),
+                "iterations": total_iterations,
+                "elapsed_ms": elapsed_ms,
+                "tree_arcs": tree_arcs,
+                "nonzero_flows": nonzero_flows,
+                "ft_rebuilds": self.ft_rebuilds,
+            },
+        )
 
         return FlowResult(
             objective=float(round(objective, 12)),
