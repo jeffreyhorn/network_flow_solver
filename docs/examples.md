@@ -363,48 +363,211 @@ Final: $5,400.00 in 2000 iterations
 
 ## Sensitivity Analysis
 
-**Problem:** Understand how solution changes with supply/demand perturbations.
+**Use case:** Understand marginal costs, predict cost changes, make capacity expansion decisions.
+
+The solver returns **dual values** (also called **shadow prices** or **node potentials**) which represent the marginal cost of supply/demand changes at each node. These enable powerful sensitivity analysis without re-solving.
+
+### What are Dual Values?
+
+Dual values answer the question: *"How much would the objective change if I increase supply/demand at this node by 1 unit?"*
+
+- **Negative dual**: It costs money to supply more at this node (or saves money to demand less)
+- **Positive dual**: It saves money to demand more at this node (or costs money to supply less)
+- **Dual difference**: The marginal cost between two nodes equals the cost on connecting arcs
+
+### Basic Example: Marginal Cost Prediction
 
 ```python
 from network_solver import solve_min_cost_flow, build_problem
 
+# Simple supply chain: supplier -> warehouse -> customer
 nodes = [
-    {"id": "factory", "supply": 100.0},
-    {"id": "warehouse", "supply": -100.0},
+    {"id": "supplier", "supply": 100.0},
+    {"id": "warehouse", "supply": 0.0},
+    {"id": "customer", "supply": -100.0},
 ]
 arcs = [
-    {"tail": "factory", "head": "warehouse", "capacity": 150.0, "cost": 2.5},
+    {"tail": "supplier", "head": "warehouse", "capacity": 150.0, "cost": 2.0},
+    {"tail": "warehouse", "head": "customer", "capacity": 150.0, "cost": 3.0},
 ]
 
 problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
 result = solve_min_cost_flow(problem)
 
-# Dual values indicate marginal cost of changing supply/demand
-factory_dual = result.duals["factory"]
-warehouse_dual = result.duals["warehouse"]
+print(f"Optimal cost: ${result.objective:.2f}")  # $500.00
 
-print("Shadow Prices (Dual Values):")
-print(f"  Factory: ${factory_dual:.2f}")
-print(f"  Warehouse: ${warehouse_dual:.2f}")
+# Access dual values (shadow prices)
+print("\nDual Values (Shadow Prices):")
+for node_id, dual in sorted(result.duals.items()):
+    print(f"  {node_id}: ${dual:.6f}")
 
-# Reduced cost on the arc
-arc_cost = 2.5
-reduced_cost = arc_cost + factory_dual - warehouse_dual
-print(f"\nReduced cost on arc: ${reduced_cost:.6f}")
-print("(Should be ~0 for arcs with positive flow)")
+# Output:
+#   customer: $-10.000000
+#   supplier: $-15.000000
+#   warehouse: $-13.000000
 
-# Marginal cost analysis
-print("\nSensitivity Analysis:")
-print(f"  Increasing factory supply by 1 unit costs: ${-factory_dual:.2f}")
-print(f"  Increasing warehouse demand by 1 unit costs: ${warehouse_dual:.2f}")
-print(f"  Total marginal cost: ${warehouse_dual - factory_dual:.2f}")
-print(f"  (Should equal arc cost: ${arc_cost:.2f})")
+# Predict cost change without re-solving
+marginal_cost_per_unit = result.duals["supplier"] - result.duals["customer"]
+print(f"\nMarginal cost to ship 1 more unit: ${-marginal_cost_per_unit:.2f}")
+# Output: Marginal cost to ship 1 more unit: $5.00
+
+# Verify by actually changing supply
+nodes_increased = [
+    {"id": "supplier", "supply": 110.0},  # +10 units
+    {"id": "warehouse", "supply": 0.0},
+    {"id": "customer", "supply": -110.0},  # +10 units demand
+]
+problem2 = build_problem(nodes=nodes_increased, arcs=arcs, directed=True)
+result2 = solve_min_cost_flow(problem2)
+
+actual_change = result2.objective - result.objective
+predicted_change = 10 * marginal_cost_per_unit
+print(f"\nActual cost change for +10 units: ${actual_change:.2f}")
+print(f"Predicted from duals: ${-predicted_change:.2f}")
+# Both show: $50.00
 ```
 
-**Key Insights:**
-- Dual values = shadow prices = marginal costs
-- For arcs with positive flow: `cost + dual[tail] - dual[head] ≈ 0`
-- Difference in duals = marginal cost of changing flow
+### Complementary Slackness (Optimality Condition)
+
+For an optimal solution, arcs with positive flow must have zero **reduced cost**:
+
+```
+reduced_cost = arc_cost + dual[tail] - dual[head]
+```
+
+For arcs carrying flow: `reduced_cost ≈ 0` (within tolerance)
+
+```python
+# Verify complementary slackness
+print("\nComplementary Slackness Check:")
+for (tail, head), flow in result.flows.items():
+    if flow > 1e-6:
+        arc = next(a for a in arcs if a["tail"] == tail and a["head"] == head)
+        reduced_cost = arc["cost"] + result.duals[tail] - result.duals[head]
+        print(f"  {tail} -> {head}:")
+        print(f"    Flow: {flow:.2f}, Reduced cost: {reduced_cost:.10f}")
+
+# Output:
+#   supplier -> warehouse:
+#     Flow: 100.00, Reduced cost: -0.0000000001
+#   warehouse -> customer:
+#     Flow: 100.00, Reduced cost: -0.0000000001
+```
+
+This verifies the solution is optimal (reduced costs are essentially zero).
+
+### Production Planning Example
+
+**Use case:** Two factories with different costs. Which should we expand?
+
+```python
+nodes = [
+    {"id": "factory_a", "supply": 50.0},   # Low cost, limited capacity
+    {"id": "factory_b", "supply": 50.0},   # High cost, supplemental
+    {"id": "customer", "supply": -100.0},
+]
+arcs = [
+    {"tail": "factory_a", "head": "customer", "capacity": 60.0, "cost": 3.0},
+    {"tail": "factory_b", "head": "customer", "capacity": 150.0, "cost": 5.0},
+]
+
+problem = build_problem(nodes=nodes, arcs=arcs, directed=True)
+result = solve_min_cost_flow(problem)
+
+print(f"Total cost: ${result.objective:.2f}")  # $400.00
+print("\nFlows:")
+for (tail, head), flow in sorted(result.flows.items()):
+    cost = next(a["cost"] for a in arcs if a["tail"] == tail and a["head"] == head)
+    print(f"  {tail} -> {head}: {flow:.2f} units @ ${cost:.2f}/unit")
+
+# Output:
+#   factory_a -> customer: 50.00 units @ $3.00/unit
+#   factory_b -> customer: 50.00 units @ $5.00/unit
+
+# Which factory should we expand?
+factory_a_value = -result.duals["factory_a"]
+factory_b_value = -result.duals["factory_b"]
+
+print(f"\nMarginal Value of Capacity Expansion:")
+print(f"  Factory A: ${factory_a_value:.2f} per unit")
+print(f"  Factory B: ${factory_b_value:.2f} per unit")
+
+if factory_a_value > factory_b_value:
+    print(f"\n✓ Expand Factory A (higher marginal value)")
+else:
+    print(f"\n✓ Expand Factory B (higher marginal value)")
+```
+
+### Capacity Bottleneck Identification
+
+Dual values help identify which capacity constraints are binding:
+
+```python
+# Check which arcs are at capacity
+print("\nCapacity Analysis:")
+for (tail, head), flow in sorted(result.flows.items()):
+    capacity = next(a["capacity"] for a in arcs 
+                    if a["tail"] == tail and a["head"] == head)
+    utilization = (flow / capacity) * 100
+    at_capacity = abs(flow - capacity) < 1e-3
+    
+    print(f"  {tail} -> {head}:")
+    print(f"    Utilization: {utilization:.1f}%", end="")
+    if at_capacity:
+        print(f" ⚠ BOTTLENECK - expanding this capacity would reduce costs")
+    else:
+        print(f" (slack available)")
+```
+
+### Key Concepts
+
+| Concept | Formula | Meaning |
+|---------|---------|---------|
+| **Dual value** | `π[node]` | Marginal cost at node |
+| **Reduced cost** | `c[i,j] + π[i] - π[j]` | "Savings" from using arc (i,j) |
+| **Complementary slackness** | If `flow[i,j] > 0` then `reduced_cost ≈ 0` | Optimality condition |
+| **Cost change prediction** | `Δcost ≈ Δsupply × π[node]` | Estimate without re-solving |
+
+### When to Use Dual Values
+
+1. **"What-if" analysis**: Predict cost impact of supply/demand changes
+2. **Capacity planning**: Identify which capacity expansions are most valuable
+3. **Pricing decisions**: Determine value of expedited delivery or premium sourcing
+4. **Bottleneck identification**: Find binding capacity constraints
+5. **Optimality verification**: Check complementary slackness conditions
+6. **Marginal cost analysis**: Understand the value of resources at each location
+
+### Complete Working Example
+
+See `examples/sensitivity_analysis_example.py` for a comprehensive demonstration including:
+- Basic marginal cost prediction
+- Complementary slackness verification  
+- Production planning with capacity expansion decisions
+- Bottleneck identification
+- Key concepts summary
+
+**Output excerpt:**
+```
+DUAL VALUES (Shadow Prices):
+  customer: $-10.000000
+  supplier: $-15.000000
+
+SENSITIVITY ANALYSIS:
+  Expected from duals: $-5.000000 per unit
+  Actual cost change: $50.00 for 10 units
+  Change per unit: $5.00 ✓ Matches prediction!
+
+USE CASE: PRODUCTION PLANNING
+  Factory A value: $23.00 per unit
+  Factory B value: $25.00 per unit
+  ✓ RECOMMENDATION: Expand Factory B
+```
+
+### Further Reading
+
+- **[Algorithm Guide](algorithm.md#node-potentials-dual-variables)** - Mathematical background on dual variables
+- **[API Reference](api.md#flowresult)** - `FlowResult.duals` field documentation
+- `examples/sensitivity_analysis_example.py` - Complete working examples
 
 ## Solver Configuration
 

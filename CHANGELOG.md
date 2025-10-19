@@ -422,6 +422,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All tests passing (243 tests)
 - Type checking and linting passing
 
+### Improved (Dual Variables Documentation and Examples)
+- **Enhanced sensitivity analysis example** (`examples/sensitivity_analysis_example.py`)
+  - Added comprehensive production planning use case
+    - Two-factory scenario with different costs and capacities
+    - Decision analysis: which factory to expand based on dual values
+    - Marginal value calculations for capacity expansion
+  - Added capacity constraint analysis section
+    - Identify bottlenecks using flow vs capacity comparison
+    - Utilization percentage calculations
+    - Recommendations for capacity increases
+  - Added key concepts summary section
+    - Dual values interpretation (shadow prices)
+    - Complementary slackness explanation
+    - Sensitivity analysis formulas
+    - Practical applications list (production planning, logistics, pricing, bottlenecks)
+  - Improved code organization with helper functions
+    - `print_section_header()` for major sections
+    - `print_subsection()` for subsections
+    - Better visual separation and readability
+  - Enhanced example output (~150 lines total)
+- **Comprehensive dual variables documentation** (`docs/examples.md`)
+  - Expanded "Sensitivity Analysis" section from ~40 lines to ~210 lines
+  - Added "What are Dual Values?" conceptual introduction
+    - Clear explanation of negative vs positive duals
+    - Interpretation guide for practitioners
+  - New subsections with complete working examples:
+    - **Basic Example**: Marginal cost prediction with verification
+    - **Complementary Slackness**: Optimality condition verification
+    - **Production Planning**: Two-factory capacity expansion decision
+    - **Capacity Bottleneck Identification**: Finding binding constraints
+  - Added "Key Concepts" reference table
+    - Dual value, reduced cost, complementary slackness formulas
+    - Clear mathematical notation and meaning
+  - Added "When to Use Dual Values" section
+    - 6 practical use cases with descriptions
+    - What-if analysis, capacity planning, pricing decisions, etc.
+  - Added example output excerpt from running script
+  - Cross-references to algorithm guide and API documentation
+- **Enhanced README.md dual values section**
+  - Expanded from basic explanation to practical examples
+  - Added code showing cost prediction without re-solving
+  - Added complementary slackness verification example
+  - Added "Use cases for dual values" bulleted list
+    - What-if analysis, capacity planning, pricing, bottlenecks, optimality
+  - Better cross-references to examples and documentation
+- **Benefits:**
+  - Users can now understand and apply dual values for real-world decisions
+  - Clear examples for production planning and capacity expansion
+  - Mathematical foundations with practical interpretation
+  - Complete working code that can be adapted to user problems
+- All tests passing (243 tests)
+- Type checking and linting passing
+
 ### Planned
 - PyPI publication
 - Additional optimization algorithms

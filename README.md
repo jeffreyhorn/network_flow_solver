@@ -280,7 +280,7 @@ See `examples/utils_example.py` for a complete demonstration of all utility func
 
 ### Sensitivity Analysis with Dual Values
 
-The solver returns dual values (node potentials) which represent shadow prices for supply/demand constraints:
+The solver returns **dual values** (also called **shadow prices** or **node potentials**) which represent the marginal cost of supply/demand changes:
 
 ```python
 result = solve_min_cost_flow(problem)
@@ -289,12 +289,28 @@ result = solve_min_cost_flow(problem)
 for node_id, dual in result.duals.items():
     print(f"Node {node_id}: dual value = {dual:.6f}")
 
-# Dual values indicate marginal cost of changing supply/demand
-# For optimal solutions with arc (i,j) at positive flow:
-#   cost[i,j] + dual[i] - dual[j] ≈ 0  (complementary slackness)
+# Predict cost change without re-solving
+# If we increase supply at node 'supplier' by 10 units:
+cost_change_per_unit = result.duals["supplier"] - result.duals["customer"]
+predicted_change = 10 * cost_change_per_unit
+print(f"Predicted cost change: ${-predicted_change:.2f}")
+
+# Verify complementary slackness (optimality condition)
+# For arcs with positive flow, reduced cost should be ~0:
+for (tail, head), flow in result.flows.items():
+    if flow > 1e-6:
+        reduced_cost = arc_cost + result.duals[tail] - result.duals[head]
+        print(f"{tail}->{head}: reduced_cost = {reduced_cost:.10f}")
 ```
 
-Dual values enable sensitivity analysis to understand how the objective changes with supply/demand perturbations. See `examples/sensitivity_analysis_example.py` for detailed examples and the [Algorithm Guide](docs/algorithm.md#node-potentials-dual-variables) for mathematical background.
+**Use cases for dual values:**
+- **"What-if" analysis**: Predict cost impact of supply/demand changes without re-solving
+- **Capacity planning**: Identify which capacity expansions provide the most value
+- **Pricing decisions**: Determine value of expedited delivery or premium sourcing
+- **Bottleneck identification**: Find binding capacity constraints
+- **Optimality verification**: Check complementary slackness conditions
+
+See `examples/sensitivity_analysis_example.py` for comprehensive examples including production planning, marginal cost prediction, and bottleneck identification. For mathematical background, see the [Algorithm Guide](docs/algorithm.md#node-potentials-dual-variables) and [Examples Guide](docs/examples.md#sensitivity-analysis).
 
 ## CLI Example
 
