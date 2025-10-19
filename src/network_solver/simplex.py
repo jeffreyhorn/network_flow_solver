@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .basis import TreeBasis
-from .data import FlowResult, NetworkProblem, ProgressCallback, ProgressInfo, SolverOptions
+from .data import Basis, FlowResult, NetworkProblem, ProgressCallback, ProgressInfo, SolverOptions
 from .exceptions import (
     InvalidProblemError,
     SolverConfigurationError,
@@ -252,6 +252,108 @@ class NetworkSimplex:
     def _rebuild_tree_structure(self) -> None:
         """Recompute parent pointers and potentials based on active tree arcs."""
         self.basis.rebuild(self.tree_adj, self.arcs)
+
+    def _apply_warm_start_basis(self, warm_start_basis: Basis) -> bool:
+        """Apply a warm-start basis from a previous solve.
+
+        Returns:
+            True if warm-start was successfully applied, False otherwise.
+        """
+        # Build a mapping of arc keys to arc indices
+        arc_key_to_idx: dict[tuple[str, str], int] = {}
+        for idx, arc in enumerate(self.arcs):
+            if not arc.artificial:
+                arc_key_to_idx[arc.key] = idx
+
+        # Check if all tree arcs from the basis exist in the current problem
+        tree_arc_indices: list[int] = []
+        for arc_key in warm_start_basis.tree_arcs:
+            if arc_key not in arc_key_to_idx:
+                self.logger.warning(
+                    f"Warm-start basis contains arc {arc_key} not in current problem. "
+                    "Falling back to cold start."
+                )
+                return False
+            tree_arc_indices.append(arc_key_to_idx[arc_key])
+
+        # Verify we have a reasonable number of tree arcs
+        # Note: The actual spanning tree may include some artificial arcs, so we allow some flexibility
+        min_tree_arcs = len([n for n in self.problem.nodes.values()]) - 1
+        if len(tree_arc_indices) < min_tree_arcs:
+            self.logger.warning(
+                f"Warm-start basis has {len(tree_arc_indices)} tree arcs, "
+                f"expected at least {min_tree_arcs}. Falling back to cold start."
+            )
+            return False
+
+        # Mark non-artificial arcs as in/out of tree based on the basis
+        for idx, arc in enumerate(self.arcs):
+            if not arc.artificial:
+                arc.in_tree = idx in tree_arc_indices
+
+        # Initialize flows from the basis if available
+        # Note: Flows may not be feasible for the new problem, but they provide
+        # a starting point. The solver will adjust them during Phase 1 if needed.
+        for arc_key, flow_value in warm_start_basis.arc_flows.items():
+            if arc_key in arc_key_to_idx:
+                idx = arc_key_to_idx[arc_key]
+                # Only set flow if it's within bounds
+                arc = self.arcs[idx]
+                if arc.lower <= flow_value <= arc.upper:
+                    arc.flow = flow_value
+
+        # Add artificial arcs as needed to complete the spanning tree
+        # This ensures we have a valid spanning tree structure
+        nodes_covered = set()
+        for idx, arc in enumerate(self.arcs):
+            if arc.in_tree and not arc.artificial:
+                nodes_covered.add(arc.tail)
+                nodes_covered.add(arc.head)
+
+        # Any node not covered by the basis needs an artificial arc
+        for node_idx in range(self.node_count):
+            if node_idx not in nodes_covered and node_idx != self.root:
+                # Find the artificial arc for this node and mark it as in tree
+                for idx, arc in enumerate(self.arcs):
+                    if arc.artificial and (arc.tail == node_idx or arc.head == node_idx):
+                        arc.in_tree = True
+                        break
+
+        # Rebuild tree adjacency lists
+        for adj_list in self.tree_adj:
+            adj_list.clear()
+        for idx, arc in enumerate(self.arcs):
+            if arc.in_tree:
+                self.tree_adj[arc.tail].append(idx)
+                self.tree_adj[arc.head].append(idx)
+
+        # Verify the tree has a reasonable structure
+        # The tree should have at least min_tree_arcs non-artificial arcs
+        tree_edge_count = sum(1 for arc in self.arcs if arc.in_tree and not arc.artificial)
+        if tree_edge_count < min_tree_arcs:
+            self.logger.warning(
+                f"Warm-start tree has {tree_edge_count} edges, expected at least {min_tree_arcs}. "
+                "Falling back to cold start."
+            )
+            return False
+
+        self.logger.info(
+            f"Successfully applied warm-start basis with {len(tree_arc_indices)} tree arcs",
+            extra={"tree_arcs": len(tree_arc_indices), "non_artificial": tree_edge_count},
+        )
+        return True
+
+    def _extract_basis(self) -> Basis:
+        """Extract the current basis (spanning tree) for warm-starting future solves."""
+        tree_arcs: set[tuple[str, str]] = set()
+        arc_flows: dict[tuple[str, str], float] = {}
+
+        for arc in self.arcs:
+            if arc.in_tree and not arc.artificial:
+                tree_arcs.add(arc.key)
+                arc_flows[arc.key] = arc.flow
+
+        return Basis(tree_arcs=tree_arcs, arc_flows=arc_flows)
 
     def _find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
         """Return (arc_idx, direction) for entering arc, where direction is +1 or -1."""
@@ -634,6 +736,7 @@ class NetworkSimplex:
         max_iterations: int | None = None,
         progress_callback: ProgressCallback | None = None,
         progress_interval: int = 100,
+        warm_start_basis: Basis | None = None,
     ) -> FlowResult:
         """Solve the minimum-cost flow problem.
 
@@ -642,6 +745,7 @@ class NetworkSimplex:
                            SolverOptions (default: max(100, 5*num_arcs)).
             progress_callback: Optional callback function to receive progress updates.
             progress_interval: Number of iterations between progress callbacks (default: 100).
+            warm_start_basis: Optional basis from a previous solve to initialize the solver.
 
         Returns:
             FlowResult containing solution, dual values, and solver statistics.
@@ -667,38 +771,74 @@ class NetworkSimplex:
                 "pricing_strategy": self.options.pricing_strategy,
                 "total_supply": total_supply,
                 "tolerance": self.tolerance,
+                "warm_start": warm_start_basis is not None,
             },
         )
 
+        # Try to apply warm-start basis if provided
+        skip_phase_1 = False
+        if warm_start_basis is not None:
+            self.logger.info("Attempting to apply warm-start basis")
+            if self._apply_warm_start_basis(warm_start_basis):
+                # Check if warm-start basis is feasible (no artificial flow needed)
+                self._apply_phase_costs(phase=1)
+                self._rebuild_tree_structure()
+                artificial_flow = sum(
+                    arc.flow for arc in self.arcs if arc.artificial and arc.flow > self.tolerance
+                )
+                if artificial_flow < self.tolerance:
+                    self.logger.info(
+                        "Warm-start basis is feasible, skipping Phase 1",
+                        extra={"artificial_flow": artificial_flow},
+                    )
+                    skip_phase_1 = True
+                else:
+                    self.logger.info(
+                        "Warm-start basis requires Phase 1 refinement",
+                        extra={"artificial_flow": artificial_flow},
+                    )
+            else:
+                # Warm-start failed, reinitialize with cold start
+                self.logger.info("Warm-start failed, performing cold start")
+                self._initialize_tree()
+                self._rebuild_tree_structure()
+
         # Phase 1: find feasible flow minimizing artificial usage.
-        self.logger.info("Phase 1: Finding initial feasible solution", extra={"elapsed_ms": 0.0})
-        self._apply_phase_costs(phase=1)
-        self._rebuild_tree_structure()
-        iters = self._run_simplex_iterations(
-            max_iterations,
-            allow_zero=True,
-            phase_one=True,
-            progress_callback=progress_callback,
-            progress_interval=progress_interval,
-            phase=1,
-            total_iterations_offset=0,
-            start_time=start_time,
-        )
-        total_iterations += iters
-        # Calculate total artificial flow for diagnostics
-        artificial_flow = sum(
-            arc.flow for arc in self.arcs if arc.artificial and arc.flow > self.tolerance
-        )
-        elapsed_ms = (time.time() - start_time) * 1000
-        self.logger.info(
-            "Phase 1 complete",
-            extra={
-                "iterations": iters,
-                "total_iterations": total_iterations,
-                "artificial_flow": artificial_flow,
-                "elapsed_ms": elapsed_ms,
-            },
-        )
+        if not skip_phase_1:
+            self.logger.info(
+                "Phase 1: Finding initial feasible solution", extra={"elapsed_ms": 0.0}
+            )
+            if warm_start_basis is None:
+                self._apply_phase_costs(phase=1)
+                self._rebuild_tree_structure()
+            iters = self._run_simplex_iterations(
+                max_iterations,
+                allow_zero=True,
+                phase_one=True,
+                progress_callback=progress_callback,
+                progress_interval=progress_interval,
+                phase=1,
+                total_iterations_offset=0,
+                start_time=start_time,
+            )
+            total_iterations += iters
+            # Calculate total artificial flow for diagnostics
+            artificial_flow = sum(
+                arc.flow for arc in self.arcs if arc.artificial and arc.flow > self.tolerance
+            )
+            elapsed_ms = (time.time() - start_time) * 1000
+            self.logger.info(
+                "Phase 1 complete",
+                extra={
+                    "iterations": iters,
+                    "total_iterations": total_iterations,
+                    "artificial_flow": artificial_flow,
+                    "elapsed_ms": elapsed_ms,
+                },
+            )
+        else:
+            iters = 0
+            self.logger.info("Phase 1 skipped (warm-start basis is feasible)")
 
         infeasible = any(arc.artificial and arc.flow > self.tolerance for arc in self.arcs)
         if infeasible:
@@ -816,12 +956,18 @@ class NetworkSimplex:
             },
         )
 
+        # Extract basis for warm-starting future solves (only for feasible solutions)
+        basis = None
+        if status in ("optimal", "iteration_limit"):
+            basis = self._extract_basis()
+
         return FlowResult(
             objective=float(round(objective, 12)),
             flows=flows,
             status=status,
             iterations=total_iterations,
             duals=duals,
+            basis=basis,
         )
 
     def _reset_devex_weights(self) -> None:
