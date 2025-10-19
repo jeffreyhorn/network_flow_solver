@@ -725,7 +725,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All 242 tests continue to pass
 - Example runs successfully with both libraries
 
-### Added (Warm-Start Support)
+### Added (Warm-Start Support - EXPERIMENTAL)
+
+> **Note**: Warm-starting is currently experimental with known issues. The API is available for testing but may not work correctly in all cases. See tests/unit/test_warm_start.py for comprehensive edge case tests (marked as xfail).
+
 - **Basis extraction and warm-starting capability**
   - New `Basis` dataclass to represent spanning tree structure
     - `tree_arcs`: Set of arcs in the spanning tree
