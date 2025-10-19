@@ -432,8 +432,8 @@ class NetworkSimplex:
         conservation at each node given the current node supplies.
         """
         # Build parent structure via BFS from root
-        parent = [None] * self.node_count
-        parent_arc_idx = [None] * self.node_count
+        parent: list[int | None] = [None] * self.node_count
+        parent_arc_idx: list[int | None] = [None] * self.node_count
         parent[self.root] = self.root
 
         queue = deque([self.root])
@@ -466,11 +466,14 @@ class NetworkSimplex:
                     compute_flow_to_parent(neighbor)
 
             # Now compute flow to our parent
-            if node == self.root or parent_arc_idx[node] is None:
+            if node == self.root:
                 return
 
-            arc_idx = parent_arc_idx[node]
-            arc = self.arcs[arc_idx]
+            parent_arc = parent_arc_idx[node]
+            if parent_arc is None:
+                return
+
+            arc = self.arcs[parent_arc]
 
             # Compute net flow balance at this node
             # balance = supply + (inflow from children - outflow to children)
