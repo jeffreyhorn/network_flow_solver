@@ -318,6 +318,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Shows how edges become arcs with lower=-C, upper=C
     - Links to API reference for details
 
+### Improved (Docstrings)
+- **Comprehensive docstring improvements across all main modules**
+  - **data.py enhancements:**
+    - Node: Added examples for supply/demand/transshipment nodes, attributes documentation
+    - Arc: Added examples for basic/infinite capacity/lower bound arcs, raises documentation, link to undirected graphs
+    - NetworkProblem: Added directed/undirected examples, methods documentation, "See Also" links to build_problem, solve_min_cost_flow, and docs/algorithm.md
+    - FlowResult: Expanded status codes documentation, added complete working example showing usage, "See Also" links
+    - SolverOptions: Added detailed parameter guidance (ranges, tradeoffs), 4 configuration examples (default, high-precision, fast, stable), link to docs/benchmarks.md
+  - **solver.py enhancements:**
+    - solve_min_cost_flow(): Added time/space complexity analysis (O(n²m) best, O(nm log n) average), expanded examples, detailed returns/raises documentation, "See Also" links to docs
+    - load_problem(): Added complexity analysis, examples, "See Also" links
+    - save_result(): Added complexity analysis, examples, "See Also" links
+  - **simplex.py enhancements:**
+    - NetworkSimplex: Added algorithm overview (Phase 1/Phase 2), implementation details (spanning tree, node potentials, pricing strategies, Forrest-Tomlin), attributes documentation, "See Also" links
+  - All docstrings now follow consistent format with:
+    - Detailed parameter descriptions
+    - Return value documentation
+    - Raises documentation where applicable
+    - Time and space complexity analysis for key functions
+    - Working code examples
+    - "See Also" cross-references to related functions and documentation
+  - Total: ~250 lines of enhanced documentation added to docstrings
+  - All tests passing (242 tests)
+  - Type checking and linting passing
+
 ### Planned
 - PyPI publication
 - Additional optimization algorithms

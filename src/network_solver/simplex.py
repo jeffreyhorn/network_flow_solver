@@ -46,7 +46,39 @@ class ArcState:
 
 
 class NetworkSimplex:
-    """Network simplex solver for the minimum-cost flow problem."""
+    """Network simplex solver for the minimum-cost flow problem.
+
+    This class implements the network simplex algorithm, a specialized version of the
+    simplex method optimized for network flow problems. It maintains a spanning tree
+    basis and iteratively improves the solution through pivots.
+
+    The algorithm operates in two phases:
+    - Phase 1: Find an initial feasible solution (minimize artificial arc usage)
+    - Phase 2: Optimize from the feasible basis (minimize actual cost)
+
+    Implementation Details:
+        - Uses a spanning tree basis (|N|-1 basic arcs)
+        - Maintains node potentials (dual variables) for reduced cost computation
+        - Supports Devex and Dantzig pricing strategies for pivot selection
+        - Uses Forrest-Tomlin updates for efficient basis factorization
+        - Applies cost perturbation for degeneracy handling
+
+    Attributes:
+        problem: The NetworkProblem instance to solve.
+        options: Solver configuration (pricing strategy, tolerances, etc.).
+        node_ids: List of node IDs (including artificial root).
+        arcs: Internal arc representation with flow state.
+        basis: TreeBasis managing the spanning tree structure.
+
+    See Also:
+        - solve_min_cost_flow(): Public API wrapper
+        - docs/algorithm.md: Detailed algorithm explanation
+        - TreeBasis: Basis management and factorization
+
+    Note:
+        This class is internal to the solver. Use solve_min_cost_flow() instead
+        of instantiating this class directly.
+    """
 
     ROOT_NODE = "__network_simplex_root__"
 
