@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -12,6 +14,30 @@ from network_solver import load_problem, save_result, solve_min_cost_flow  # noq
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Solve a network flow problem")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase verbosity (-v for INFO, -vv for DEBUG)",
+    )
+    args = parser.parse_args()
+
+    # Configure logging based on verbosity
+    if args.verbose >= 2:
+        level = logging.DEBUG
+    elif args.verbose >= 1:
+        level = logging.INFO
+    else:
+        level = logging.WARNING
+
+    logging.basicConfig(
+        level=level,
+        format="%(levelname)-8s %(name)s: %(message)s",
+        stream=sys.stderr,
+    )
+
     base_dir = Path(__file__).resolve().parent
     problem_path = base_dir / "sample_problem.json"
     output_path = base_dir / "sample_solution.json"

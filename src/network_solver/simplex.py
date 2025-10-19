@@ -447,6 +447,23 @@ class NetworkSimplex:
         tail = entering.tail if direction == 1 else entering.head
         head = entering.head if direction == 1 else entering.tail
 
+        if self.logger.isEnabledFor(logging.DEBUG):
+            entering_rc = (
+                entering.cost
+                + self.basis.potential[entering.tail]
+                - self.basis.potential[entering.head]
+            )
+            if direction == -1:
+                entering_rc = -entering_rc
+            self.logger.debug(
+                "Pivot: entering arc",
+                extra={
+                    "entering_arc": entering.key,
+                    "direction": "forward" if direction == 1 else "backward",
+                    "reduced_cost": entering_rc,
+                },
+            )
+
         cycle = self.basis.collect_cycle(self.tree_adj, self.arcs, tail, head)
         cycle.append((arc_idx, direction))
 
@@ -514,9 +531,23 @@ class NetworkSimplex:
         projection = self.basis.project_column(entering)
         if projection is not None:
             entering_weight = float(np.dot(projection, projection))
-            if not math.isfinite(entering_weight) or entering_weight <= DEVEX_WEIGHT_MIN:
+            if not math.isfinite(entering_weight):
+                self.logger.warning(
+                    "Devex weight is not finite, clamping to minimum",
+                    extra={"entering_arc": entering.key, "weight": entering_weight},
+                )
+                entering_weight = DEVEX_WEIGHT_MIN
+            elif entering_weight <= DEVEX_WEIGHT_MIN:
                 entering_weight = DEVEX_WEIGHT_MIN
             elif entering_weight > DEVEX_WEIGHT_MAX:
+                self.logger.warning(
+                    "Devex weight exceeds maximum, clamping",
+                    extra={
+                        "entering_arc": entering.key,
+                        "weight": entering_weight,
+                        "max": DEVEX_WEIGHT_MAX,
+                    },
+                )
                 entering_weight = DEVEX_WEIGHT_MAX
         else:
             entering_weight = 1.0
@@ -528,10 +559,25 @@ class NetworkSimplex:
         if leaving_idx == arc_idx:
             entering.in_tree = False
             # Degenerate pivot: tree unchanged but flows adjusted.
+            if self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug(
+                    "Degenerate pivot (entering arc is also leaving)",
+                    extra={"arc": entering.key, "theta": theta},
+                )
             return
         leaving_arc = self.arcs[leaving_idx]
         leaving_arc.in_tree = False
         self.devex_weights[leaving_idx] = 1.0
+
+        if self.logger.isEnabledFor(logging.DEBUG):
+            self.logger.debug(
+                "Pivot: leaving arc",
+                extra={
+                    "leaving_arc": leaving_arc.key,
+                    "theta": theta,
+                    "is_degenerate": abs(theta) < self.tolerance,
+                },
+            )
 
         # Check if we've hit the FT update limit and need a full rebuild
         force_rebuild = self.ft_updates_since_rebuild >= self.options.ft_update_limit
@@ -541,29 +587,31 @@ class NetworkSimplex:
 
         if force_rebuild:
             # Periodic rebuild to maintain numerical stability
+            self.logger.debug(
+                "FT update limit reached; rebuilding basis",
+                extra={
+                    "leaving_idx": leaving_idx,
+                    "entering_idx": arc_idx,
+                    "ft_updates": self.options.ft_update_limit,
+                },
+            )
             self.basis.rebuild(self.tree_adj, self.arcs, build_numeric=True)
             self.ft_rebuilds += 1
             self.ft_updates_since_rebuild = 0
-            if self.logger.isEnabledFor(logging.DEBUG):
-                self.logger.debug(
-                    "FT update limit reached; rebuilding basis",
-                    extra={
-                        "leaving_idx": leaving_idx,
-                        "entering_idx": arc_idx,
-                        "ft_updates": self.options.ft_update_limit,
-                    },
-                )
             self._reset_devex_weights()
         elif not basis_updated:
             # FT update failed: refresh the numeric basis and reset Devex heuristics.
+            self.logger.warning(
+                "Forrest-Tomlin update failed; rebuilding basis for numerical stability",
+                extra={
+                    "leaving_arc": leaving_arc.key,
+                    "entering_arc": entering.key,
+                    "ft_rebuilds": self.ft_rebuilds + 1,
+                },
+            )
             self.basis.rebuild(self.tree_adj, self.arcs, build_numeric=True)
             self.ft_rebuilds += 1
             self.ft_updates_since_rebuild = 0
-            if self.logger.isEnabledFor(logging.DEBUG):
-                self.logger.debug(
-                    "Forrest–Tomlin update failed; rebuilding basis",
-                    extra={"leaving_idx": leaving_idx, "entering_idx": arc_idx},
-                )
             self._reset_devex_weights()
         else:
             # Successful FT update
@@ -607,7 +655,18 @@ class NetworkSimplex:
         total_iterations = 0
         start_time = time.time()
 
+        self.logger.info(
+            "Starting network simplex solver",
+            extra={
+                "nodes": len(self.node_ids) - 1,  # Exclude artificial root
+                "arcs": self.actual_arc_count,
+                "max_iterations": max_iterations,
+                "pricing_strategy": self.options.pricing_strategy,
+            },
+        )
+
         # Phase 1: find feasible flow minimizing artificial usage.
+        self.logger.info("Phase 1: Finding initial feasible solution")
         self._apply_phase_costs(phase=1)
         self._rebuild_tree_structure()
         iters = self._run_simplex_iterations(
@@ -621,10 +680,18 @@ class NetworkSimplex:
             start_time=start_time,
         )
         total_iterations += iters
+        self.logger.info(
+            "Phase 1 complete",
+            extra={"iterations": iters, "total_iterations": total_iterations},
+        )
 
         infeasible = any(arc.artificial and arc.flow > self.tolerance for arc in self.arcs)
         if infeasible:
             if total_iterations >= max_iterations:
+                self.logger.error(
+                    "Iteration limit reached before finding feasible solution",
+                    extra={"iterations": total_iterations, "max_iterations": max_iterations},
+                )
                 return FlowResult(
                     objective=0.0,
                     flows={},
@@ -632,6 +699,10 @@ class NetworkSimplex:
                     iterations=total_iterations,
                     duals={},
                 )
+            self.logger.error(
+                "Problem is infeasible - no feasible solution exists",
+                extra={"iterations": total_iterations},
+            )
             return FlowResult(
                 objective=0.0,
                 flows={},
@@ -642,6 +713,10 @@ class NetworkSimplex:
 
         remaining = max(0, max_iterations - total_iterations)
         # Phase 2 restores original costs and seeks an optimal solution given the feasible basis.
+        self.logger.info(
+            "Phase 2: Optimizing from feasible basis",
+            extra={"remaining_iterations": remaining},
+        )
         self._apply_phase_costs(phase=2)
         self._rebuild_tree_structure()
         iters = self._run_simplex_iterations(
@@ -655,8 +730,18 @@ class NetworkSimplex:
             start_time=start_time,
         )
         total_iterations += iters
+        self.logger.info(
+            "Phase 2 complete",
+            extra={"iterations": iters, "total_iterations": total_iterations},
+        )
 
         status = "optimal" if total_iterations < max_iterations else "iteration_limit"
+
+        if status == "iteration_limit":
+            self.logger.warning(
+                "Iteration limit reached before optimality",
+                extra={"iterations": total_iterations, "max_iterations": max_iterations},
+            )
 
         flows: dict[tuple[str, str], float] = {}
         objective = 0.0
