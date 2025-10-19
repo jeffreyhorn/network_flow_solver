@@ -371,6 +371,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - undirected_graph_example.py: `-v` for INFO, `-vv` for DEBUG
   - Consistent logging format across all examples
   - Logs go to stderr, normal output to stdout
+- **Documentation updates**
+  - README.md: Added "Verbose Output" section explaining log levels
+  - docs/examples.md: Added note about --verbose flag at top of document
 - **Benefits:**
   - Easy debugging with `-vv` flag to see every pivot
   - Monitor solver progress with `-v` flag
