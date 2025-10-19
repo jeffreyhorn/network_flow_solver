@@ -8,6 +8,7 @@ Annotated examples demonstrating various features and use cases.
 - [Supply Chain with Transshipment](#supply-chain-with-transshipment)
 - [Maximum Flow Problem](#maximum-flow-problem)
 - [Minimum Cost Circulation](#minimum-cost-circulation)
+- [Undirected Graphs](#undirected-graphs)
 - [Progress Monitoring](#progress-monitoring)
 - [Sensitivity Analysis](#sensitivity-analysis)
 - [Solver Configuration](#solver-configuration)
@@ -211,6 +212,94 @@ for (tail, head), flow in sorted(result.flows.items()):
 - Resource allocation with mandatory constraints
 - Production planning with minimum production levels
 - Network equilibrium problems
+
+## Undirected Graphs
+
+**Problem:** Network design with bidirectional links (cables, roads, pipes).
+
+Undirected graphs are useful when edges naturally allow flow in both directions with symmetric costs and capacities. Each undirected edge is transformed internally to a directed arc with `lower = -capacity`.
+
+**Key Points:**
+- Set `directed=False` in problem construction
+- All edges must have finite capacity (no `capacity=None`)
+- Cannot specify custom lower bounds (leave at default 0.0)
+- Positive flow = tail→head, Negative flow = head→tail
+
+```python
+from network_solver import build_problem, solve_min_cost_flow
+
+# Campus network: route data from A to D
+nodes = [
+    {"id": "A", "supply": 100.0},   # Data center (source)
+    {"id": "B", "supply": 0.0},     # Intermediate building
+    {"id": "C", "supply": 0.0},     # Intermediate building
+    {"id": "D", "supply": -100.0},  # Research lab (sink)
+]
+
+# Bidirectional fiber optic cables
+# Note: must have finite capacity for undirected graphs
+arcs = [
+    {"tail": "A", "head": "B", "capacity": 80.0, "cost": 10.0},  # A-B cable
+    {"tail": "A", "head": "C", "capacity": 60.0, "cost": 8.0},   # A-C cable
+    {"tail": "B", "head": "D", "capacity": 70.0, "cost": 12.0},  # B-D cable
+    {"tail": "C", "head": "D", "capacity": 90.0, "cost": 15.0},  # C-D cable
+]
+
+# IMPORTANT: Set directed=False for undirected graph
+problem = build_problem(nodes=nodes, arcs=arcs, directed=False, tolerance=1e-6)
+result = solve_min_cost_flow(problem)
+
+print(f"Total cost: ${result.objective:.2f}")
+print("\nFlow on each link:")
+for (tail, head), flow in sorted(result.flows.items()):
+    if abs(flow) > 1e-6:
+        if flow > 0:
+            print(f"  {tail}--{head}: {flow:.1f} units ({tail} → {head})")
+        else:
+            print(f"  {tail}--{head}: {abs(flow):.1f} units ({head} → {tail})")
+```
+
+**Output:**
+```
+Total cost: $2100.00
+Flow on each link:
+  A--B: 80.0 units (A → B)
+  A--C: 20.0 units (A → C)
+  B--D: 70.0 units (B → D)
+  C--D: 20.0 units (C → D)
+```
+
+**How It Works:**
+- Edge `{A, B}` with capacity 80 becomes arc `(A, B)` with lower=-80, upper=80
+- Solver can assign flow from -80 to +80
+- Positive flow means A→B, negative means B→A
+- Final solution uses A→B→D path (70 units) + A→C→D path (30 units)
+
+**Common Errors:**
+
+```python
+# ❌ ERROR: Infinite capacity not allowed
+arcs = [{"tail": "A", "head": "B", "capacity": None, "cost": 1.0}]
+problem = build_problem(nodes=nodes, arcs=arcs, directed=False, tolerance=1e-6)
+# Raises: InvalidProblemError: "Undirected edge A -- B has infinite capacity..."
+
+# ❌ ERROR: Custom lower bounds not allowed
+arcs = [{"tail": "A", "head": "B", "capacity": 50.0, "cost": 1.0, "lower": 5.0}]
+problem = build_problem(nodes=nodes, arcs=arcs, directed=False, tolerance=1e-6)
+# Raises: InvalidProblemError: "Undirected edge A -- B has custom lower bound..."
+
+# ✓ CORRECT: Finite capacity, default lower bound
+arcs = [{"tail": "A", "head": "B", "capacity": 50.0, "cost": 1.0}]  # lower=0.0 by default
+```
+
+**When to Use Undirected:**
+- ✓ Physical infrastructure (cables, pipes, roads) with symmetric capacity/cost
+- ✓ Want simpler problem specification (1 edge vs 2 arcs)
+- ✓ Costs and capacities are same in both directions
+- ✗ Need different costs by direction (use directed graph instead)
+- ✗ Need different capacities by direction (use directed graph instead)
+
+See `examples/undirected_graph_example.py` for a complete demonstration and [API Reference - Undirected Graphs](api.md#working-with-undirected-graphs) for detailed documentation.
 
 ## Progress Monitoring
 

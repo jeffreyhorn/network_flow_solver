@@ -60,6 +60,19 @@ For a feasible problem:
 
 The total supply must equal the total demand.
 
+### Undirected Graphs
+
+While the algorithm operates on directed networks, the solver supports undirected graphs through automatic transformation during preprocessing:
+
+- **Input:** Undirected edge `{i, j}` with capacity `C` and cost `c`
+- **Transformation:** Becomes directed arc `(i, j)` with:
+  - Lower bound: `l_ij = -C`
+  - Upper bound: `u_ij = C`
+  - Cost: `c_ij = c`
+- **Interpretation:** Flow `x_ij > 0` means flow goes `i → j`, while `x_ij < 0` means flow goes `j → i`
+
+This allows the network simplex algorithm to handle bidirectional edges while maintaining the standard directed formulation. See [API Reference - Undirected Graphs](api.md#working-with-undirected-graphs) for details.
+
 ## Algorithm Structure
 
 The network simplex algorithm maintains a **spanning tree solution** (a basis) and iteratively improves it through pivots.
