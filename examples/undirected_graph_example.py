@@ -4,11 +4,38 @@ This example shows how to work with undirected graphs, understand the bidirectio
 flow transformation, and interpret results correctly.
 """
 
+import argparse
+import logging
+import sys
+
 from network_solver import solve_min_cost_flow
 from network_solver.data import Arc, NetworkProblem, Node
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Undirected graph example")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase verbosity (-v for INFO, -vv for DEBUG)",
+    )
+    args = parser.parse_args()
+
+    # Configure logging based on verbosity
+    if args.verbose >= 2:
+        level = logging.DEBUG
+    elif args.verbose >= 1:
+        level = logging.INFO
+    else:
+        level = logging.WARNING
+
+    logging.basicConfig(
+        level=level,
+        format="%(levelname)-8s %(name)s: %(message)s",
+        stream=sys.stderr,
+    )
     print("=" * 80)
     print("Undirected Graph Example: Campus Network Design")
     print("=" * 80)

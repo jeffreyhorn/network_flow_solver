@@ -343,6 +343,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All tests passing (242 tests)
   - Type checking and linting passing
 
+### Improved (Logging)
+- **Comprehensive logging at appropriate levels**
+  - **INFO level** - Phase transitions and solver progress:
+    - "Starting network simplex solver" with problem size and configuration
+    - "Phase 1: Finding initial feasible solution"
+    - "Phase 1 complete" with iteration counts
+    - "Phase 2: Optimizing from feasible basis"
+    - "Phase 2 complete" with iteration counts
+  - **DEBUG level** - Individual pivot details:
+    - Entering arc selection with reduced cost and direction
+    - Leaving arc selection with theta and degeneracy flag
+    - Degenerate pivot detection
+    - FT update limit reached notifications
+  - **WARNING level** - Numerical issues:
+    - Devex weights going non-finite (NaN/Inf) with clamping
+    - Devex weights exceeding maximum bounds
+    - Forrest-Tomlin update failures requiring basis rebuild
+    - Iteration limit reached before optimality
+  - **ERROR level** - Solver failures:
+    - Infeasible problems (no feasible solution exists)
+    - Iteration limit reached before finding feasible solution
+  - All log messages include structured extra data for programmatic parsing
+- **Added --verbose flag to example scripts**
+  - solve_example.py: `-v` for INFO, `-vv` for DEBUG
+  - solve_dimacs_example.py: `-v` for INFO, `-vv` for DEBUG
+  - undirected_graph_example.py: `-v` for INFO, `-vv` for DEBUG
+  - Consistent logging format across all examples
+  - Logs go to stderr, normal output to stdout
+- **Benefits:**
+  - Easy debugging with `-vv` flag to see every pivot
+  - Monitor solver progress with `-v` flag
+  - Production use with default (WARNING+) for quiet operation
+  - Structured logging with extra fields for monitoring/analytics
+- All tests passing (242 tests)
+- Type checking and linting passing
+
 ### Planned
 - PyPI publication
 - Additional optimization algorithms
