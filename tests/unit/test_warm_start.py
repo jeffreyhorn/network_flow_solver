@@ -1,8 +1,7 @@
 """Unit tests for warm-start functionality.
 
-NOTE: Warm-start is currently experimental and has known issues.
-These tests document the expected behavior for when warm-start is fully implemented.
-Most tests are marked as xfail (expected to fail) until the implementation is complete.
+Tests for warm-start capability, which allows reusing basis information from
+a previous solve to accelerate solving similar problems.
 """
 
 import sys
@@ -15,9 +14,6 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from network_solver.data import Basis, build_problem  # noqa: E402
 from network_solver.solver import solve_min_cost_flow  # noqa: E402
-
-# Mark for experimental warm-start feature
-pytestmark = pytest.mark.xfail(reason="Warm-start is experimental and not fully implemented yet")
 
 
 class TestWarmStartBasics:

@@ -1,19 +1,22 @@
 """Example demonstrating incremental resolving with problem modifications.
 
-This example shows how to efficiently re-solve network flow problems after:
+This example shows how to efficiently re-solve network flow problems after
+various modifications. The scenarios demonstrate:
+
 1. Capacity changes (infrastructure expansion)
 2. Cost changes (pricing updates)
 3. Supply/demand changes (demand fluctuations)
 4. Adding/removing arcs (network topology changes)
+5. Iterative optimization strategies
 
-The solver supports warm-starting (see warm_start_example.py and docs), which can
-dramatically reduce iterations for similar problems. This example focuses on
-demonstrating various problem modification scenarios. Incremental resolving is
-valuable for:
-- Scenario analysis (what-if modeling)
-- Iterative optimization (gradually improving solutions)
-- Sensitivity analysis validation
-- Real-time adaptation to changing conditions
+Note: For maximum efficiency when solving similar problems sequentially, the
+solver supports warm-starting (see warm_start_example.py). Warm-start reuses
+the spanning tree structure from a previous solve, which can reduce iterations
+by 50-90% for similar problems. This is especially valuable for:
+- Real-time scenario analysis (what-if modeling)
+- Interactive optimization (fast parameter exploration)
+- Sensitivity analysis with parameter variations
+- Rolling horizon planning
 """
 
 from __future__ import annotations
@@ -42,13 +45,13 @@ def print_subsection(title: str) -> None:
     print("-" * 70)
 
 
-def print_solution(result, label: str = "Solution") -> None:
+def print_solution(result, label: str = "Solution", show_flows: bool = True) -> None:
     """Print solution summary."""
     print(f"\n{label}:")
     print(f"  Status: {result.status}")
     print(f"  Objective: ${result.objective:,.2f}")
     print(f"  Iterations: {result.iterations}")
-    if result.flows:
+    if show_flows and result.flows:
         print(f"  Flows:")
         for (tail, head), flow in sorted(result.flows.items()):
             print(f"    {tail} -> {head}: {flow:.2f} units")
@@ -362,12 +365,17 @@ def main() -> None:
     print("     - Demand forecasting and adaptation")
     print("     - Network design decisions")
     print("     - Iterative optimization strategies")
-    print("\n  Note: The solver supports warm-starting for even faster re-solving.")
-    print("        See warm_start_example.py for demonstrations.")
+    print("\n  4. Performance optimization:")
+    print("     - For sequential solves of similar problems, use warm-starting")
+    print("     - Warm-start reuses the basis from a previous solve")
+    print("     - Can reduce iterations by 50-90% (see warm_start_example.py)")
+    print("     - Usage: solve_min_cost_flow(problem, warm_start_basis=result.basis)")
 
     print(f"\nTotal time for all scenarios: {elapsed:.2f}s")
     print("\n" + "=" * 70)
-    print("For more details, see docs/examples.md")
+    print("For more details:")
+    print("  - docs/examples.md (Incremental Resolving section)")
+    print("  - warm_start_example.py (comprehensive warm-start demonstrations)")
     print("=" * 70 + "\n")
 
 

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Warm-start implementation fully functional** - Fixed critical bugs preventing warm-start from working correctly
+  - Fixed Union-Find component detection to correctly identify connected components in basis
+  - Made `_initialize_tree()` idempotent to prevent duplicate artificial arcs on fallback
+  - Fixed phase cost application after failed warm-start (was skipping initialization)
+  - Fixed early validation in `_apply_warm_start_basis()` to check basis before modifying state
+  - Reimplemented `_recompute_tree_flows()` using proper post-order tree traversal
+  - All 16 warm-start tests now passing (previously marked as xfail)
+  
+### Changed
+- **Removed experimental status from warm-start feature**
+  - Removed xfail markers from all warm-start tests
+  - Updated README.md to remove experimental warnings
+  - Warm-start is now production-ready and fully supported
+
 ## [0.1.0] - 2024-10-17
 
 ### Added
@@ -725,9 +742,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All 242 tests continue to pass
 - Example runs successfully with both libraries
 
-### Added (Warm-Start Support - EXPERIMENTAL)
+### Added (Warm-Start Support)
 
-> **Note**: Warm-starting is currently experimental with known issues. The API is available for testing but may not work correctly in all cases. See tests/unit/test_warm_start.py for comprehensive edge case tests (marked as xfail).
+> **Note**: Warm-start was initially released as experimental but is now fully functional (see [Unreleased] section above for bug fixes).
 
 - **Basis extraction and warm-starting capability**
   - New `Basis` dataclass to represent spanning tree structure
