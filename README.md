@@ -25,6 +25,12 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 # Install for development (recommended)
 pip install -e ".[dev,umfpack]"
 
+# Or install with tutorial support (Jupyter notebook)
+pip install -e ".[tutorial]"
+
+# Or install everything
+pip install -e ".[all]"
+
 # Or install runtime only
 pip install -e .
 ```
