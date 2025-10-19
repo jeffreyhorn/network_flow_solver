@@ -6,7 +6,9 @@ This example shows how to efficiently re-solve network flow problems after:
 3. Supply/demand changes (demand fluctuations)
 4. Adding/removing arcs (network topology changes)
 
-While the solver doesn't support warm-starting, incremental resolving is still
+The solver supports warm-starting (see warm_start_example.py and docs), which can
+dramatically reduce iterations for similar problems. This example focuses on
+demonstrating various problem modification scenarios. Incremental resolving is
 valuable for:
 - Scenario analysis (what-if modeling)
 - Iterative optimization (gradually improving solutions)
@@ -135,7 +137,9 @@ def scenario_2_cost_changes() -> None:
         {"tail": "hub", "head": "customer", "capacity": 100.0, "cost": 5.0},  # From hub +25%
     ]
 
-    problem_increased = build_problem(nodes=nodes, arcs=arcs_increased, directed=True, tolerance=1e-6)
+    problem_increased = build_problem(
+        nodes=nodes, arcs=arcs_increased, directed=True, tolerance=1e-6
+    )
     result_increased = solve_min_cost_flow(problem_increased)
     print_solution(result_increased, "After Cost Increase")
 
@@ -244,7 +248,9 @@ def scenario_4_network_topology_changes() -> None:
         {"tail": "plant", "head": "market", "capacity": 60.0, "cost": 8.0},  # New route
     ]
 
-    problem_with_direct = build_problem(nodes=nodes, arcs=arcs_with_direct, directed=True, tolerance=1e-6)
+    problem_with_direct = build_problem(
+        nodes=nodes, arcs=arcs_with_direct, directed=True, tolerance=1e-6
+    )
     result_with_direct = solve_min_cost_flow(problem_with_direct)
     print_solution(result_with_direct, "Network with Direct Route")
 
@@ -356,9 +362,8 @@ def main() -> None:
     print("     - Demand forecasting and adaptation")
     print("     - Network design decisions")
     print("     - Iterative optimization strategies")
-    print("\n  Note: While this solver doesn't support warm-starting,")
-    print("        re-solving from scratch is still efficient for")
-    print("        small to medium networks (<10,000 arcs).")
+    print("\n  Note: The solver supports warm-starting for even faster re-solving.")
+    print("        See warm_start_example.py for demonstrations.")
 
     print(f"\nTotal time for all scenarios: {elapsed:.2f}s")
     print("\n" + "=" * 70)
