@@ -328,6 +328,49 @@ python examples/solve_example.py -vv   # DEBUG: Every pivot operation
 - `-v`: INFO level - phase transitions, iteration counts
 - `-vv`: DEBUG level - individual pivots, arc selection, numerical details
 
+#### Structured Logging for Monitoring
+
+All log messages include structured data in the `extra` dict for programmatic parsing. This enables JSON logging for monitoring systems, performance profiling, and automated testing:
+
+```python
+import json
+import logging
+from network_solver import load_problem, solve_min_cost_flow
+
+# Configure JSON logging
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_data = {
+            "level": record.levelname,
+            "message": record.getMessage(),
+            **{k: v for k, v in record.__dict__.items() 
+               if k not in logging.LogRecord.__dict__}
+        }
+        return json.dumps(log_data)
+
+handler = logging.StreamHandler()
+handler.setFormatter(JSONFormatter())
+logging.getLogger("network_solver").addHandler(handler)
+logging.getLogger("network_solver").setLevel(logging.INFO)
+
+# Solve - logs include structured metrics
+problem = load_problem("examples/sample_problem.json")
+result = solve_min_cost_flow(problem)
+```
+
+**Structured metrics included:**
+- **Solver start**: `nodes`, `arcs`, `max_iterations`, `pricing_strategy`, `total_supply`, `tolerance`
+- **Phase 1 complete**: `iterations`, `total_iterations`, `artificial_flow`, `elapsed_ms`
+- **Phase 2 complete**: `iterations`, `total_iterations`, `objective`, `elapsed_ms`
+- **Solver complete**: `status`, `objective`, `iterations`, `elapsed_ms`, `tree_arcs`, `nonzero_flows`, `ft_rebuilds`
+
+Example JSON output:
+```json
+{"level": "INFO", "message": "Starting network simplex solver", "nodes": 3, "arcs": 3, "max_iterations": 100, "pricing_strategy": "devex", "total_supply": 10.0, "tolerance": 1e-06}
+{"level": "INFO", "message": "Phase 1 complete", "iterations": 2, "total_iterations": 2, "artificial_flow": 0, "elapsed_ms": 2.23}
+{"level": "INFO", "message": "Solver complete", "status": "optimal", "objective": 15.0, "iterations": 2, "elapsed_ms": 4.04, "tree_arcs": 2, "nonzero_flows": 2, "ft_rebuilds": 0}
+```
+
 ## Problem File Format
 
 Problem instances are JSON documents with the following shape:

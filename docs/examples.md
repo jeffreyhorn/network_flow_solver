@@ -20,6 +20,7 @@ Example: `python examples/solve_example.py -v`
 - [Sensitivity Analysis](#sensitivity-analysis)
 - [Solver Configuration](#solver-configuration)
 - [Flow Validation and Analysis](#flow-validation-and-analysis)
+- [Structured Logging for Monitoring](#structured-logging-for-monitoring)
 
 ## Basic Transportation Problem
 
@@ -528,6 +529,109 @@ This example demonstrates the complete workflow:
 3. Extract specific flow paths
 4. Identify capacity bottlenecks
 5. Generate a comprehensive report
+
+## Structured Logging for Monitoring
+
+**Use case:** Production monitoring, performance profiling, automated testing.
+
+All solver log messages include structured data in the `extra` dict, enabling JSON logging for monitoring systems, dashboards, and analytics.
+
+```python
+import json
+import logging
+import sys
+from network_solver import load_problem, solve_min_cost_flow
+
+
+class StructuredJSONFormatter(logging.Formatter):
+    """Format log records as JSON with structured extra fields."""
+    
+    def format(self, record: logging.LogRecord) -> str:
+        # Start with basic fields
+        log_data = {
+            "timestamp": self.formatTime(record),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        
+        # Add all extra fields (anything not in standard LogRecord)
+        standard_fields = {
+            'name', 'msg', 'args', 'created', 'filename', 'funcName',
+            'levelname', 'levelno', 'lineno', 'module', 'msecs',
+            'message', 'pathname', 'process', 'processName',
+            'relativeCreated', 'thread', 'threadName', 'exc_info',
+            'exc_text', 'stack_info', 'taskName'
+        }
+        
+        for key, value in record.__dict__.items():
+            if key not in standard_fields:
+                log_data[key] = value
+        
+        return json.dumps(log_data)
+
+
+# Configure JSON logging
+handler = logging.StreamHandler(sys.stderr)
+handler.setFormatter(StructuredJSONFormatter())
+
+logger = logging.getLogger("network_solver")
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+logger.propagate = False
+
+# Solve problem - logs include structured metrics
+problem = load_problem("examples/sample_problem.json")
+result = solve_min_cost_flow(problem)
+
+print(f"\nSolution: status={result.status}, objective={result.objective}")
+```
+
+**Example JSON output:**
+
+```json
+{"timestamp": "2024-01-15 10:30:45,123", "level": "INFO", "logger": "network_solver.simplex", "message": "Starting network simplex solver", "nodes": 3, "arcs": 3, "max_iterations": 100, "pricing_strategy": "devex", "total_supply": 10.0, "tolerance": 1e-06}
+{"timestamp": "2024-01-15 10:30:45,124", "level": "INFO", "logger": "network_solver.simplex", "message": "Phase 1: Finding initial feasible solution", "elapsed_ms": 0.0}
+{"timestamp": "2024-01-15 10:30:45,126", "level": "INFO", "logger": "network_solver.simplex", "message": "Phase 1 complete", "iterations": 2, "total_iterations": 2, "artificial_flow": 0, "elapsed_ms": 2.23}
+{"timestamp": "2024-01-15 10:30:45,127", "level": "INFO", "logger": "network_solver.simplex", "message": "Phase 2: Optimizing from feasible basis", "remaining_iterations": 98}
+{"timestamp": "2024-01-15 10:30:45,128", "level": "INFO", "logger": "network_solver.simplex", "message": "Phase 2 complete", "iterations": 0, "total_iterations": 2, "objective": 15.0, "elapsed_ms": 3.64}
+{"timestamp": "2024-01-15 10:30:45,129", "level": "INFO", "logger": "network_solver.simplex", "message": "Solver complete", "status": "optimal", "objective": 15.0, "iterations": 2, "elapsed_ms": 4.04, "tree_arcs": 2, "nonzero_flows": 2, "ft_rebuilds": 0}
+```
+
+**Structured metrics available:**
+
+| Log Message | Structured Fields |
+|-------------|-------------------|
+| Starting solver | `nodes`, `arcs`, `max_iterations`, `pricing_strategy`, `total_supply`, `tolerance` |
+| Phase 1 start | `elapsed_ms` (always 0.0) |
+| Phase 1 complete | `iterations`, `total_iterations`, `artificial_flow`, `elapsed_ms` |
+| Phase 2 start | `remaining_iterations` |
+| Phase 2 complete | `iterations`, `total_iterations`, `objective`, `elapsed_ms` |
+| Solver complete | `status`, `objective`, `iterations`, `elapsed_ms`, `tree_arcs`, `nonzero_flows`, `ft_rebuilds` |
+
+**Use cases:**
+
+1. **Performance Monitoring**: Track `elapsed_ms` to identify slow solves
+2. **Convergence Analysis**: Monitor `iterations` and `ft_rebuilds` for solver behavior
+3. **Numerical Stability**: Alert on high `ft_rebuilds` (indicates numerical issues)
+4. **Solution Quality**: Track `objective` values and `status` distribution
+5. **Real-time Dashboards**: Stream JSON logs to visualization tools
+6. **Automated Testing**: Parse structured logs to validate solver performance
+7. **Production Debugging**: Capture detailed metrics without verbose console output
+
+**Integration with logging systems:**
+
+```python
+# Example: Send to Datadog, Prometheus, or other monitoring systems
+import logging
+from pythonjsonlogger import jsonlogger
+
+handler = logging.StreamHandler()
+handler.setFormatter(jsonlogger.JsonFormatter())
+logging.getLogger("network_solver").addHandler(handler)
+
+# Logs are now compatible with structured logging backends
+```
 
 ## See Also
 
