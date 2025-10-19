@@ -9,6 +9,7 @@ Pure Python implementation of the network simplex algorithm for classic minimum-
 
 ## Documentation
 
+- **[Jupyter Notebook Tutorial](tutorials/network_flow_tutorial.ipynb)** - Interactive tutorial covering all major features ([How to run](TUTORIAL.md))
 - **[Algorithm Guide](docs/algorithm.md)** - Network simplex algorithm explanation, data structures, and complexity analysis
 - **[API Reference](docs/api.md)** - Complete API documentation with all functions, classes, and examples
 - **[Examples Guide](docs/examples.md)** - Annotated code examples for common use cases
@@ -23,6 +24,12 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install for development (recommended)
 pip install -e ".[dev,umfpack]"
+
+# Or install with tutorial support (Jupyter notebook)
+pip install -e ".[tutorial]"
+
+# Or install everything
+pip install -e ".[all]"
 
 # Or install runtime only
 pip install -e .
