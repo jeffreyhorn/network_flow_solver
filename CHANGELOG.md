@@ -262,6 +262,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code examples with expected outputs
 - Performance tables and complexity analysis
 
+### Refactored (Code Quality)
+- **Improved code quality in simplex.py**
+  - Extracted `_update_devex_weight()` helper method to eliminate ~20 lines of duplication
+  - Extracted `_is_better_candidate()` helper method for cleaner merit comparison logic
+  - Reduced `_find_entering_arc_devex()` from ~68 lines to ~48 lines
+  - Added clearer section comments for forward/backward direction checking
+  - No functional changes - all 229 tests continue to pass
+  - Improved maintainability and readability of pricing logic
+
 ### Planned
 - PyPI publication
 - Additional optimization algorithms
