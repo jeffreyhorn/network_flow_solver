@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .data import FlowResult, NetworkProblem, ProgressCallback, SolverOptions
+from .data import Basis, FlowResult, NetworkProblem, ProgressCallback, SolverOptions
 from .io import load_problem as load_problem_file
 from .io import save_result as save_result_file
 from .simplex import NetworkSimplex
@@ -16,6 +16,7 @@ def solve_min_cost_flow(
     max_iterations: int | None = None,
     progress_callback: ProgressCallback | None = None,
     progress_interval: int = 100,
+    warm_start_basis: Basis | None = None,
 ) -> FlowResult:
     """Solve a minimum-cost flow problem using the network simplex algorithm.
 
@@ -31,6 +32,10 @@ def solve_min_cost_flow(
         progress_callback: Optional callback function to receive progress updates.
                           Called every progress_interval iterations with ProgressInfo.
         progress_interval: Number of iterations between progress callbacks (default: 100).
+        warm_start_basis: Optional basis from a previous solve to initialize the solver.
+                         Provides a "warm start" by reusing the spanning tree structure,
+                         which can significantly reduce iterations for similar problems.
+                         Use result.basis from a previous solve.
 
     Returns:
         FlowResult containing:
@@ -39,6 +44,7 @@ def solve_min_cost_flow(
         - status: 'optimal', 'infeasible', 'unbounded', or 'iteration_limit'
         - iterations: Number of iterations performed
         - duals: Node potentials (shadow prices) for sensitivity analysis
+        - basis: Spanning tree basis for warm-starting future solves
 
     Raises:
         InvalidProblemError: If problem is malformed (unbalanced, invalid arcs, etc.).
@@ -65,6 +71,16 @@ def solve_min_cost_flow(
         >>> result = solve_min_cost_flow(problem)
         >>> print(f"Status: {result.status}, Cost: ${result.objective:.2f}")
         Status: optimal, Cost: $250.00
+        >>>
+        >>> # Warm-start with modified problem
+        >>> nodes2 = [
+        ...     {"id": "source", "supply": 120.0},  # Increased supply
+        ...     {"id": "sink", "supply": -120.0}
+        ... ]
+        >>> problem2 = build_problem(nodes2, arcs, directed=True, tolerance=1e-6)
+        >>> result2 = solve_min_cost_flow(problem2, warm_start_basis=result.basis)
+        >>> print(f"Warm-start iterations: {result2.iterations}")
+        Warm-start iterations: 2
 
     See Also:
         - NetworkProblem: Problem definition structure
@@ -84,6 +100,7 @@ def solve_min_cost_flow(
         max_iterations=max_iterations,
         progress_callback=progress_callback,
         progress_interval=progress_interval,
+        warm_start_basis=warm_start_basis,
     )
 
 
