@@ -319,9 +319,7 @@ for (tail, head), flow in result.flows.items():
 
 See `examples/sensitivity_analysis_example.py` for comprehensive examples including production planning, marginal cost prediction, and bottleneck identification. For mathematical background, see the [Algorithm Guide](docs/algorithm.md#node-potentials-dual-variables) and [Examples Guide](docs/examples.md#sensitivity-analysis).
 
-### Warm-Starting for Sequential Solves (Experimental)
-
-> **Note**: Warm-starting is currently experimental and has known issues. The API is available but may not work correctly in all cases. This feature is under active development.
+### Warm-Starting for Sequential Solves
 
 **Warm-starting** reuses the basis (spanning tree structure) from a previous solve to accelerate solving similar problems. This is especially valuable for:
 - Sequential optimization (rolling horizon planning)

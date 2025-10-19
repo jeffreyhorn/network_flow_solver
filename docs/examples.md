@@ -624,7 +624,7 @@ print(f"\nAll objectives equal: {all(abs(r.objective - result1.objective) < 1e-4
 
 **Use case:** Efficiently re-solve problems with modifications for scenario analysis, capacity planning, and iterative optimization.
 
-Incremental resolving means solving multiple related network flow problems where each problem is a modification of the previous one (e.g., changed capacities, costs, or demands). The solver supports **warm-starting** from a previous solution, which reuses the basis (spanning tree structure) to dramatically reduce iterations—typically achieving 50-90% reduction in solve time for similar problems.
+Incremental resolving means solving multiple related network flow problems where each problem is a modification of the previous one (e.g., changed capacities, costs, or demands). Even without optimization, the solver typically handles small modifications efficiently. For maximum performance with sequential solves, the solver supports **warm-starting** from a previous solution, which reuses the basis (spanning tree structure) to dramatically reduce iterations—typically achieving 50-90% reduction in solve time for similar problems.
 
 ### Why Incremental Resolving?
 
@@ -633,6 +633,25 @@ Incremental resolving means solving multiple related network flow problems where
 - **Demand forecasting**: Handle varying demand patterns over time
 - **Network design**: Evaluate different topology configurations
 - **Iterative optimization**: Gradually improve network by targeting bottlenecks
+
+### Warm-Start for Sequential Solves
+
+For sequential solving of similar problems, warm-starting can significantly improve performance:
+
+```python
+# Solve initial problem
+result1 = solve_min_cost_flow(problem1)
+
+# Solve modified problem with warm-start
+result2 = solve_min_cost_flow(problem2, warm_start_basis=result1.basis)
+```
+
+**When warm-start helps most:**
+- Problem structure is similar (same nodes/arcs, different parameters)
+- Capacities, costs, or supplies change moderately
+- Sequential optimization scenarios
+
+**See also:** `examples/warm_start_example.py` for comprehensive demonstrations and `examples/incremental_resolving_example.py` for various modification scenarios.
 
 ### Scenario 1: Capacity Expansion Analysis
 
