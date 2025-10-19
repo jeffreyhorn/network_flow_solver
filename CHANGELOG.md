@@ -271,6 +271,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No functional changes - all 229 tests continue to pass
   - Improved maintainability and readability of pricing logic
 
+### Improved (Undirected Graph Handling)
+- **Enhanced undirected graph support and documentation**
+  - Improved error messages in `undirected_expansion()` with detailed explanations
+    - Infinite capacity error now explains why finite capacity is required
+    - Custom lower bound error explains automatic transformation to -capacity
+    - Error messages include node names and specific values for debugging
+  - Comprehensive docstring for `undirected_expansion()` explaining transformation
+    - Documents how edges {u,v} become arcs (u,v) with lower=-C, upper=C
+    - Explains flow interpretation: positive = tail→head, negative = head→tail
+    - Lists all requirements: finite capacity, no custom lower bounds, symmetric costs
+  - Added extensive documentation in `docs/api.md` (~155 lines)
+    - "Working with Undirected Graphs" section with detailed explanation
+    - Transformation mechanics with examples
+    - Flow interpretation guide (positive/negative/zero flows)
+    - Common errors section with fixes
+    - When to use undirected vs directed comparison
+    - Internal transformation details
+  - Enhanced README.md with "Undirected Graphs" subsection
+    - Clear requirements list (finite capacity, no custom lower bounds)
+    - Transformation explanation with bullet points
+    - Flow interpretation guide
+    - Link to comprehensive API documentation
+  - New comprehensive example: `undirected_graph_example.py` (~200 lines)
+    - Campus network design scenario (4 buildings, fiber optic cables)
+    - Shows graph structure, internal transformation, solution interpretation
+    - Demonstrates flow conservation and optimal routing
+    - Explains key insights and undirected vs directed comparison
+  - New comprehensive test suite: `tests/unit/test_undirected_graphs.py` (13 tests)
+    - Simple chain, bidirectional flow, triangle network
+    - Expansion transformation verification
+    - Error handling (infinite capacity, custom lower bounds)
+    - Multiple edges, transshipment nodes
+    - Negative flow interpretation, capacity constraints
+    - Undirected vs directed equivalence
+    - Error message quality verification
+  - All tests passing (242 total, +13 new undirected tests)
+- **Updated documentation files**
+  - Added "Undirected Graphs" section to `docs/examples.md` (~90 lines)
+    - Complete working example with campus network scenario
+    - Flow interpretation guide (positive/negative values)
+    - Common errors section with fixes
+    - When to use undirected vs directed guidance
+  - Added "Undirected Graphs" subsection to `docs/algorithm.md`
+    - Explains transformation in mathematical notation
+    - Shows how edges become arcs with lower=-C, upper=C
+    - Links to API reference for details
+
 ### Planned
 - PyPI publication
 - Additional optimization algorithms
