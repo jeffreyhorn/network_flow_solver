@@ -233,6 +233,28 @@ class NetworkSimplex:
                 f"Valid options: 'devex', 'dantzig'."
             )
 
+    def _update_devex_weight(self, arc_idx: int, arc: ArcState) -> float:
+        """Update and return the Devex weight for the given arc."""
+        weight = max(self.devex_weights[arc_idx], DEVEX_WEIGHT_MIN)
+        projection = self.basis.project_column(arc)
+        if projection is not None:
+            # Recompute Devex weight using the latest basis solve to stabilise pricing.
+            weight = float(np.dot(projection, projection))
+            if not math.isfinite(weight) or weight <= DEVEX_WEIGHT_MIN:
+                weight = DEVEX_WEIGHT_MIN
+            elif weight > DEVEX_WEIGHT_MAX:
+                weight = DEVEX_WEIGHT_MAX
+            self.devex_weights[arc_idx] = weight
+        return weight
+
+    def _is_better_candidate(
+        self, merit: float, idx: int, best_merit: float, best: tuple[int, int] | None
+    ) -> bool:
+        """Check if current candidate is better than the best found so far."""
+        better = merit > best_merit + self.tolerance
+        tie = not better and abs(merit - best_merit) <= self.tolerance
+        return better or (tie and (best is None or idx < best[0]))
+
     def _find_entering_arc_devex(self, allow_zero: bool) -> tuple[int, int] | None:
         """Devex pricing: block-based search with normalized reduced costs."""
         zero_candidates: list[tuple[int, int]] = []
@@ -257,44 +279,27 @@ class NetworkSimplex:
                 rc = arc.cost + self.basis.potential[arc.tail] - self.basis.potential[arc.head]
                 forward_res = arc.forward_residual()
                 backward_res = arc.backward_residual()
+
+                # Check forward direction
                 if forward_res > self.tolerance and rc < -self.tolerance:
-                    weight = max(self.devex_weights[idx], DEVEX_WEIGHT_MIN)
-                    projection = self.basis.project_column(arc)
-                    if projection is not None:
-                        # Recompute Devex weight using the latest basis solve to stabilise pricing.
-                        weight = float(np.dot(projection, projection))
-                        if not math.isfinite(weight) or weight <= DEVEX_WEIGHT_MIN:
-                            weight = DEVEX_WEIGHT_MIN
-                        elif weight > DEVEX_WEIGHT_MAX:
-                            weight = DEVEX_WEIGHT_MAX
-                        self.devex_weights[idx] = weight
+                    weight = self._update_devex_weight(idx, arc)
                     merit = (rc * rc) / weight
-                    better = merit > best_merit + self.tolerance
-                    tie = not better and abs(merit - best_merit) <= self.tolerance
-                    if better or (tie and (best is None or idx < best[0])):
+                    if self._is_better_candidate(merit, idx, best_merit, best):
                         best_merit = merit
                         best = (idx, 1)
                     continue
+
+                # Check backward direction
                 if backward_res > self.tolerance and rc > self.tolerance:
-                    weight = max(self.devex_weights[idx], DEVEX_WEIGHT_MIN)
-                    projection = self.basis.project_column(arc)
-                    if projection is not None:
-                        # Recompute Devex weight using the latest basis solve to stabilise pricing.
-                        weight = float(np.dot(projection, projection))
-                        if not math.isfinite(weight) or weight <= DEVEX_WEIGHT_MIN:
-                            weight = DEVEX_WEIGHT_MIN
-                        elif weight > DEVEX_WEIGHT_MAX:
-                            weight = DEVEX_WEIGHT_MAX
-                        self.devex_weights[idx] = weight
+                    weight = self._update_devex_weight(idx, arc)
                     merit = (rc * rc) / weight
-                    better = merit > best_merit + self.tolerance
-                    tie = not better and abs(merit - best_merit) <= self.tolerance
-                    if better or (tie and (best is None or idx < best[0])):
+                    if self._is_better_candidate(merit, idx, best_merit, best):
                         best_merit = merit
                         best = (idx, -1)
                     continue
+
+                # Collect zero-reduced-cost candidates if allowed
                 if allow_zero and forward_res > self.tolerance and abs(rc) <= self.tolerance:
-                    # Remember degenerate choices so we can keep the pricing window moving.
                     zero_candidates.append((idx, 1))
                 elif allow_zero and backward_res > self.tolerance and abs(rc) <= self.tolerance:
                     zero_candidates.append((idx, -1))
