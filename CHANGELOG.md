@@ -382,6 +382,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All tests passing (242 tests)
 - Type checking and linting passing
 
+### Improved (Enhanced Structured Logging)
+- **Comprehensive structured logging with performance metrics**
+  - **Starting solver** log includes:
+    - Problem size: `nodes`, `arcs`
+    - Configuration: `max_iterations`, `pricing_strategy`, `tolerance`
+    - Problem characteristics: `total_supply`
+  - **Phase 1 start** log includes:
+    - `elapsed_ms`: Time since solver start (0.0 at start)
+  - **Phase 1 complete** log includes:
+    - Phase metrics: `iterations`, `total_iterations`
+    - Feasibility metrics: `artificial_flow` (sum of artificial arc flows)
+    - Performance: `elapsed_ms` (time since solver start)
+  - **Phase 2 start** log includes:
+    - `remaining_iterations` (max_iterations - total_iterations)
+  - **Phase 2 complete** log includes:
+    - Phase metrics: `iterations`, `total_iterations`
+    - Solution quality: `objective` (preliminary objective value)
+    - Performance: `elapsed_ms` (time since solver start)
+  - **Solver complete** log includes:
+    - Final status: `status` ("optimal", "iteration_limit", "infeasible")
+    - Solution: `objective` (rounded to 12 decimals)
+    - Iterations: `iterations` (total across both phases)
+    - Performance: `elapsed_ms` (total solve time)
+    - Basis metrics: `tree_arcs` (non-artificial tree arcs), `nonzero_flows`
+    - Numerical stability: `ft_rebuilds` (Forrest-Tomlin basis rebuilds)
+- **All metrics available in structured `extra` dict for:**
+  - JSON logging for monitoring systems
+  - Performance profiling and analysis
+  - Automated testing and validation
+  - Real-time dashboards
+- **Example JSON output:**
+  ```json
+  {"level": "INFO", "logger": "network_solver.simplex", "message": "Starting network simplex solver", "nodes": 3, "arcs": 3, "max_iterations": 100, "pricing_strategy": "devex", "total_supply": 10.0, "tolerance": 1e-06}
+  {"level": "INFO", "logger": "network_solver.simplex", "message": "Phase 1 complete", "iterations": 2, "total_iterations": 2, "artificial_flow": 0, "elapsed_ms": 2.23}
+  {"level": "INFO", "logger": "network_solver.simplex", "message": "Phase 2 complete", "iterations": 0, "total_iterations": 2, "objective": 15.0, "elapsed_ms": 3.64}
+  {"level": "INFO", "logger": "network_solver.simplex", "message": "Solver complete", "status": "optimal", "objective": 15.0, "iterations": 2, "elapsed_ms": 4.04, "tree_arcs": 2, "nonzero_flows": 2, "ft_rebuilds": 0}
+  ```
+- All tests passing (243 tests)
+- Type checking and linting passing
+
 ### Planned
 - PyPI publication
 - Additional optimization algorithms
