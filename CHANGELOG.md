@@ -215,7 +215,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full type annotations for all utilities
 - Example demonstrates practical usage patterns
 
+### Added (Documentation)
+- **Comprehensive `docs/` directory with 4 detailed guides**
+  - `docs/algorithm.md` - Network simplex algorithm explanation (~550 lines)
+    - Problem formulation with mathematical notation
+    - Algorithm structure with Phase 1 (feasibility) and Phase 2 (optimality)
+    - Data structures: spanning trees, node potentials, reduced costs
+    - Pricing strategies: Devex vs Dantzig with detailed comparisons
+    - Basis management with Forrest-Tomlin updates
+    - Complexity analysis (theoretical and practical)
+    - Implementation details: cost perturbation, cycle detection, potential computation
+    - Academic references to key papers
+  - `docs/api.md` - Complete API reference (~500 lines)
+    - All functions with parameters, return types, and examples
+    - Problem definition classes (NetworkProblem, Node, Arc)
+    - Solver configuration (SolverOptions with all parameters)
+    - Results and analysis (FlowResult with flows, objective, duals)
+    - Utility functions (extract_path, validate_flow, compute_bottleneck_arcs)
+    - Progress tracking (ProgressInfo, ProgressCallback)
+    - Exception hierarchy with all 7 exception types
+    - I/O functions (load_problem, save_result)
+    - Type annotations and IDE support
+  - `docs/examples.md` - Annotated code examples (~430 lines)
+    - Basic transportation problem with output
+    - Supply chain with transshipment nodes
+    - Maximum flow problem (conversion to min-cost flow)
+    - Minimum cost circulation with lower bounds
+    - Progress monitoring with real-time callbacks
+    - Sensitivity analysis using dual values
+    - Solver configuration comparisons
+    - Flow validation and bottleneck analysis workflows
+  - `docs/benchmarks.md` - Performance characteristics (~400 lines)
+    - Complexity analysis (theoretical O() bounds)
+    - Benchmark problems by size (small to very large)
+    - Performance characteristics by problem type and structure
+    - Empirical scaling formulas and comparison tables
+    - Optimization tips for 5 different scenarios
+    - Comparison with other solvers (LP, OR-Tools, etc.)
+    - Hardware impact analysis
+    - Profiling and benchmarking code examples
+    - Future optimization opportunities
+
+### Changed (Documentation)
+- Total of ~1,880 lines of production-quality documentation added
+- Cross-references between documentation files
+- Code examples with expected outputs
+- Performance tables and complexity analysis
+
 ### Planned
-- Performance benchmarking suite
 - PyPI publication
 - Additional optimization algorithms
+- C++/Cython performance extensions
