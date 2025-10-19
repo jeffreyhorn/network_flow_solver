@@ -284,9 +284,20 @@ class NetworkSimplex:
         3. Add artificial arcs for unreachable nodes
         4. Compute flows to satisfy conservation
 
+        Known Limitations:
+            There is a known edge case where warm-starting with a basis from
+            the exact same problem (identical structure and parameters) can
+            fail and return infeasible with objective=0. This requires further
+            investigation. See GitHub issue for details.
+
         Returns:
             True if warm-start was successfully applied, False otherwise.
         """
+        # TODO: Fix edge case where warm-starting the exact same problem fails
+        # When rebuilding an identical problem and applying warm-start with its
+        # own basis, the solver becomes infeasible (objective=0). This was
+        # discovered during testing but couldn't be fixed without breaking
+        # existing tests. Needs further investigation of flow recomputation logic.
         # IMPORTANT: Do all validation checks BEFORE modifying any arc states
         # If we return False, the solver falls back to cold start, which relies
         # on the initial tree structure set up by _initialize_tree()

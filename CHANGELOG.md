@@ -22,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated README.md to remove experimental warnings
   - Warm-start is now production-ready and fully supported
 
+### Known Limitations
+- **Warm-start edge case with identical problems**
+  - When rebuilding the exact same problem (identical structure and parameters) and applying warm-start with its own basis, the solver may become infeasible with objective=0
+  - This edge case was discovered during testing but could not be fixed without breaking existing tests
+  - Workaround: Use cold start (default) when re-solving identical problems, or make a small parameter change
+  - Warm-start works correctly for similar problems with moderate changes (supply/demand, costs, capacities)
+  - See GitHub issue for tracking and technical details
+
 ## [0.1.0] - 2024-10-17
 
 ### Added
