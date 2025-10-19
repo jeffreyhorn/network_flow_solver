@@ -314,6 +314,20 @@ python examples/undirected_graph_example.py  # Undirected graph handling
 
 These scripts write companion solution files and print detailed results including dual values and solver statistics.
 
+### Verbose Output
+
+Many examples support the `--verbose` flag for detailed solver logging:
+
+```bash
+python examples/solve_example.py -v    # INFO: Phase transitions and progress
+python examples/solve_example.py -vv   # DEBUG: Every pivot operation
+```
+
+**Log levels:**
+- Default (no flag): WARNING and ERROR only (quiet operation)
+- `-v`: INFO level - phase transitions, iteration counts
+- `-vv`: DEBUG level - individual pivots, arc selection, numerical details
+
 ## Problem File Format
 
 Problem instances are JSON documents with the following shape:

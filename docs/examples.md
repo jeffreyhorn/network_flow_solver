@@ -2,6 +2,13 @@
 
 Annotated examples demonstrating various features and use cases.
 
+**Note:** Many example scripts in the `examples/` directory support the `--verbose` flag:
+- No flag: Quiet operation (WARNING+ only)
+- `-v`: Show phase transitions and progress (INFO level)
+- `-vv`: Show every pivot operation (DEBUG level)
+
+Example: `python examples/solve_example.py -v`
+
 ## Table of Contents
 
 - [Basic Transportation Problem](#basic-transportation-problem)

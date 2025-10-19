@@ -398,7 +398,7 @@ def test_pivot_fall_back_resets_weights_and_counts(caplog, monkeypatch):
 
     assert solver.ft_rebuilds == 1
     assert all(weight == 1.0 for weight in solver.devex_weights)
-    assert any("Forrest–Tomlin update failed" in record.message for record in caplog.records)
+    assert any("Forrest-Tomlin update failed" in record.message for record in caplog.records)
 
 
 def test_apply_phase_costs_rejects_invalid_phase():
