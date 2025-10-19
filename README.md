@@ -7,6 +7,13 @@
 
 Pure Python implementation of the network simplex algorithm for classic minimum-cost flow problems with node supplies/demands and optional capacities/lower bounds. The package exposes both a programmatic API and JSON-oriented utilities for loading/saving problem instances.
 
+## Documentation
+
+- **[Algorithm Guide](docs/algorithm.md)** - Network simplex algorithm explanation, data structures, and complexity analysis
+- **[API Reference](docs/api.md)** - Complete API documentation with all functions, classes, and examples
+- **[Examples Guide](docs/examples.md)** - Annotated code examples for common use cases
+- **[Performance Guide](docs/benchmarks.md)** - Benchmarks, optimization tips, and scaling behavior
+
 ## Installation
 
 ```bash
@@ -103,6 +110,8 @@ except NetworkSolverError as e:
 - `SolverConfigurationError` - Invalid solver parameters or configuration
 - `IterationLimitError` - Optional exception type (solver returns status instead by default)
 
+See [API Reference](docs/api.md#exceptions) for complete exception documentation.
+
 ### Progress Logging
 
 For long-running optimizations, you can monitor solver progress in real-time using a progress callback:
@@ -141,7 +150,7 @@ result = solve_min_cost_flow(
 - Detect slow convergence issues
 - Cancel solver by raising exception in callback
 
-See `examples/progress_logging_example.py` for a complete demonstration.
+See `examples/progress_logging_example.py` for a complete demonstration and [Examples Guide](docs/examples.md#progress-monitoring) for more details.
 
 ### Solver Configuration
 
@@ -185,7 +194,7 @@ result = solve_min_cost_flow(problem, options=options)
 - Lower `ft_update_limit` for better numerical stability (more rebuilds)
 - Raise `ft_update_limit` for faster performance (fewer rebuilds)
 
-See `examples/solver_options_example.py` for a comprehensive demonstration.
+See `examples/solver_options_example.py` for a comprehensive demonstration. For performance benchmarks and optimization guidance, see the [Performance Guide](docs/benchmarks.md).
 
 ### Utility Functions for Flow Analysis
 
@@ -267,7 +276,7 @@ for bottleneck in bottlenecks:
 - Perform what-if analysis for capacity expansion
 - Sensitivity analysis for network planning
 
-See `examples/utils_example.py` for a complete demonstration of all utility functions.
+See `examples/utils_example.py` for a complete demonstration of all utility functions. Full API documentation available in the [API Reference](docs/api.md#utility-functions).
 
 ### Sensitivity Analysis with Dual Values
 
@@ -285,7 +294,7 @@ for node_id, dual in result.duals.items():
 #   cost[i,j] + dual[i] - dual[j] ≈ 0  (complementary slackness)
 ```
 
-Dual values enable sensitivity analysis to understand how the objective changes with supply/demand perturbations. See `examples/sensitivity_analysis_example.py` for detailed examples.
+Dual values enable sensitivity analysis to understand how the objective changes with supply/demand perturbations. See `examples/sensitivity_analysis_example.py` for detailed examples and the [Algorithm Guide](docs/algorithm.md#node-potentials-dual-variables) for mathematical background.
 
 ## CLI Example
 
