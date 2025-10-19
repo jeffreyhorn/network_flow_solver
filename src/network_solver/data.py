@@ -224,6 +224,49 @@ class NetworkProblem:
 
 
 @dataclass
+class Basis:
+    """Represents a basis (spanning tree) for warm-starting the solver.
+
+    A basis consists of the set of basic arcs that form a spanning tree in the
+    network. Warm-starting allows the solver to begin from a previous solution's
+    basis rather than constructing an initial basis from scratch, which can
+    significantly reduce solve time for similar problems.
+
+    Attributes:
+        tree_arcs: Set of arc (tail, head) tuples that form the spanning tree basis.
+                   These arcs are "in the basis" (basic variables in simplex terminology).
+        arc_flows: Dictionary mapping arc (tail, head) tuples to their flow values.
+                   Used to initialize the flows when warm-starting.
+
+    Examples:
+        >>> # Solve once and extract basis
+        >>> result1 = solve_min_cost_flow(problem1)
+        >>> basis = result1.basis
+        >>> print(f"Basis has {len(basis.tree_arcs)} tree arcs")
+        Basis has 5 tree arcs
+        >>>
+        >>> # Use basis to warm-start a similar problem
+        >>> result2 = solve_min_cost_flow(problem2, warm_start_basis=basis)
+        >>> print(f"Warm-start used {result2.iterations} iterations")
+        Warm-start used 3 iterations
+
+    See Also:
+        - FlowResult.basis: Extract basis from a solution
+        - solve_min_cost_flow(warm_start_basis=...): Warm-start solver
+        - docs/examples.md#warm-starting: Warm-start examples
+
+    Note:
+        The basis is problem-specific. Warm-starting works best when:
+        - The network structure is similar (same nodes and arcs)
+        - Supply/demand or costs have changed slightly
+        - Capacities have been adjusted
+    """
+
+    tree_arcs: set[tuple[str, str]] = field(default_factory=set)
+    arc_flows: dict[tuple[str, str], float] = field(default_factory=dict)
+
+
+@dataclass
 class FlowResult:
     """Represents the output of a minimum-cost flow computation.
 
@@ -240,6 +283,9 @@ class FlowResult:
         duals: Dictionary mapping node IDs to dual values (node potentials).
                For optimal solutions, these represent shadow prices for supply/demand.
                Useful for sensitivity analysis and what-if scenarios.
+        basis: Basis (spanning tree) information for warm-starting subsequent solves.
+               Can be passed to solve_min_cost_flow(warm_start_basis=...) to initialize
+               from this solution's basis. None if solution is infeasible/unbounded.
 
     Examples:
         >>> from network_solver import solve_min_cost_flow, build_problem
@@ -258,10 +304,13 @@ class FlowResult:
         Flow A→B: 10.0
         >>> print(f"Shadow price at A: {result.duals['A']:.2f}")
         Shadow price at A: -3.00
+        >>> print(f"Basis arcs: {len(result.basis.tree_arcs)}")
+        Basis arcs: 1
 
     See Also:
         - solve_min_cost_flow(): Main solver function.
         - docs/examples.md#sensitivity-analysis: Using dual values.
+        - docs/examples.md#warm-starting: Using basis for warm-starts.
         - save_result(): Persist results to JSON.
     """
 
@@ -270,6 +319,7 @@ class FlowResult:
     status: str = "optimal"
     iterations: int = 0
     duals: dict[str, float] = field(default_factory=dict)
+    basis: Basis | None = None
 
 
 @dataclass(frozen=True)
