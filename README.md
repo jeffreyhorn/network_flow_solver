@@ -9,11 +9,11 @@ Pure Python implementation of the network simplex algorithm for classic minimum-
 
 ## Documentation
 
+- **[Jupyter Notebook Tutorial](tutorials/network_flow_tutorial.ipynb)** - Interactive tutorial covering all major features ([How to run](TUTORIAL.md))
 - **[Algorithm Guide](docs/algorithm.md)** - Network simplex algorithm explanation, data structures, and complexity analysis
 - **[API Reference](docs/api.md)** - Complete API documentation with all functions, classes, and examples
 - **[Examples Guide](docs/examples.md)** - Annotated code examples for common use cases
 - **[Performance Guide](docs/benchmarks.md)** - Benchmarks, optimization tips, and scaling behavior
-- **[Jupyter Notebook Tutorial](tutorials/network_flow_tutorial.ipynb)** - Interactive tutorial covering all major features
 
 ## Installation
 
