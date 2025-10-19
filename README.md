@@ -309,6 +309,7 @@ python examples/sensitivity_analysis_example.py  # Dual values and shadow prices
 python examples/progress_logging_example.py  # Progress monitoring
 python examples/solver_options_example.py  # Solver configuration and tuning
 python examples/utils_example.py  # Flow analysis utilities
+python examples/undirected_graph_example.py  # Undirected graph handling
 ```
 
 These scripts write companion solution files and print detailed results including dual values and solver statistics.
@@ -323,7 +324,25 @@ Problem instances are JSON documents with the following shape:
   - `tail`, `head` (node IDs)
   - optional `capacity` (omit for infinite), `cost`, and `lower` bound
 
-Undirected graphs set `"directed": false` and must specify finite capacities. During preprocessing, each undirected edge is expanded into a directed arc with symmetric capacity (`[-capacity, capacity]`) so the simplex solver can operate on a standard directed network.
+### Undirected Graphs
+
+Set `"directed": false` to create an undirected graph. **Important requirements:**
+
+- **All edges must have finite capacity** (no infinite capacity)
+- **Do not specify custom lower bounds** (leave at default 0.0)
+- **Costs are symmetric** in both directions
+
+**How it works:** Each undirected edge `{u, v}` with capacity `C` is automatically transformed into a directed arc `(u, v)` with:
+- Capacity: `C` (upper bound)
+- Lower bound: `-C` (allows reverse flow)
+- Cost: same in both directions
+
+**Interpreting results:**
+- Positive flow value → flow goes `tail → head`
+- Negative flow value → flow goes `head → tail`  
+- Magnitude `|flow|` is the amount of flow
+
+See [API Reference - Undirected Graphs](docs/api.md#working-with-undirected-graphs) for detailed examples and `examples/undirected_graph_example.py` for a complete demonstration.
 
 ## Testing
 
