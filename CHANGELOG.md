@@ -531,6 +531,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All tests passing (243 tests)
 - Type checking and linting passing
 
+### Added (Performance Profiling Example and Documentation)
+- **New comprehensive example**: `examples/performance_profiling_example.py` (~440 lines)
+  - **Scaling Analysis**
+    - Profile solver performance across problem sizes (3×3 to 20×20 grids)
+    - Measure solve time, iteration count, and throughput (iterations/sec)
+    - Demonstrates quadratic time growth with problem size
+    - Formatted table output for easy comparison
+  - **Pricing Strategy Comparison**
+    - Compare Devex vs Dantzig pricing on multiple problem types
+    - Grid networks and bipartite (assignment) networks
+    - Shows iteration counts, solve times, and speedup factors
+    - Helps users choose optimal pricing strategy
+  - **Solver Options Impact**
+    - Test different `ft_update_limit` values (16, 32, 64, 128)
+    - Test different `block_size` values (50, 100, 200)
+    - Shows how configuration affects performance
+    - Guidance for tuning solver parameters
+  - **Problem Structure Analysis**
+    - Compare sparse (grid), medium (hybrid), and dense (bipartite) networks
+    - Calculate and display network density
+    - Shows how structure affects iteration count and solve time
+  - **Performance Summary**
+    - Benchmark standard problem (10×10 grid)
+    - Performance expectations by problem size
+    - Optimization tips (5 recommendations)
+    - When to profile (4 scenarios)
+  - **Structured Logging for Profiling**
+    - Demonstrates capturing metrics via structured logs
+    - Shows integration with INFO-level logging
+  - Helper functions for problem generation:
+    - `generate_grid_network()`: 4-connected grid with source/sink
+    - `generate_bipartite_network()`: Complete bipartite graph
+    - `profile_problem()`: Unified profiling with timing
+  - Suppresses solver logging during profiling for clean output
+  - Total profiling time < 15s for all scenarios
+- **Comprehensive documentation** in `docs/examples.md`
+  - New "Performance Profiling" section (~260 lines)
+  - "Why Profile Performance?" explanation (6 use cases)
+    - Understand scaling, compare strategies, tune configuration
+    - Identify bottlenecks, regression testing, capacity planning
+  - Complete working code examples:
+    - **Basic Profiling**: Simple time/iteration measurement
+    - **Scaling Analysis**: Profile multiple problem sizes with table output
+    - **Comparing Pricing Strategies**: Devex vs Dantzig with speedup calculation
+    - **Configuration Tuning**: Test different solver options
+    - **Problem Structure Analysis**: Compare sparse/dense/medium networks
+    - **Structured Logging**: Capture metrics programmatically
+  - Best practices (6 guidelines)
+    - Profile representative problems, run multiple iterations
+    - Isolate variables, track over time, document baselines
+  - Performance expectations table:
+    - Small (<100 nodes): <10ms
+    - Medium (100-1000): 10-100ms
+    - Large (1000-10000): 100ms-2s
+    - Very large (>10000): Several seconds
+  - Example output excerpts showing real profiling results
+- **README.md updates**
+  - Added `performance_profiling_example.py` to CLI examples list
+  - Listed with clear description: "Performance analysis and benchmarking"
+- **Use cases enabled**:
+  - Performance benchmarking for different problem types
+  - Solver configuration optimization
+  - Regression testing across code versions
+  - Capacity planning for production systems
+  - Understanding scaling characteristics
+  - Identifying performance bottlenecks
+- **Benefits:**
+  - Users can optimize solver configuration for their workloads
+  - Clear guidance on what to expect performance-wise
+  - Systematic approach to performance analysis
+  - Helps identify when performance is abnormal
+  - Enables data-driven configuration decisions
+- All tests passing (243 tests)
+- Type checking and linting passing
+
 ### Planned
 - PyPI publication
 - Additional optimization algorithms
