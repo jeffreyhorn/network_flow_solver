@@ -2,6 +2,8 @@
 
 Annotated examples demonstrating various features and use cases.
 
+**New to network flow problems?** Start with the **[Jupyter Notebook Tutorial](../tutorials/network_flow_tutorial.ipynb)** for an interactive, step-by-step introduction covering all major features with executable code cells and visualizations.
+
 **Note:** Many example scripts in the `examples/` directory support the `--verbose` flag:
 - No flag: Quiet operation (WARNING+ only)
 - `-v`: Show phase transitions and progress (INFO level)
