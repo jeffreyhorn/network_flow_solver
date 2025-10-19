@@ -71,7 +71,29 @@ class NetworkProblem:
                 )
 
     def undirected_expansion(self) -> Sequence[Arc]:
-        """Return arcs expanded to directed equivalents when graph is undirected."""
+        """Return arcs expanded to directed equivalents when graph is undirected.
+
+        For undirected graphs, each edge {u, v} with capacity C and cost c is transformed
+        into a single directed arc (u, v) with:
+        - capacity: C
+        - lower bound: -C (allowing flow in either direction)
+        - cost: c (same cost regardless of direction)
+
+        This transformation allows bidirectional flow while maintaining the network simplex
+        structure. A positive flow value means flow goes tail→head, while a negative value
+        means flow goes head→tail.
+
+        Requirements for undirected edges:
+        - Must have finite capacity (no infinite capacity edges)
+        - Cannot specify custom lower bounds (automatically set to -capacity)
+        - Costs are symmetric (same cost in both directions)
+
+        Returns:
+            Tuple of Arc objects representing the directed transformation.
+
+        Raises:
+            InvalidProblemError: If any edge has infinite capacity or custom lower bound.
+        """
         if self.directed:
             return tuple(self.arcs)
         expanded: list[Arc] = []
@@ -80,20 +102,25 @@ class NetworkProblem:
         for arc in self.arcs:
             if arc.capacity is None:
                 raise InvalidProblemError(
-                    f"Undirected arc {arc.tail} -- {arc.head} has infinite capacity. "
-                    f"Undirected edges require finite capacity to be properly transformed "
-                    f"into directed arcs."
+                    f"Undirected edge {arc.tail} -- {arc.head} has infinite capacity. "
+                    f"Undirected graphs require finite capacity on all edges. "
+                    f"This is necessary to enable bidirectional flow representation where "
+                    f"the edge is transformed to a directed arc with lower bound -capacity. "
+                    f"Please specify a finite capacity value for this edge."
                 )
             cap = float(arc.capacity)
             if abs(arc.lower) > 1e-12 and not math.isclose(
                 arc.lower, -cap, rel_tol=0.0, abs_tol=1e-12
             ):
                 raise InvalidProblemError(
-                    f"Undirected arc {arc.tail} -- {arc.head} has custom lower bound "
-                    f"({arc.lower}). Undirected edges do not support custom lower bounds; "
-                    f"they are automatically set to allow bidirectional flow."
+                    f"Undirected edge {arc.tail} -- {arc.head} has custom lower bound "
+                    f"({arc.lower}). Undirected edges do not support custom lower bounds because "
+                    f"the lower bound is automatically set to -capacity to enable bidirectional flow. "
+                    f"For undirected graphs, leave the lower bound at 0.0 (default) and it will be "
+                    f"automatically transformed to -{cap} during preprocessing."
                 )
             # Encode the backwards arc implicitly via a negative lower bound on the forward arc.
+            # This allows flow from -capacity to +capacity on the edge.
             lower_bound = -float(arc.capacity)
             expanded.append(
                 Arc(

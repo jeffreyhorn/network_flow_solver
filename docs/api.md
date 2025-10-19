@@ -175,6 +175,161 @@ Represents a directed arc.
 - `tail != head` (no self-loops)
 - `capacity >= lower` if capacity is not None
 
+## Working with Undirected Graphs
+
+The solver internally operates on directed networks, but provides first-class support for undirected graphs through automatic transformation.
+
+### How Undirected Graphs Work
+
+When you create a `NetworkProblem` with `directed=False`, each undirected edge is automatically transformed into a directed arc that allows bidirectional flow:
+
+**Transformation:**
+- Undirected edge: `{u, v}` with capacity `C` and cost `c`
+- Becomes directed arc: `(u, v)` with:
+  - `capacity = C` (upper bound)
+  - `lower = -C` (lower bound, enabling reverse flow)
+  - `cost = c` (symmetric cost)
+
+**Flow Interpretation:**
+- **Positive flow** `f > 0`: Flow goes from `tail → head` with magnitude `f`
+- **Negative flow** `f < 0`: Flow goes from `head → tail` with magnitude `|f|`
+- **Zero flow** `f = 0`: No flow on the edge
+
+### Requirements for Undirected Edges
+
+1. **Finite Capacity**: All edges must have finite capacity (no `capacity=None`)
+   - Required because lower bound is set to `-capacity`
+   - Infinite capacity would create unbounded lower bound
+
+2. **No Custom Lower Bounds**: Leave `lower=0.0` (default)
+   - Lower bound is automatically set to `-capacity` during transformation
+   - Custom lower bounds will raise `InvalidProblemError`
+
+3. **Symmetric Costs**: Cost is the same in both directions
+   - If you need asymmetric costs, use directed graph instead
+
+### Example: Creating an Undirected Problem
+
+```python
+from network_solver import Node, Arc, NetworkProblem, solve_min_cost_flow
+
+# Undirected graph: A -- B -- C
+nodes = {
+    "A": Node(id="A", supply=10.0),
+    "B": Node(id="B", supply=0.0),   # Transshipment node
+    "C": Node(id="C", supply=-10.0),
+}
+
+# Undirected edges (note: must have finite capacity)
+arcs = [
+    Arc(tail="A", head="B", capacity=15.0, cost=2.0),  # A-B edge
+    Arc(tail="B", head="C", capacity=15.0, cost=3.0),  # B-C edge
+]
+
+# Set directed=False for undirected graph
+problem = NetworkProblem(directed=False, nodes=nodes, arcs=arcs)
+
+result = solve_min_cost_flow(problem)
+
+# Interpret results:
+# result.flows[("A", "B")] = 10.0  → Flow goes A → B (positive)
+# result.flows[("B", "C")] = -5.0  → Flow goes C → B (negative)
+```
+
+### Interpreting Results from Undirected Graphs
+
+When you solve an undirected problem, the result contains flow values that may be positive or negative:
+
+```python
+result = solve_min_cost_flow(problem)
+
+for arc in problem.arcs:
+    key = (arc.tail, arc.head)
+    flow = result.flows.get(key, 0.0)
+    
+    if flow > 0:
+        print(f"Edge {arc.tail}--{arc.head}: {flow:.1f} units going {arc.tail} → {arc.head}")
+    elif flow < 0:
+        print(f"Edge {arc.tail}--{arc.head}: {abs(flow):.1f} units going {arc.head} → {arc.tail}")
+    else:
+        print(f"Edge {arc.tail}--{arc.head}: no flow")
+```
+
+### Common Errors with Undirected Graphs
+
+**Error: Infinite capacity**
+
+```python
+# ❌ This will raise InvalidProblemError
+arc = Arc(tail="A", head="B", capacity=None, cost=1.0)  # Infinite capacity
+problem = NetworkProblem(directed=False, nodes=nodes, arcs=[arc])
+problem.undirected_expansion()  # Error!
+
+# ✓ Use finite capacity instead
+arc = Arc(tail="A", head="B", capacity=100.0, cost=1.0)
+```
+
+**Error: Custom lower bound**
+
+```python
+# ❌ This will raise InvalidProblemError
+arc = Arc(tail="A", head="B", capacity=50.0, cost=1.0, lower=5.0)
+problem = NetworkProblem(directed=False, nodes=nodes, arcs=[arc])
+problem.undirected_expansion()  # Error!
+
+# ✓ Leave lower bound at default (0.0)
+arc = Arc(tail="A", head="B", capacity=50.0, cost=1.0)
+```
+
+### When to Use Undirected vs Directed
+
+**Use Undirected When:**
+- Physical infrastructure is naturally bidirectional (pipes, cables, roads)
+- Costs are the same in both directions
+- You want simpler problem specification (one edge vs two arcs)
+- Capacities are symmetric
+
+**Use Directed When:**
+- Flow has inherent direction (assembly lines, dependencies)
+- Costs differ by direction (uphill vs downhill transport)
+- Capacities differ by direction
+- You need asymmetric lower bounds
+
+**Directed Alternative:**
+
+Instead of one undirected edge, you can manually create two directed arcs:
+
+```python
+# Undirected: 1 edge
+Arc(tail="A", head="B", capacity=50.0, cost=2.0)  # In undirected graph
+
+# Equivalent directed: 2 arcs
+Arc(tail="A", head="B", capacity=50.0, cost=2.0)  # A → B
+Arc(tail="B", head="A", capacity=50.0, cost=2.0)  # B → A
+```
+
+The undirected approach is more compact and ensures symmetric behavior automatically.
+
+### Advanced: Internal Transformation Details
+
+The `undirected_expansion()` method is called internally during problem setup:
+
+```python
+problem = NetworkProblem(directed=False, nodes=nodes, arcs=arcs)
+
+# Manually inspect transformation
+expanded_arcs = problem.undirected_expansion()
+
+for orig, expanded in zip(arcs, expanded_arcs):
+    print(f"Original:  {orig.tail}--{orig.head}, cap={orig.capacity}, lower={orig.lower}")
+    print(f"Expanded:  {expanded.tail}→{expanded.head}, cap={expanded.capacity}, lower={expanded.lower}")
+    # Output:
+    # Original:  A--B, cap=50.0, lower=0.0
+    # Expanded:  A→B, cap=50.0, lower=-50.0
+```
+
+This transformation preserves problem semantics while allowing the network simplex algorithm to work on a standard directed network.
+
 ## Solver Configuration
 
 ### SolverOptions
