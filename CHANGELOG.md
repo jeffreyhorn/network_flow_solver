@@ -475,6 +475,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All tests passing (243 tests)
 - Type checking and linting passing
 
+### Added (Incremental Resolving Example and Documentation)
+- **New comprehensive example**: `examples/incremental_resolving_example.py` (~370 lines)
+  - **Scenario 1: Capacity Expansion Analysis**
+    - Demonstrates incremental capacity increases
+    - Shows diminishing returns on expansion
+    - Tracks objective improvement at each step
+  - **Scenario 2: Cost Updates**
+    - Fuel price increase impact analysis
+    - Flow pattern comparison before/after
+    - Percentage cost increase calculation
+  - **Scenario 3: Demand Fluctuations**
+    - Weekly demand variation handling
+    - Multi-period re-solving
+    - Cost progression tracking
+  - **Scenario 4: Network Topology Changes**
+    - Evaluate adding new direct routes
+    - Calculate savings from topology changes
+    - ROI analysis for infrastructure investments
+  - **Scenario 5: Iterative Optimization**
+    - Bottleneck identification → expand → re-solve loop
+    - Demonstrates systematic network improvement
+    - Shows when to stop iterating (diminishing returns)
+  - Formatted output with clear sections and tables
+  - Total solve time < 100ms for all 5 scenarios
+- **Comprehensive documentation** in `docs/examples.md`
+  - New "Incremental Resolving" section (~260 lines)
+  - "Why Incremental Resolving?" explanation
+    - Scenario analysis, cost sensitivity, demand forecasting
+    - Network design, iterative optimization
+  - 5 complete working code examples (one per scenario)
+  - Best practices section:
+    - Start simple, track metrics, validate incrementally
+    - Use dual values for prediction
+    - Consider tolerance in small changes
+  - Performance notes:
+    - Fast for networks <10,000 arcs (<100ms typical)
+    - No warm-start support but re-solving is efficient
+    - Can parallelize independent variants
+  - Example output excerpts showing real results
+- **README.md updates**
+  - Added `incremental_resolving_example.py` to CLI examples list
+  - Listed with clear description: "Scenario analysis and what-if modeling"
+- **Use cases enabled**:
+  - Capacity planning: "What if we expand this route?"
+  - Cost sensitivity: "How do price changes affect solutions?"
+  - Demand adaptation: Handle varying demand over time
+  - Network design: Evaluate topology modifications
+  - Iterative improvement: Systematically reduce costs
+- **Benefits:**
+  - Users can perform sophisticated what-if analysis
+  - Clear patterns for common re-solving scenarios
+  - Practical examples adaptable to real problems
+  - Demonstrates efficient workflow for scenario analysis
+- All tests passing (243 tests)
+- Type checking and linting passing
+
 ### Planned
 - PyPI publication
 - Additional optimization algorithms
