@@ -287,6 +287,10 @@ class NetworkSimplex:
             )
             return False
 
+        # Mark ALL arcs as out of tree first, then set based on basis
+        for arc in self.arcs:
+            arc.in_tree = False
+
         # Mark non-artificial arcs as in/out of tree based on the basis
         for idx, arc in enumerate(self.arcs):
             if not arc.artificial:
@@ -295,22 +299,24 @@ class NetworkSimplex:
                 if not arc.in_tree:
                     arc.flow = arc.lower
 
-        # Add artificial arcs as needed to complete the spanning tree
-        # This ensures we have a valid spanning tree structure
-        nodes_covered = set()
-        for idx, arc in enumerate(self.arcs):
-            if arc.in_tree and not arc.artificial:
-                nodes_covered.add(arc.tail)
-                nodes_covered.add(arc.head)
+        # Add artificial arcs to complete the spanning tree
+        # The spanning tree must include the root, so we need n-1 arcs total
+        # We'll use artificial arcs to ensure the tree is connected to the root
 
-        # Any node not covered by the basis needs an artificial arc
-        for node_idx in range(self.node_count):
-            if node_idx not in nodes_covered and node_idx != self.root:
-                # Find the artificial arc for this node and mark it as in tree
-                for idx, arc in enumerate(self.arcs):
-                    if arc.artificial and (arc.tail == node_idx or arc.head == node_idx):
-                        arc.in_tree = True
-                        break
+        # Count how many tree arcs we have (excluding artificial)
+        non_artificial_tree_arcs = sum(1 for arc in self.arcs if arc.in_tree and not arc.artificial)
+        arcs_needed = self.node_count - 1 - non_artificial_tree_arcs
+
+        # Add artificial arcs until we have a complete spanning tree
+        # Just add arcs in order until we have enough
+        artificial_arcs_added = 0
+        if arcs_needed > 0:
+            for arc in self.arcs:
+                if artificial_arcs_added >= arcs_needed:
+                    break
+                if arc.artificial and not arc.in_tree:
+                    arc.in_tree = True
+                    artificial_arcs_added += 1
 
         # Rebuild tree adjacency lists
         for adj_list in self.tree_adj:
@@ -334,74 +340,52 @@ class NetworkSimplex:
         # This is necessary because capacities/supplies may have changed
         self._recompute_tree_flows()
 
+        # Log information about the warm-start
+        total_artificial_in_tree = sum(1 for arc in self.arcs if arc.in_tree and arc.artificial)
+        total_in_tree = sum(1 for arc in self.arcs if arc.in_tree)
         self.logger.info(
             f"Successfully applied warm-start basis with {len(tree_arc_indices)} tree arcs",
-            extra={"tree_arcs": len(tree_arc_indices), "non_artificial": tree_edge_count},
+            extra={
+                "tree_arcs": len(tree_arc_indices),
+                "non_artificial": tree_edge_count,
+                "artificial_arcs_added": artificial_arcs_added,
+                "artificial_in_tree": total_artificial_in_tree,
+                "total_in_tree": total_in_tree,
+                "node_count": self.node_count,
+            },
         )
         return True
 
     def _recompute_tree_flows(self) -> None:
         """Recompute flows on tree arcs to satisfy flow conservation.
 
-        This uses a post-order traversal from the leaves to compute flows
-        that satisfy flow balance at each node given the current non-tree arc flows.
+        For warm-starting, we reuse the tree structure but need to recompute flows
+        to match the (potentially changed) node supplies and arc bounds.
+
+        Strategy: Set artificial arc flows based on node supplies (like cold start),
+        then flows will be adjusted during Phase 1 if needed.
         """
-        # First, build parent structure
-        parent: list[int | None] = [None] * self.node_count
-        parent_arc: list[int | None] = [None] * self.node_count
-        parent[self.root] = self.root
-
-        queue = deque([self.root])
-        visited = {self.root}
-
-        while queue:
-            node = queue.popleft()
-            for arc_idx in self.tree_adj[node]:
-                arc = self.arcs[arc_idx]
-                if not arc.in_tree:
-                    continue
-                neighbor = arc.head if arc.tail == node else arc.tail
-                if neighbor in visited:
-                    continue
-                visited.add(neighbor)
-                parent[neighbor] = node
-                parent_arc[neighbor] = arc_idx
-                queue.append(neighbor)
-
-        # Compute net outflow at each node from non-tree arcs
-        node_balance = list(self.node_supply)
+        # Reset all tree arc flows to zero first
         for arc in self.arcs:
-            if not arc.in_tree:
-                node_balance[arc.tail] -= arc.flow
-                node_balance[arc.head] += arc.flow
+            if arc.in_tree and not arc.artificial:
+                arc.flow = 0.0
 
-        # Post-order traversal to compute tree arc flows
-        def compute_subtree_flow(node: int) -> None:
-            # Process all children first
-            for arc_idx in self.tree_adj[node]:
-                arc = self.arcs[arc_idx]
-                if not arc.in_tree:
-                    continue
-                neighbor = arc.head if arc.tail == node else arc.tail
-                if parent[neighbor] == node:
-                    compute_subtree_flow(neighbor)
+        # Set artificial arc flows based on node supplies
+        # This matches the cold start initialization logic
+        for arc in self.arcs:
+            if arc.in_tree and arc.artificial:
+                # Find which node this artificial arc connects (not the root)
+                node_idx = arc.head if arc.tail == self.root else arc.tail
+                supply = self.node_supply[node_idx]
 
-            # Now compute flow on arc to parent
-            if node != self.root and parent_arc[node] is not None:
-                arc_idx = parent_arc[node]
-                arc = self.arcs[arc_idx]
-                # Flow needed to balance this node
-                flow_needed = node_balance[node]
-                if arc.tail == node:
-                    # Arc points away from node
-                    arc.flow = max(arc.lower, min(arc.upper, flow_needed))
-                    node_balance[arc.head] += arc.flow
+                if abs(supply) <= self.tolerance:
+                    arc.flow = 0.0
+                elif arc.tail == self.root:
+                    # Root -> node: carries demand
+                    arc.flow = abs(supply) if supply < 0 else 0.0
                 else:
-                    # Arc points toward node
-                    arc.flow = max(arc.lower, min(arc.upper, -flow_needed))
-                    node_balance[arc.tail] -= arc.flow
-
-        compute_subtree_flow(self.root)
+                    # Node -> root: carries supply
+                    arc.flow = supply if supply > 0 else 0.0
 
     def _extract_basis(self) -> Basis:
         """Extract the current basis (spanning tree) for warm-starting future solves."""
@@ -837,25 +821,40 @@ class NetworkSimplex:
 
         # Try to apply warm-start basis if provided
         skip_phase_1 = False
+        warm_start_applied = False
         if warm_start_basis is not None:
             self.logger.info("Attempting to apply warm-start basis")
             if self._apply_warm_start_basis(warm_start_basis):
-                # Check if warm-start basis is feasible (no artificial flow needed)
+                warm_start_applied = True
+                # Apply Phase 1 costs and rebuild tree structure
                 self._apply_phase_costs(phase=1)
                 self._rebuild_tree_structure()
-                artificial_flow = sum(
-                    arc.flow for arc in self.arcs if arc.artificial and arc.flow > self.tolerance
-                )
-                if artificial_flow < self.tolerance:
+
+                # Check if warm-start basis is feasible (no artificial arcs in tree with flow)
+                artificial_in_tree = sum(1 for arc in self.arcs if arc.in_tree and arc.artificial)
+                if artificial_in_tree == 0:
+                    # No artificial arcs in tree means basis fully covers all nodes
+                    # Switch to Phase 2 costs immediately
                     self.logger.info(
-                        "Warm-start basis is feasible, skipping Phase 1",
-                        extra={"artificial_flow": artificial_flow},
+                        "Warm-start basis fully covers all nodes, skipping Phase 1",
+                        extra={"artificial_in_tree": artificial_in_tree},
                     )
+                    self._apply_phase_costs(phase=2)
+                    self._rebuild_tree_structure()
                     skip_phase_1 = True
                 else:
+                    # Need Phase 1 to eliminate artificial flow
+                    artificial_flow = sum(
+                        arc.flow
+                        for arc in self.arcs
+                        if arc.artificial and arc.flow > self.tolerance
+                    )
                     self.logger.info(
                         "Warm-start basis requires Phase 1 refinement",
-                        extra={"artificial_flow": artificial_flow},
+                        extra={
+                            "artificial_flow": artificial_flow,
+                            "artificial_in_tree": artificial_in_tree,
+                        },
                     )
             else:
                 # Warm-start failed, reinitialize with cold start
@@ -868,6 +867,8 @@ class NetworkSimplex:
             self.logger.info(
                 "Phase 1: Finding initial feasible solution", extra={"elapsed_ms": 0.0}
             )
+            # Note: Phase costs and tree structure already applied for warm-start above
+            # For cold start, need to apply them here
             if warm_start_basis is None:
                 self._apply_phase_costs(phase=1)
                 self._rebuild_tree_structure()
