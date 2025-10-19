@@ -307,6 +307,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Undirected vs directed equivalence
     - Error message quality verification
   - All tests passing (242 total, +13 new undirected tests)
+- **Updated documentation files**
+  - Added "Undirected Graphs" section to `docs/examples.md` (~90 lines)
+    - Complete working example with campus network scenario
+    - Flow interpretation guide (positive/negative values)
+    - Common errors section with fixes
+    - When to use undirected vs directed guidance
+  - Added "Undirected Graphs" subsection to `docs/algorithm.md`
+    - Explains transformation in mathematical notation
+    - Shows how edges become arcs with lower=-C, upper=C
+    - Links to API reference for details
 
 ### Planned
 - PyPI publication
