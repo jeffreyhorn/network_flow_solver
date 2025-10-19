@@ -323,6 +323,7 @@ python examples/solve_textbook_transport.py  # Textbook transportation problem
 python examples/solve_large_transport.py  # 10×10 transportation instance
 python examples/sensitivity_analysis_example.py  # Dual values and shadow prices
 python examples/incremental_resolving_example.py  # Scenario analysis and what-if modeling
+python examples/performance_profiling_example.py  # Performance analysis and benchmarking
 python examples/progress_logging_example.py  # Progress monitoring
 python examples/solver_options_example.py  # Solver configuration and tuning
 python examples/utils_example.py  # Flow analysis utilities
