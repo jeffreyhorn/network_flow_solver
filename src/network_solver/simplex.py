@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import math
 import time
+from collections import deque
 from dataclasses import dataclass
 
 import numpy as np
@@ -290,17 +291,9 @@ class NetworkSimplex:
         for idx, arc in enumerate(self.arcs):
             if not arc.artificial:
                 arc.in_tree = idx in tree_arc_indices
-
-        # Initialize flows from the basis if available
-        # Note: Flows may not be feasible for the new problem, but they provide
-        # a starting point. The solver will adjust them during Phase 1 if needed.
-        for arc_key, flow_value in warm_start_basis.arc_flows.items():
-            if arc_key in arc_key_to_idx:
-                idx = arc_key_to_idx[arc_key]
-                # Only set flow if it's within bounds
-                arc = self.arcs[idx]
-                if arc.lower <= flow_value <= arc.upper:
-                    arc.flow = flow_value
+                # Set non-tree arcs to their lower bound (0)
+                if not arc.in_tree:
+                    arc.flow = arc.lower
 
         # Add artificial arcs as needed to complete the spanning tree
         # This ensures we have a valid spanning tree structure
@@ -337,11 +330,78 @@ class NetworkSimplex:
             )
             return False
 
+        # Recompute tree arc flows to satisfy flow conservation
+        # This is necessary because capacities/supplies may have changed
+        self._recompute_tree_flows()
+
         self.logger.info(
             f"Successfully applied warm-start basis with {len(tree_arc_indices)} tree arcs",
             extra={"tree_arcs": len(tree_arc_indices), "non_artificial": tree_edge_count},
         )
         return True
+
+    def _recompute_tree_flows(self) -> None:
+        """Recompute flows on tree arcs to satisfy flow conservation.
+
+        This uses a post-order traversal from the leaves to compute flows
+        that satisfy flow balance at each node given the current non-tree arc flows.
+        """
+        # First, build parent structure
+        parent: list[int | None] = [None] * self.node_count
+        parent_arc: list[int | None] = [None] * self.node_count
+        parent[self.root] = self.root
+
+        queue = deque([self.root])
+        visited = {self.root}
+
+        while queue:
+            node = queue.popleft()
+            for arc_idx in self.tree_adj[node]:
+                arc = self.arcs[arc_idx]
+                if not arc.in_tree:
+                    continue
+                neighbor = arc.head if arc.tail == node else arc.tail
+                if neighbor in visited:
+                    continue
+                visited.add(neighbor)
+                parent[neighbor] = node
+                parent_arc[neighbor] = arc_idx
+                queue.append(neighbor)
+
+        # Compute net outflow at each node from non-tree arcs
+        node_balance = list(self.node_supply)
+        for arc in self.arcs:
+            if not arc.in_tree:
+                node_balance[arc.tail] -= arc.flow
+                node_balance[arc.head] += arc.flow
+
+        # Post-order traversal to compute tree arc flows
+        def compute_subtree_flow(node: int) -> None:
+            # Process all children first
+            for arc_idx in self.tree_adj[node]:
+                arc = self.arcs[arc_idx]
+                if not arc.in_tree:
+                    continue
+                neighbor = arc.head if arc.tail == node else arc.tail
+                if parent[neighbor] == node:
+                    compute_subtree_flow(neighbor)
+
+            # Now compute flow on arc to parent
+            if node != self.root and parent_arc[node] is not None:
+                arc_idx = parent_arc[node]
+                arc = self.arcs[arc_idx]
+                # Flow needed to balance this node
+                flow_needed = node_balance[node]
+                if arc.tail == node:
+                    # Arc points away from node
+                    arc.flow = max(arc.lower, min(arc.upper, flow_needed))
+                    node_balance[arc.head] += arc.flow
+                else:
+                    # Arc points toward node
+                    arc.flow = max(arc.lower, min(arc.upper, -flow_needed))
+                    node_balance[arc.tail] -= arc.flow
+
+        compute_subtree_flow(self.root)
 
     def _extract_basis(self) -> Basis:
         """Extract the current basis (spanning tree) for warm-starting future solves."""
