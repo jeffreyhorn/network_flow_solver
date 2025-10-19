@@ -11,7 +11,27 @@ from .exceptions import InvalidProblemError
 
 @dataclass(frozen=True)
 class Node:
-    """Represents a network node with a supply (positive) or demand (negative)."""
+    """Represents a network node with a supply (positive) or demand (negative).
+
+    Attributes:
+        id: Unique identifier for the node.
+        supply: Supply (positive), demand (negative), or transshipment (0.0).
+                Default is 0.0 (transshipment node).
+
+    Examples:
+        >>> # Supply node (e.g., factory producing 100 units)
+        >>> factory = Node(id="factory_a", supply=100.0)
+
+        >>> # Demand node (e.g., warehouse needing 50 units)
+        >>> warehouse = Node(id="warehouse_1", supply=-50.0)
+
+        >>> # Transshipment node (intermediate node with no supply/demand)
+        >>> hub = Node(id="distribution_hub", supply=0.0)
+
+    Note:
+        For a feasible problem, the sum of all node supplies must equal zero
+        (total supply = total demand). This is enforced during problem validation.
+    """
 
     id: str
     supply: float = 0.0
@@ -19,7 +39,35 @@ class Node:
 
 @dataclass(frozen=True)
 class Arc:
-    """Represents a directed arc with a capacity, cost, and optional lower bound."""
+    """Represents a directed arc with a capacity, cost, and optional lower bound.
+
+    Attributes:
+        tail: Source node ID.
+        head: Destination node ID.
+        capacity: Upper bound on flow. Use None for infinite capacity.
+        cost: Cost per unit of flow on this arc.
+        lower: Lower bound on flow (default: 0.0). Must be <= capacity.
+
+    Examples:
+        >>> # Basic arc from factory to warehouse
+        >>> arc1 = Arc(tail="factory", head="warehouse", capacity=100.0, cost=2.5)
+
+        >>> # Arc with infinite capacity (e.g., internal transfer)
+        >>> arc2 = Arc(tail="node_a", head="node_b", capacity=None, cost=0.0)
+
+        >>> # Arc with lower bound (e.g., minimum contract requirement)
+        >>> arc3 = Arc(tail="supplier", head="customer",
+        ...            capacity=500.0, cost=10.0, lower=100.0)
+
+    Raises:
+        InvalidProblemError: If tail == head (self-loops not supported).
+        InvalidProblemError: If capacity < lower bound.
+
+    Note:
+        For undirected graphs, use NetworkProblem with directed=False. The edge
+        will be automatically transformed to allow bidirectional flow.
+        See docs/api.md#working-with-undirected-graphs for details.
+    """
 
     tail: str
     head: str
@@ -42,7 +90,48 @@ class Arc:
 
 @dataclass
 class NetworkProblem:
-    """Encapsulates a minimum cost flow problem."""
+    """Encapsulates a minimum-cost flow problem.
+
+    This class represents a complete network flow problem instance with nodes,
+    arcs, and configuration. Use solve_min_cost_flow() to find an optimal solution.
+
+    Attributes:
+        directed: True for directed graph, False for undirected.
+        nodes: Dictionary mapping node IDs to Node objects.
+        arcs: List of Arc objects defining the network structure.
+        tolerance: Numerical tolerance for feasibility checks (default: 1e-3).
+
+    Examples:
+        >>> # Directed transportation problem
+        >>> nodes = {
+        ...     "factory": Node(id="factory", supply=100.0),
+        ...     "warehouse": Node(id="warehouse", supply=-100.0),
+        ... }
+        >>> arcs = [
+        ...     Arc(tail="factory", head="warehouse", capacity=150.0, cost=5.0)
+        ... ]
+        >>> problem = NetworkProblem(directed=True, nodes=nodes, arcs=arcs)
+        >>> problem.validate()  # Check problem is well-formed
+
+        >>> # Undirected network (e.g., bidirectional cables)
+        >>> nodes_undirected = {
+        ...     "A": Node(id="A", supply=50.0),
+        ...     "B": Node(id="B", supply=-50.0),
+        ... }
+        >>> edges = [
+        ...     Arc(tail="A", head="B", capacity=100.0, cost=2.0)  # Bidirectional
+        ... ]
+        >>> problem = NetworkProblem(directed=False, nodes=nodes_undirected, arcs=edges)
+
+    Methods:
+        validate(): Check problem validity (supply balance, arc endpoints).
+        undirected_expansion(): Transform undirected edges to directed arcs.
+
+    See Also:
+        - build_problem(): Construct from dictionaries (useful for JSON input).
+        - solve_min_cost_flow(): Solve the problem using network simplex.
+        - docs/algorithm.md: Mathematical formulation and algorithm details.
+    """
 
     directed: bool
     nodes: dict[str, Node]
@@ -136,16 +225,44 @@ class NetworkProblem:
 
 @dataclass
 class FlowResult:
-    """Represents the output of a flow computation.
+    """Represents the output of a minimum-cost flow computation.
 
     Attributes:
-        objective: The objective function value (total cost).
+        objective: Total cost of the solution (∑ cost_ij * flow_ij).
         flows: Dictionary mapping arc (tail, head) tuples to flow values.
-        status: Solution status ('optimal', 'infeasible', 'unbounded', 'iteration_limit').
+               For undirected graphs, positive = tail→head, negative = head→tail.
+        status: Solution status:
+                - 'optimal': Optimal solution found
+                - 'infeasible': No feasible solution exists
+                - 'unbounded': Objective can decrease without bound
+                - 'iteration_limit': Reached max iterations before optimality
         iterations: Number of simplex iterations performed.
         duals: Dictionary mapping node IDs to dual values (node potentials).
-               For optimal solutions, these represent shadow prices for supply/demand constraints.
-               Useful for sensitivity analysis.
+               For optimal solutions, these represent shadow prices for supply/demand.
+               Useful for sensitivity analysis and what-if scenarios.
+
+    Examples:
+        >>> from network_solver import solve_min_cost_flow, build_problem
+        >>> nodes = [
+        ...     {"id": "A", "supply": 10.0},
+        ...     {"id": "B", "supply": -10.0}
+        ... ]
+        >>> arcs = [{"tail": "A", "head": "B", "capacity": 20.0, "cost": 3.0}]
+        >>> problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        >>> result = solve_min_cost_flow(problem)
+        >>> print(f"Status: {result.status}")
+        Status: optimal
+        >>> print(f"Total cost: ${result.objective:.2f}")
+        Total cost: $30.00
+        >>> print(f"Flow A→B: {result.flows[('A', 'B')]:.1f}")
+        Flow A→B: 10.0
+        >>> print(f"Shadow price at A: {result.duals['A']:.2f}")
+        Shadow price at A: -3.00
+
+    See Also:
+        - solve_min_cost_flow(): Main solver function.
+        - docs/examples.md#sensitivity-analysis: Using dual values.
+        - save_result(): Persist results to JSON.
     """
 
     objective: float
@@ -185,11 +302,46 @@ class SolverOptions:
     """Configuration options for the network simplex solver.
 
     Attributes:
-        max_iterations: Maximum number of simplex iterations. If None, defaults to max(100, 5*num_arcs).
+        max_iterations: Maximum number of simplex iterations.
+                       If None, defaults to max(100, 5*num_arcs).
+                       Typical range: 100-10000 depending on problem size.
         tolerance: Numerical tolerance for feasibility and optimality checks (default: 1e-6).
-        pricing_strategy: Arc pricing strategy - "devex" (default) or "dantzig" (first eligible).
-        block_size: Number of arcs to examine per pricing block. If None, defaults to num_arcs/8.
-        ft_update_limit: Maximum number of Forrest-Tomlin basis updates before rebuild (default: 64).
+                  Lower values (1e-8, 1e-10) give higher precision but may increase iterations.
+                  Higher values (1e-4, 1e-3) are faster but less precise.
+        pricing_strategy: Arc pricing strategy:
+                         - "devex" (default): Devex normalized pricing (usually faster)
+                         - "dantzig": Most negative reduced cost (simpler, sometimes better for dense problems)
+        block_size: Number of arcs to examine per pricing block.
+                   If None, defaults to num_arcs/8.
+                   Smaller blocks (10-50) = more pivots, larger blocks = fewer pivots.
+        ft_update_limit: Maximum Forrest-Tomlin basis updates before full rebuild (default: 64).
+                        Lower values (20-40) = more stable but slower.
+                        Higher values (100-200) = faster but may lose numerical stability.
+
+    Examples:
+        >>> # Default options (good for most problems)
+        >>> options = SolverOptions()
+
+        >>> # High-precision solve
+        >>> options = SolverOptions(tolerance=1e-10, ft_update_limit=32)
+
+        >>> # Fast solve for large problems (trade precision for speed)
+        >>> options = SolverOptions(
+        ...     tolerance=1e-4,
+        ...     pricing_strategy="devex",
+        ...     block_size=100,
+        ...     ft_update_limit=128
+        ... )
+
+        >>> # Stable solve for ill-conditioned problems
+        >>> options = SolverOptions(
+        ...     tolerance=1e-8,
+        ...     ft_update_limit=20
+        ... )
+
+    See Also:
+        - solve_min_cost_flow(): Pass options to control solver behavior.
+        - docs/benchmarks.md: Performance tuning guidelines.
     """
 
     max_iterations: int | None = None
