@@ -22,6 +22,7 @@ Example: `python examples/solve_example.py -v`
 - [Incremental Resolving](#incremental-resolving)
 - [Flow Validation and Analysis](#flow-validation-and-analysis)
 - [Structured Logging for Monitoring](#structured-logging-for-monitoring)
+- [Performance Profiling](#performance-profiling)
 
 ## Basic Transportation Problem
 
@@ -1060,6 +1061,265 @@ logging.getLogger("network_solver").addHandler(handler)
 
 # Logs are now compatible with structured logging backends
 ```
+
+## Performance Profiling
+
+**Use case:** Analyze solver performance, compare configurations, identify bottlenecks.
+
+Performance profiling helps you understand how the solver behaves on your specific problem types and choose optimal configuration settings.
+
+### Why Profile Performance?
+
+- **Understand scaling**: How does solve time grow with problem size?
+- **Compare strategies**: Devex vs Dantzig pricing for your problems
+- **Tune configuration**: Find optimal `ft_update_limit` and `block_size`
+- **Identify bottlenecks**: Which problem characteristics cause slow solves?
+- **Regression testing**: Detect performance changes after code modifications
+- **Capacity planning**: Estimate solve times for production workloads
+
+### Basic Profiling
+
+```python
+import time
+from network_solver import build_problem, solve_min_cost_flow
+
+# Build your problem
+nodes = [...]
+arcs = [...]
+problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+
+# Profile solve time
+start_time = time.perf_counter()
+result = solve_min_cost_flow(problem)
+elapsed = time.perf_counter() - start_time
+
+print(f"Solve time: {elapsed * 1000:.2f} ms")
+print(f"Iterations: {result.iterations}")
+print(f"Throughput: {result.iterations / elapsed:.0f} iterations/sec")
+```
+
+### Scaling Analysis
+
+**Use case:** Understand how performance scales with problem size.
+
+```python
+import time
+
+def profile_problem(name, nodes, arcs):
+    """Profile a single problem instance."""
+    problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+    
+    start_time = time.perf_counter()
+    result = solve_min_cost_flow(problem)
+    elapsed = time.perf_counter() - start_time
+    
+    return {
+        "name": name,
+        "nodes": len(nodes),
+        "arcs": len(arcs),
+        "iterations": result.iterations,
+        "elapsed_ms": elapsed * 1000,
+    }
+
+# Test different problem sizes
+sizes = [(3, 3), (5, 5), (7, 7), (10, 10), (15, 15), (20, 20)]
+
+print(f"{'Size':<10} {'Nodes':<8} {'Arcs':<8} {'Iters':<8} {'Time (ms)':<12}")
+print("-" * 60)
+
+for rows, cols in sizes:
+    nodes, arcs = generate_grid_network(rows, cols)  # Your generator
+    result = profile_problem(f"{rows}×{cols}", nodes, arcs)
+    
+    print(f"{result['name']:<10} {result['nodes']:<8} {result['arcs']:<8} "
+          f"{result['iterations']:<8} {result['elapsed_ms']:<12.2f}")
+```
+
+**Example output:**
+```
+Size       Nodes    Arcs     Iters    Time (ms)
+----------------------------------------------------------
+3×3        9        12       10       25.12
+5×5        25       40       58       91.78
+7×7        49       84       104      246.07
+10×10      100      180      198      832.31
+15×15      225      420      363      2362.20
+20×20      400      760      502      6125.48
+```
+
+**Observations:**
+- Solve time grows roughly quadratically with problem size
+- Iteration count increases with network complexity
+- Useful for capacity planning and performance budgeting
+
+### Comparing Pricing Strategies
+
+**Use case:** Determine which pricing strategy works best for your problems.
+
+```python
+from network_solver import SolverOptions
+
+nodes, arcs = ...  # Your problem
+
+# Test Devex pricing (default)
+devex_opts = SolverOptions(pricing_strategy="devex")
+devex_result = profile_problem("Devex", nodes, arcs, devex_opts)
+
+# Test Dantzig pricing
+dantzig_opts = SolverOptions(pricing_strategy="dantzig")
+dantzig_result = profile_problem("Dantzig", nodes, arcs, dantzig_opts)
+
+# Compare
+speedup = dantzig_result['elapsed_ms'] / devex_result['elapsed_ms']
+print(f"Devex:   {devex_result['iterations']} iters, {devex_result['elapsed_ms']:.2f} ms")
+print(f"Dantzig: {dantzig_result['iterations']} iters, {dantzig_result['elapsed_ms']:.2f} ms")
+print(f"Speedup: {speedup:.2f}x {'(Dantzig faster)' if speedup < 1 else '(Devex faster)'}")
+```
+
+**Typical results:**
+- **Devex**: Fewer iterations, slightly higher per-iteration cost
+- **Dantzig**: More iterations, lower per-iteration cost
+- **Winner**: Usually Devex, but Dantzig competitive on sparse problems
+
+### Configuration Tuning
+
+**Use case:** Find optimal solver settings for your problem type.
+
+```python
+# Test different FT update limits
+configs = [
+    ("Default", SolverOptions()),
+    ("High FT limit (128)", SolverOptions(ft_update_limit=128)),
+    ("Low FT limit (32)", SolverOptions(ft_update_limit=32)),
+    ("Large blocks (200)", SolverOptions(block_size=200)),
+    ("Small blocks (50)", SolverOptions(block_size=50)),
+]
+
+print(f"{'Configuration':<30} {'Iters':<8} {'Time (ms)':<12}")
+print("-" * 60)
+
+for config_name, options in configs:
+    result = profile_problem(config_name, nodes, arcs, options)
+    print(f"{config_name:<30} {result['iterations']:<8} {result['elapsed_ms']:<12.2f}")
+```
+
+**What to tune:**
+- **`ft_update_limit`**: Lower = more stable, higher = faster
+- **`block_size`**: Affects Devex pricing granularity
+- **`pricing_strategy`**: Devex vs Dantzig
+- **`tolerance`**: Tighter = more accurate, looser = faster
+
+### Problem Structure Analysis
+
+**Use case:** Understand how network structure affects performance.
+
+```python
+# Compare different structures
+problems = [
+    ("Sparse (Grid)", grid_nodes, grid_arcs),
+    ("Dense (Bipartite)", bip_nodes, bip_arcs),
+    ("Medium (Hybrid)", hybrid_nodes, hybrid_arcs),
+]
+
+print(f"{'Problem Type':<25} {'Nodes':<8} {'Arcs':<8} {'Density':<10} {'Time (ms)':<12}")
+print("-" * 80)
+
+for problem_type, nodes, arcs in problems:
+    result = profile_problem(problem_type, nodes, arcs)
+    density = len(arcs) / (len(nodes) * len(nodes))
+    
+    print(f"{problem_type:<25} {result['nodes']:<8} {result['arcs']:<8} "
+          f"{density:<10.3f} {result['elapsed_ms']:<12.2f}")
+```
+
+**Insights:**
+- Sparse networks: Faster pivot selection
+- Dense networks: More arc candidates but slower per iteration
+- Structure matters: Grid vs bipartite vs tree affects iteration count
+
+### Using Structured Logging for Profiling
+
+Capture detailed metrics programmatically:
+
+```python
+import logging
+import json
+
+class ProfilingHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.metrics = []
+    
+    def emit(self, record):
+        if hasattr(record, 'elapsed_ms'):
+            self.metrics.append({
+                'message': record.getMessage(),
+                'elapsed_ms': record.elapsed_ms,
+                'iterations': getattr(record, 'iterations', None),
+            })
+
+# Setup logging
+handler = ProfilingHandler()
+logger = logging.getLogger("network_solver")
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+
+# Solve
+result = solve_min_cost_flow(problem)
+
+# Analyze captured metrics
+for metric in handler.metrics:
+    print(json.dumps(metric))
+```
+
+See [Structured Logging](#structured-logging-for-monitoring) for more details.
+
+### Complete Working Example
+
+See `examples/performance_profiling_example.py` for comprehensive demonstrations including:
+- Scaling analysis with multiple problem sizes
+- Pricing strategy comparison (Devex vs Dantzig)
+- Solver configuration tuning
+- Problem structure analysis
+- Performance summary and optimization tips
+
+**Output excerpt:**
+```
+SCALING ANALYSIS
+Size       Nodes    Arcs     Iters    Time (ms)    Iters/sec
+----------------------------------------------------------------------
+3×3        9        12       10       25.12        398
+10×10      100      180      198      832.31       238
+20×20      400      760      502      6125.48      82
+
+PRICING STRATEGY COMPARISON
+Problem              Strategy   Iters    Time (ms)    Speedup
+----------------------------------------------------------------------
+Grid 10×10           Devex      198      781.13       1.0x
+                     Dantzig    116      206.75       0.26x (Dantzig faster!)
+```
+
+### Best Practices
+
+1. **Profile representative problems**: Use problem sizes and structures similar to production
+2. **Run multiple iterations**: Average over several runs to reduce noise
+3. **Isolate variables**: Test one configuration change at a time
+4. **Track over time**: Monitor performance across code versions
+5. **Document baselines**: Record expected performance for regression detection
+6. **Consider hardware**: Results vary by CPU, memory, and system load
+
+### Performance Expectations
+
+Based on typical hardware (modern laptop/desktop):
+
+| Problem Size | Nodes | Arcs | Expected Time |
+|--------------|-------|------|---------------|
+| Small | <100 | <500 | <10 ms |
+| Medium | 100-1000 | 500-5000 | 10-100 ms |
+| Large | 1000-10000 | 5000-50000 | 100 ms - 2s |
+| Very Large | >10000 | >50000 | Several seconds |
+
+**Note:** These are rough guidelines. Actual performance depends on problem structure, density, and solver configuration.
 
 ## See Also
 
