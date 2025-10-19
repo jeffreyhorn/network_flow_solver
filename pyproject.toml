@@ -51,9 +51,16 @@ umfpack = [
     "scikit-umfpack>=0.3.7; platform_system != 'Windows'"
 ]
 
+# Tutorial and interactive notebook support
+tutorial = [
+    "jupyter>=1.0.0",
+    "matplotlib>=3.5.0",
+    "networkx>=3.0"
+]
+
 # All optional dependencies combined
 all = [
-    "network-flow-solver[dev,umfpack]"
+    "network-flow-solver[dev,umfpack,tutorial]"
 ]
 
 [project.urls]

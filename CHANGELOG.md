@@ -607,6 +607,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Type checking and linting passing
 
 ### Added (Jupyter Notebook Tutorial)
+- **Optional dependency group for tutorial support**
+  - New `tutorial` optional dependency group in pyproject.toml
+  - Includes jupyter>=1.0.0, matplotlib>=3.5.0, networkx>=3.0
+  - Install with: `pip install -e ".[tutorial]"`
+  - Updated `all` group to include tutorial dependencies
 - **Interactive Jupyter notebook tutorial**: `tutorials/network_flow_tutorial.ipynb`
   - **Installation and Setup** - Quick start with package installation
   - **First Network Flow Problem** - Transportation problem walkthrough
