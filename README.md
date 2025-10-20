@@ -227,7 +227,8 @@ The solver automatically detects special network structures and applies speciali
 When a specialized structure is detected, the solver automatically uses optimized pivot selection:
 - **Transportation**: Row-scan pricing exploiting bipartite structure
 - **Assignment**: Min-cost selection for n×n unit problems
-- **Bipartite matching**: Augmenting path methods
+- **Bipartite matching**: Augmenting path methods (for non-assignment bipartite matching)
+- **Max flow & Shortest path**: Standard Devex or Dantzig pricing (no specialized strategy yet)
 - **General problems**: Standard Devex or Dantzig pricing
 
 ```python

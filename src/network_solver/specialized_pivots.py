@@ -274,6 +274,13 @@ def select_pivot_strategy(solver: NetworkSimplex, network_type: str) -> any:
 
     Returns:
         Specialized pivot strategy instance or None for general
+
+    Note:
+        Currently implemented strategies:
+        - TRANSPORTATION: Row-scan pricing
+        - ASSIGNMENT: Min-cost selection
+        - BIPARTITE_MATCHING: Augmenting path methods
+        - MAX_FLOW, SHORTEST_PATH, GENERAL: Use default Devex/Dantzig pricing
     """
     from .specializations import NetworkType
 
@@ -289,9 +296,14 @@ def select_pivot_strategy(solver: NetworkSimplex, network_type: str) -> any:
         return AssignmentPivotStrategy(solver, num_workers)
 
     elif network_type == NetworkType.BIPARTITE_MATCHING.value:
-        # Would need to pass partition information from network analysis
-        # For now, return None and use general strategy
+        # Use bipartite partitions from network structure if available
+        if solver.network_structure.partitions is not None:
+            left_partition, right_partition = solver.network_structure.partitions
+            # Convert node IDs to node indices
+            left_indices = {solver.node_index[node_id] for node_id in left_partition}
+            right_indices = {solver.node_index[node_id] for node_id in right_partition}
+            return BipartiteMatchingPivotStrategy(solver, left_indices, right_indices)
         return None
 
-    # For other types, use general simplex
+    # For MAX_FLOW, SHORTEST_PATH, and GENERAL types, use standard simplex pricing
     return None
