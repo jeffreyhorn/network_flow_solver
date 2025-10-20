@@ -109,10 +109,25 @@ class NetworkSimplex:
         self.basis = TreeBasis(self.node_count, self.root, self.tolerance)
         self.tree_adj: list[list[int]] = [[] for _ in range(self.node_count)]
         self.pricing_block = 0
-        if self.options.block_size is not None:
-            self.block_size = self.options.block_size
+
+        # Block size configuration and auto-tuning
+        self.auto_tune_block_size = False
+        if self.options.block_size is None or self.options.block_size == "auto":
+            self.auto_tune_block_size = True
+            self.block_size = self._compute_initial_block_size()
+        elif isinstance(self.options.block_size, str):
+            # This should be caught by validation, but just in case
+            self.auto_tune_block_size = True
+            self.block_size = self._compute_initial_block_size()
         else:
-            self.block_size = max(1, self.actual_arc_count // 8)
+            self.block_size = self.options.block_size
+
+        # Auto-tuning state
+        self.degenerate_pivot_count = 0
+        self.total_pivot_count = 0
+        self.last_adaptation_iteration = 0
+        self.adaptation_interval = 50  # Adapt every 50 iterations
+
         self.devex_weights: list[float] = [1.0] * len(self.arcs)
         self.original_costs = [arc.cost for arc in self.arcs]
         self.perturbed_costs = [arc.cost for arc in self.arcs]
@@ -120,6 +135,79 @@ class NetworkSimplex:
         self._initialize_tree()
         self._rebuild_tree_structure()
         self._reset_devex_weights()
+
+    def _compute_initial_block_size(self) -> int:
+        """Compute initial block size based on problem size (static heuristic).
+
+        Strategy:
+        - Very small (<100 arcs): num_arcs // 4 (but at least 1)
+        - Small (100-1000): num_arcs // 4
+        - Medium (1000-10000): num_arcs // 8
+        - Large (>10000): num_arcs // 16
+
+        Note: We avoid full scans (block_size == num_arcs) due to potential
+        issues with pricing logic edge cases.
+
+        Returns:
+            Initial block size (at least 1).
+        """
+        n = self.actual_arc_count
+        if n < 100:
+            return max(1, n // 4)  # Very small
+        elif n < 1000:
+            return max(1, n // 4)  # Small
+        elif n < 10000:
+            return max(1, n // 8)  # Medium
+        else:
+            return max(1, n // 16)  # Large
+
+    def _adapt_block_size(self, iteration: int) -> None:
+        """Adapt block size based on runtime performance metrics.
+
+        Called periodically during solve to adjust block size:
+        - Increase if high degenerate ratio (>30%) - stuck in local area
+        - Decrease if low degenerate ratio (<10%) - maximize exploration
+
+        Args:
+            iteration: Current iteration number.
+        """
+        if not self.auto_tune_block_size:
+            return
+
+        # Only adapt every N iterations
+        if iteration - self.last_adaptation_iteration < self.adaptation_interval:
+            return
+
+        # Need sufficient samples to make a decision
+        if self.total_pivot_count < 10:
+            return
+
+        degenerate_ratio = self.degenerate_pivot_count / self.total_pivot_count
+        old_block_size = self.block_size
+
+        # High degenerate ratio: increase block size (explore wider)
+        if degenerate_ratio > 0.30:
+            self.block_size = min(self.actual_arc_count, int(self.block_size * 1.5))
+        # Low degenerate ratio: decrease block size (more focused search)
+        elif degenerate_ratio < 0.10:
+            self.block_size = max(10, int(self.block_size * 0.75))
+
+        if self.block_size != old_block_size:
+            self.logger.debug(
+                f"Adapted block_size: {old_block_size} → {self.block_size} "
+                f"(degenerate_ratio={degenerate_ratio:.2%})",
+                extra={
+                    "old_block_size": old_block_size,
+                    "new_block_size": self.block_size,
+                    "degenerate_ratio": degenerate_ratio,
+                    "iteration": iteration,
+                },
+            )
+
+        # Reset counters for next adaptation window
+        self.degenerate_pivot_count = 0
+        self.total_pivot_count = 0
+        self.last_adaptation_iteration = iteration
 
     def _initial_supplies(self) -> list[float]:
         supplies = [0.0] * len(self.node_ids)
@@ -690,6 +778,9 @@ class NetworkSimplex:
             self._pivot(arc_idx, direction)
             iterations += 1
 
+            # Adapt block size if auto-tuning is enabled
+            self._adapt_block_size(total_iterations_offset + iterations)
+
             # Call progress callback at specified interval
             if progress_callback is not None and iterations % progress_interval == 0:
                 objective_estimate = self._compute_objective_estimate()
@@ -835,6 +926,13 @@ class NetworkSimplex:
                     continue
                 entering_weight += self.devex_weights[idx]
         self.devex_weights[arc_idx] = max(DEVEX_WEIGHT_MIN, entering_weight)
+
+        # Track pivot for auto-tuning
+        self.total_pivot_count += 1
+        is_degenerate = (leaving_idx == arc_idx) or (abs(theta) < self.tolerance)
+        if is_degenerate:
+            self.degenerate_pivot_count += 1
+
         if leaving_idx == arc_idx:
             entering.in_tree = False
             # Degenerate pivot: tree unchanged but flows adjusted.

@@ -187,7 +187,9 @@ result = solve_min_cost_flow(problem, options=options)
 - `pricing_strategy` - Arc selection strategy:
   - `"devex"` (default) - Normalized reduced costs with block pricing (faster convergence)
   - `"dantzig"` - Most negative reduced cost (simpler, may be slower)
-- `block_size` - Number of arcs examined per pricing block (default: `num_arcs/8`)
+- `block_size` - Number of arcs examined per pricing block:
+  - `None` or `"auto"` (default) - Auto-tune based on problem size with runtime adaptation
+  - int - Fixed block size (no adaptation)
 - `ft_update_limit` - Forrest-Tomlin updates before full basis rebuild (default: `64`)
 
 **Pricing strategies:**
@@ -197,9 +199,16 @@ result = solve_min_cost_flow(problem, options=options)
 **Performance tuning:**
 - Increase `tolerance` for faster (less precise) solutions
 - Decrease `tolerance` for high-precision requirements
-- Adjust `block_size` based on problem sparsity
+- Use `block_size="auto"` (default) for automatic tuning, or specify a fixed int for manual control
 - Lower `ft_update_limit` for better numerical stability (more rebuilds)
 - Raise `ft_update_limit` for faster performance (fewer rebuilds)
+
+**Block size auto-tuning:**
+By default (`block_size=None` or `"auto"`), the solver automatically selects and adapts the block size:
+- **Initial heuristic**: Based on problem size (smaller blocks for smaller problems)
+- **Runtime adaptation**: Monitors degenerate pivot ratio and adjusts every 50 iterations
+  - High degeneracy (>30%) → increase block size (explore wider)
+  - Low degeneracy (<10%) → decrease block size (focused search)
 
 See `examples/solver_options_example.py` for a comprehensive demonstration. For performance benchmarks and optimization guidance, see the [Performance Guide](docs/benchmarks.md).
 
