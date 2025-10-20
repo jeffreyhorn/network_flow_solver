@@ -1,11 +1,8 @@
 """Tests for error handling and edge cases in the network simplex solver."""
 
-import math
-
 import pytest
 
 from network_solver import (
-    InfeasibleProblemError,
     InvalidProblemError,
     UnboundedProblemError,
     build_problem,

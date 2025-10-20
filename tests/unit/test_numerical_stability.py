@@ -1,7 +1,5 @@
 """Tests for numerical stability and ill-conditioned problems."""
 
-import math
-
 import pytest
 
 from network_solver import SolverOptions, build_problem, solve_min_cost_flow
