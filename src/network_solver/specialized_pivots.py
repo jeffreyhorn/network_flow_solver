@@ -59,6 +59,17 @@ class TransportationPivotStrategy:
                 self.col_indices[node_idx] = col_idx
                 col_idx += 1
 
+    def find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
+        """Find entering arc using specialized transportation pricing.
+
+        Args:
+            allow_zero: Whether to allow zero-improvement pivots
+
+        Returns:
+            Tuple of (arc_index, direction) or None if optimal
+        """
+        return self.find_entering_arc_row_scan()
+
     def find_entering_arc_row_scan(self) -> tuple[int, int] | None:
         """Find entering arc using row-scan method for transportation.
 
@@ -148,6 +159,17 @@ class AssignmentPivotStrategy(TransportationPivotStrategy):
         super().__init__(solver, num_workers, num_workers)
         self.size = num_workers
 
+    def find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
+        """Find entering arc using specialized assignment pricing.
+
+        Args:
+            allow_zero: Whether to allow zero-improvement pivots
+
+        Returns:
+            Tuple of (arc_index, direction) or None if optimal
+        """
+        return self.find_entering_arc_min_cost()
+
     def find_entering_arc_min_cost(self) -> tuple[int, int] | None:
         """Find entering arc using minimum-cost selection for assignment.
 
@@ -198,6 +220,17 @@ class BipartiteMatchingPivotStrategy:
         self.solver = solver
         self.left_partition = left_partition
         self.right_partition = right_partition
+
+    def find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
+        """Find entering arc using augmenting path method for matching.
+
+        Args:
+            allow_zero: Whether to allow zero-improvement pivots
+
+        Returns:
+            Tuple of (arc_index, direction) or None if optimal
+        """
+        return self.find_augmenting_path()
 
     def find_augmenting_path(self) -> tuple[int, int] | None:
         """Find an augmenting path for bipartite matching.
