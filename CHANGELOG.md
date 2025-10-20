@@ -8,6 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Network specializations with automatic detection and optimized pivot strategies**
+  - **Detection system** (`specializations.py`) with comprehensive problem classification:
+    - `NetworkType` enum: TRANSPORTATION, ASSIGNMENT, BIPARTITE_MATCHING, MAX_FLOW, SHORTEST_PATH, GENERAL
+    - `NetworkStructure` dataclass containing detected properties (node types, bipartite partitions, balance, bounds)
+    - `analyze_network_structure()` function using BFS 2-coloring for bipartite detection
+    - Categorizes nodes as sources (supply > 0), sinks (supply < 0), or transshipment (supply = 0)
+    - Detection priority: Transportation → Assignment → Bipartite Matching → Shortest Path → Max Flow → General
+  - **Specialized pivot strategies** (`specialized_pivots.py`) for optimized arc selection:
+    - `TransportationPivotStrategy`: Row-scan pricing exploiting bipartite structure
+    - `AssignmentPivotStrategy`: Min-cost selection for n×n unit-value problems
+    - `BipartiteMatchingPivotStrategy`: Augmenting path methods for matching problems
+    - `select_pivot_strategy()`: Automatic strategy selection based on network type
+  - **Integrated into NetworkSimplex solver**:
+    - Automatic detection during solver initialization
+    - Specialized pivot strategies tried first, fallback to standard pricing
+    - Logging at INFO level: "Detected network type" and "Using specialized pivot strategy"
+    - Zero performance impact when specialized structure not detected
+  - **Public API exports**:
+    - `NetworkType` enum exported from main module
+    - `analyze_network_structure()` for manual structure analysis
+    - `get_specialization_info()` for human-readable descriptions
+  - **Comprehensive test suite** (`tests/unit/test_specializations.py`):
+    - 13 tests covering all problem types and detection logic
+    - Tests for bipartite graph detection (BFS 2-coloring algorithm)
+    - Tests for structure property analysis (sources, sinks, transshipment nodes)
+    - Tests for specialization info generation
+  - **Documentation**:
+    - README.md: New "Network Specializations and Optimized Pivots" section with complete example
+    - Benefits, API functions, and detection algorithm explanation
 - **Block size auto-tuning with hybrid approach**
   - `SolverOptions.block_size` now accepts `int`, `"auto"`, or `None`
   - `None` and `"auto"` enable automatic tuning (new default behavior)
