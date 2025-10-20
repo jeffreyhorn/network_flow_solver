@@ -54,7 +54,6 @@ def example_well_conditioned_problem():
     print(f"  Objective: ${result.objective:.2f}")
     print(f"  Iterations: {result.iterations}")
 
-
 def example_ill_conditioned_problem():
     """Example 2: Ill-conditioned problem triggers warnings."""
     print("\n" + "=" * 70)
@@ -91,6 +90,7 @@ def example_ill_conditioned_problem():
 
     # Still solve (with recommended tolerance)
     from network_solver import SolverOptions
+
     options = SolverOptions(tolerance=analysis.recommended_tolerance)
     result = solve_min_cost_flow(problem, options=options)
 
@@ -164,28 +164,29 @@ def example_convergence_monitoring():
         monitor.record_iteration(
             objective=info.objective_estimate,
             is_degenerate=False,  # Simplified for example
-            iteration=info.iteration
+            iteration=info.iteration,
         )
 
         # Report progress
         phase_name = "Phase 1" if info.phase == 1 else "Phase 2"
-        print(f"  {phase_name} | Iter {info.iteration:4d} | "
-              f"Obj: ${info.objective_estimate:10.2f} | "
-              f"Time: {info.elapsed_time:.2f}s")
+        print(
+            f"  {phase_name} | Iter {info.iteration:4d} | "
+            f"Obj: ${info.objective_estimate:10.2f} | "
+            f"Time: {info.elapsed_time:.2f}s"
+        )
 
         # Check for issues
         if monitor.is_stalled():
             print("    ⚠️  Stalling detected")
 
         if monitor.is_highly_degenerate():
-            print(f"    ⚠️  High degeneracy: "
-                  f"{monitor.get_degeneracy_ratio():.1%}")
+            print(f"    ⚠️  High degeneracy: {monitor.get_degeneracy_ratio():.1%}")
 
     print("\nSolving with progress monitoring:")
     result = solve_min_cost_flow(
         problem,
         progress_callback=track_convergence,
-        progress_interval=5  # Report every 5 iterations
+        progress_interval=5,  # Report every 5 iterations
     )
 
     # Show final diagnostics
