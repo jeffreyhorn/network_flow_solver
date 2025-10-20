@@ -128,3 +128,4 @@ test-output/
 
 # Temporary test files
 tmpdir/
+coverage.json

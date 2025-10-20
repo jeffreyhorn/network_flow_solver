@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Warm-start infeasibility detection**: Fixed critical bug where warm-start with capacity-reduced arcs would return invalid solutions
+  - Added flow conservation validation after Phase 1 for warm-start cases
+  - Detects when warm-start basis leads to infeasible state with zero artificial flow but violated flow conservation
+  - Previously, solver could return "optimal" status with flows violating conservation constraints
+  - Test `test_warm_start_capacity_decrease_infeasible_flow` now passes (previously marked as xfail)
+  - Also validates basis arc flows against current capacity bounds during warm-start application
+  - Improved `_recompute_tree_flows()` to detect capacity violations and fall back to cold start
+
 ### Added
 - **Network specializations with automatic detection and optimized pivot strategies**
   - **Detection system** (`specializations.py`) with comprehensive problem classification:
