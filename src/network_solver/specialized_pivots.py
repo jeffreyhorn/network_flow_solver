@@ -6,11 +6,18 @@ special network structures like transportation and assignment problems.
 
 from __future__ import annotations
 
-import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from .simplex import NetworkSimplex
+
+
+class PivotStrategy(Protocol):
+    """Protocol for specialized pivot strategies."""
+
+    def find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
+        """Find entering arc for pivot."""
+        ...
 
 
 class TransportationPivotStrategy:
@@ -96,17 +103,19 @@ class TransportationPivotStrategy:
 
             # Check forward direction
             forward_res = arc.forward_residual()
-            if forward_res > self.solver.tolerance and rc < -self.solver.tolerance:
-                if rc < best_rc:
-                    best_rc = rc
-                    best_arc = (idx, 1)
+            if forward_res > self.solver.tolerance and rc < -self.solver.tolerance and rc < best_rc:
+                best_rc = rc
+                best_arc = (idx, 1)
 
             # Check backward direction
             backward_res = arc.backward_residual()
-            if backward_res > self.solver.tolerance and rc > self.solver.tolerance:
-                if -rc < best_rc:
-                    best_rc = -rc
-                    best_arc = (idx, -1)
+            if (
+                backward_res > self.solver.tolerance
+                and rc > self.solver.tolerance
+                and -rc < best_rc
+            ):
+                best_rc = -rc
+                best_arc = (idx, -1)
 
         return best_arc
 
@@ -369,6 +378,9 @@ class ShortestPathPivotStrategy:
         if self.distance_labels is None:
             self._initialize_distance_labels()
 
+        # Type narrowing for mypy
+        assert self.distance_labels is not None
+
         best_arc = None
         best_rc = 0.0
 
@@ -392,20 +404,22 @@ class ShortestPathPivotStrategy:
                 head_dist = self.distance_labels.get(arc.head, float("inf"))
 
                 # If this arc extends a known path, prioritize it
-                if tail_dist < float("inf"):
+                if tail_dist < float("inf") and rc < best_rc - self.solver.tolerance:
                     # Merit = reduced cost weighted by distance improvement
-                    if rc < best_rc - self.solver.tolerance:
-                        best_rc = rc
-                        best_arc = (idx, 1)
-                        # Update distance label for head
-                        self.distance_labels[arc.head] = min(head_dist, tail_dist + arc.cost)
+                    best_rc = rc
+                    best_arc = (idx, 1)
+                    # Update distance label for head
+                    self.distance_labels[arc.head] = min(head_dist, tail_dist + arc.cost)
 
             # Check backward direction
             backward_res = arc.backward_residual()
-            if backward_res > self.solver.tolerance and rc > self.solver.tolerance:
-                if -rc < best_rc - self.solver.tolerance:
-                    best_rc = -rc
-                    best_arc = (idx, -1)
+            if (
+                backward_res > self.solver.tolerance
+                and rc > self.solver.tolerance
+                and -rc < best_rc - self.solver.tolerance
+            ):
+                best_rc = -rc
+                best_arc = (idx, -1)
 
         return best_arc
 
@@ -435,7 +449,7 @@ class ShortestPathPivotStrategy:
                     queue.append(arc.head)
 
 
-def select_pivot_strategy(solver: NetworkSimplex, network_type: str) -> any:
+def select_pivot_strategy(solver: NetworkSimplex, network_type: str) -> PivotStrategy | None:
     """Select appropriate pivot strategy based on network type.
 
     Args:

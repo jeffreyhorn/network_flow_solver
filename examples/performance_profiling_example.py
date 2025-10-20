@@ -24,7 +24,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from network_solver import build_problem, solve_min_cost_flow, SolverOptions  # noqa: E402
+from network_solver import SolverOptions, build_problem, solve_min_cost_flow  # noqa: E402
 
 
 def print_section_header(title: str) -> None:

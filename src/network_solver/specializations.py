@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .data import NetworkProblem
@@ -210,8 +210,6 @@ def _detect_network_type(
     num_sources = len(source_nodes)
     num_sinks = len(sink_nodes)
     num_transship = len(transshipment_nodes)
-    num_arcs = len(problem.arcs)
-    num_nodes = len(problem.nodes)
 
     # Check for transportation problem:
     # - Only sources and sinks (no transshipment nodes)
@@ -290,7 +288,7 @@ def _detect_network_type(
     return NetworkType.GENERAL
 
 
-def get_specialization_info(structure: NetworkStructure) -> dict[str, any]:
+def get_specialization_info(structure: NetworkStructure) -> dict[str, Any]:
     """Get human-readable information about detected specialization.
 
     Args:
