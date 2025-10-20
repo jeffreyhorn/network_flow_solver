@@ -1,9 +1,6 @@
 """Tests for block size auto-tuning functionality."""
 
-import pytest
-
 from network_solver import (
-    InvalidProblemError,
     SolverOptions,
     build_problem,
     solve_min_cost_flow,
@@ -39,7 +36,6 @@ def test_block_size_adaptation_with_high_degeneracy():
 
     # Verify auto-tuning is enabled
     assert solver.auto_tune_block_size is True
-    initial_block_size = solver.block_size
 
     # Solve the problem
     result = solver.solve()
