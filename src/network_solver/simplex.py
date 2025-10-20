@@ -89,6 +89,23 @@ class NetworkSimplex:
         self.logger = logging.getLogger(__name__)
         self.ft_rebuilds = 0
         self.ft_updates_since_rebuild = 0
+
+        # Detect network specializations for potential optimizations
+        from .specializations import analyze_network_structure, get_specialization_info
+        from .specialized_pivots import select_pivot_strategy
+
+        self.network_structure = analyze_network_structure(problem)
+        self.specialization_info = get_specialization_info(self.network_structure)
+
+        if self.logger.isEnabledFor(logging.INFO):
+            self.logger.info(
+                f"Detected network type: {self.specialization_info['description']}",
+                extra=self.specialization_info,
+            )
+
+        # Select specialized pivot strategy based on detected network type
+        # Note: Specialized pivots will be initialized after basis setup
+        self.specialized_pivot_strategy = None
         # Store node ids in a dense index space so core routines can use list lookups.
         self.node_ids: list[str] = [self.ROOT_NODE] + sorted(problem.nodes.keys())
         self.node_index: dict[str, int] = {
@@ -135,6 +152,16 @@ class NetworkSimplex:
         self._initialize_tree()
         self._rebuild_tree_structure()
         self._reset_devex_weights()
+
+        # Initialize specialized pivot strategy after basis is set up
+
+        self.specialized_pivot_strategy = select_pivot_strategy(
+            self, self.network_structure.network_type.value
+        )
+        if self.specialized_pivot_strategy is not None and self.logger.isEnabledFor(logging.INFO):
+            self.logger.info(
+                f"Using specialized pivot strategy for {self.network_structure.network_type.value}"
+            )
 
     def _compute_initial_block_size(self) -> int:
         """Compute initial block size based on problem size (static heuristic).
@@ -622,6 +649,13 @@ class NetworkSimplex:
 
     def _find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
         """Return (arc_idx, direction) for entering arc, where direction is +1 or -1."""
+        # Try specialized pivot strategy first if available
+        if self.specialized_pivot_strategy is not None:
+            result = self.specialized_pivot_strategy.find_entering_arc(allow_zero)
+            if result is not None:
+                return result
+
+        # Fall back to standard pricing strategies
         if self.options.pricing_strategy == "devex":
             return self._find_entering_arc_devex(allow_zero)
         elif self.options.pricing_strategy == "dantzig":

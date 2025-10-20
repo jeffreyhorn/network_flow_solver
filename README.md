@@ -212,6 +212,72 @@ By default (`block_size=None` or `"auto"`), the solver automatically selects and
 
 See `examples/solver_options_example.py` for a comprehensive demonstration. For performance benchmarks and optimization guidance, see the [Performance Guide](docs/benchmarks.md).
 
+### Network Specializations and Optimized Pivots
+
+The solver automatically detects special network structures and applies specialized pivot strategies for improved performance:
+
+**Automatically Detected Problem Types:**
+- **Transportation problems** - Bipartite networks with only sources and sinks
+- **Assignment problems** - Transportation with unit supplies/demands and n×n structure
+- **Bipartite matching** - Unit-value matching problems on bipartite graphs
+- **Max flow problems** - Single source/sink with uniform costs
+- **Shortest path problems** - Unit flow from single source to single sink
+
+**Specialized Pivot Strategies:**
+When a specialized structure is detected, the solver automatically uses optimized pivot selection:
+- **Transportation**: Row-scan pricing exploiting bipartite structure
+- **Assignment**: Min-cost selection for n×n unit problems
+- **Bipartite matching**: Augmenting path methods (for non-assignment bipartite matching)
+- **Max flow**: Capacity-based selection prioritizing high-capacity arcs for larger flow increments
+- **Shortest path**: Distance-label-based selection (Dijkstra-like) guiding arc selection toward sink
+- **General problems**: Standard Devex or Dantzig pricing
+
+```python
+from network_solver import build_problem, solve_min_cost_flow, analyze_network_structure
+
+# Create a transportation problem
+problem = build_problem(
+    nodes=[
+        {"id": "factory1", "supply": 100.0},
+        {"id": "factory2", "supply": 150.0},
+        {"id": "warehouse1", "supply": -120.0},
+        {"id": "warehouse2", "supply": -130.0},
+    ],
+    arcs=[
+        {"tail": "factory1", "head": "warehouse1", "capacity": 200.0, "cost": 5.0},
+        {"tail": "factory1", "head": "warehouse2", "capacity": 200.0, "cost": 3.0},
+        {"tail": "factory2", "head": "warehouse1", "capacity": 200.0, "cost": 2.0},
+        {"tail": "factory2", "head": "warehouse2", "capacity": 200.0, "cost": 4.0},
+    ],
+    directed=True,
+    tolerance=1e-6,
+)
+
+# Analyze structure manually (optional - solver does this automatically)
+structure = analyze_network_structure(problem)
+print(f"Problem type: {structure.network_type.value}")
+print(f"Is bipartite: {structure.is_bipartite}")
+print(f"Sources: {len(structure.source_nodes)}, Sinks: {len(structure.sink_nodes)}")
+
+# Solver automatically detects structure and uses specialized pivots
+result = solve_min_cost_flow(problem)
+# INFO: Detected network type: Transportation problem: 2 sources → 2 sinks
+# INFO: Using specialized pivot strategy for transportation
+```
+
+**Benefits:**
+- **Automatic optimization** - No manual configuration needed
+- **Better performance** - Specialized algorithms exploit problem structure
+- **Transparent** - Falls back to general methods when specialized structure isn't detected
+- **Logged** - Detection and strategy selection logged at INFO level
+
+**API Functions:**
+- `analyze_network_structure(problem)` - Manually analyze network structure
+- `NetworkType` enum - Problem classification (TRANSPORTATION, ASSIGNMENT, etc.)
+- Automatic detection integrated into `solve_min_cost_flow()`
+
+The detection algorithm uses bipartite graph recognition (BFS 2-coloring) and analyzes node types (sources, sinks, transshipment), supply/demand patterns, and network topology to classify problems and select appropriate strategies.
+
 ### Utility Functions for Flow Analysis
 
 The library provides utilities for analyzing and validating flow solutions:

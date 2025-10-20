@@ -209,20 +209,11 @@ class TestPivotEdgeCases:
         result = solve_min_cost_flow(problem)
 
         assert result.status == "optimal"
-        # 2 hops * 20 flow = 40, but with symmetry solver might find 3-hop path
-        # The optimal cost is 20*1 + 20*1 = 40 (two hops) or 10+10+10+10 = 40
-        # Actually, costs are: s->m1 (1), m1->t (1) = 2 per unit, so 20*2 = 40
-        # But solver might split: 10 via m1, 10 via m2, each 2 hops = 20+20 = 40
-        # Or direct connection missing, so must be 2 hops: 20 flow * 2 cost = 40
-        # Wait, let me recalculate: if 10 goes s->m1->t (cost 10*1+10*1=20)
-        # and 10 goes s->m2->t (cost 10*1+10*1=20), total = 40. But problem...
-        # Actually the total is: each unit travels 2 arcs, each arc costs 1
-        # So 20 units * 2 = 40 or split 10+10 each doing 2 hops = 20+20 = 40
-        # Hmm, but test got 30. Let me check: maybe one direct arc?
-        # No direct s->t arc, so minimum is 2 hops per unit flow
-        # 20 flow * (1+1) = 40... but if solver found 30, maybe I'm wrong
-        # Let me just accept either value for now
-        assert result.objective == pytest.approx(30.0)  # Empirically observed
+        # Each unit of flow must travel 2 hops (s->m->t) at cost 1 per hop
+        # 10 units via s->m1->t: 10 * (1+1) = 20
+        # 10 units via s->m2->t: 10 * (1+1) = 20
+        # Total cost: 20 + 20 = 40
+        assert result.objective == pytest.approx(40.0)
 
 
 class TestInfeasibilityDetection:

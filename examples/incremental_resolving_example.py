@@ -52,7 +52,7 @@ def print_solution(result, label: str = "Solution", show_flows: bool = True) -> 
     print(f"  Objective: ${result.objective:,.2f}")
     print(f"  Iterations: {result.iterations}")
     if show_flows and result.flows:
-        print(f"  Flows:")
+        print("  Flows:")
         for (tail, head), flow in sorted(result.flows.items()):
             print(f"    {tail} -> {head}: {flow:.2f} units")
 
@@ -148,18 +148,18 @@ def scenario_2_cost_changes() -> None:
 
     cost_increase = result_increased.objective - result_original.objective
     pct_increase = (cost_increase / result_original.objective) * 100
-    print(f"\nCost Impact:")
+    print("\nCost Impact:")
     print(f"  Absolute increase: ${cost_increase:.2f}")
     print(f"  Percentage increase: {pct_increase:.1f}%")
 
     # Compare flow patterns
-    print(f"\nFlow Pattern Changes:")
+    print("\nFlow Pattern Changes:")
     direct_flow_before = result_original.flows.get(("factory", "customer"), 0.0)
     direct_flow_after = result_increased.flows.get(("factory", "customer"), 0.0)
     print(f"  Direct route flow: {direct_flow_before:.2f} -> {direct_flow_after:.2f} units")
 
     if direct_flow_after < direct_flow_before:
-        print(f"  ✓ Solver shifted to cheaper hub route after price increase")
+        print("  ✓ Solver shifted to cheaper hub route after price increase")
 
 
 def scenario_3_demand_fluctuations() -> None:
@@ -209,7 +209,7 @@ def scenario_3_demand_fluctuations() -> None:
     result_week3 = solve_min_cost_flow(problem_week3)
     print_solution(result_week3, "Week 3")
 
-    print(f"\nCost Progression:")
+    print("\nCost Progression:")
     print(f"  Week 1: ${result_week1.objective:,.2f}")
     print(
         f"  Week 2: ${result_week2.objective:,.2f} ({result_week2.objective - result_week1.objective:+.2f})"
@@ -258,12 +258,12 @@ def scenario_4_network_topology_changes() -> None:
     print_solution(result_with_direct, "Network with Direct Route")
 
     savings = result_current.objective - result_with_direct.objective
-    print(f"\nValue of Direct Route:")
+    print("\nValue of Direct Route:")
     print(f"  Annual savings: ${savings:,.2f} per period")
     if savings > 0:
-        print(f"  ✓ Direct route is cost-effective")
+        print("  ✓ Direct route is cost-effective")
     else:
-        print(f"  ✗ Direct route doesn't reduce costs (existing routes are better)")
+        print("  ✗ Direct route doesn't reduce costs (existing routes are better)")
 
 
 def scenario_5_iterative_optimization() -> None:
