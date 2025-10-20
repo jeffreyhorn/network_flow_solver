@@ -265,6 +265,176 @@ class BipartiteMatchingPivotStrategy:
         return None
 
 
+class MaxFlowPivotStrategy:
+    """Specialized pivot strategy for max flow problems.
+
+    Max flow problems have uniform costs (all 0 or all 1) and single source/sink.
+    We can exploit this by prioritizing arcs with higher residual capacity to find
+    augmenting paths with larger flow increments.
+    """
+
+    def __init__(self, solver: NetworkSimplex, source_idx: int, sink_idx: int):
+        """Initialize max flow pivot strategy.
+
+        Args:
+            solver: The network simplex solver
+            source_idx: Node index of the source
+            sink_idx: Node index of the sink
+        """
+        self.solver = solver
+        self.source_idx = source_idx
+        self.sink_idx = sink_idx
+
+    def find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
+        """Find entering arc using capacity-based selection.
+
+        Prioritizes arcs with higher residual capacity to find augmenting
+        paths with larger flow increments.
+
+        Args:
+            allow_zero: Whether to allow zero-improvement pivots
+
+        Returns:
+            Tuple of (arc_index, direction) or None if optimal
+        """
+        best_arc = None
+        best_merit = -float("inf")
+
+        for idx, arc in enumerate(self.solver.arcs):
+            if arc.in_tree or arc.artificial:
+                continue
+
+            # Compute reduced cost
+            rc = (
+                arc.cost
+                + self.solver.basis.potential[arc.tail]
+                - self.solver.basis.potential[arc.head]
+            )
+
+            # Check forward direction
+            forward_res = arc.forward_residual()
+            if forward_res > self.solver.tolerance and rc < -self.solver.tolerance:
+                # Merit = capacity * |reduced_cost| (prefer high capacity arcs)
+                merit = forward_res * abs(rc)
+                if merit > best_merit:
+                    best_merit = merit
+                    best_arc = (idx, 1)
+
+            # Check backward direction
+            backward_res = arc.backward_residual()
+            if backward_res > self.solver.tolerance and rc > self.solver.tolerance:
+                merit = backward_res * abs(rc)
+                if merit > best_merit:
+                    best_merit = merit
+                    best_arc = (idx, -1)
+
+        return best_arc
+
+
+class ShortestPathPivotStrategy:
+    """Specialized pivot strategy for shortest path problems.
+
+    Shortest path problems send a single unit of flow from source to sink.
+    We use distance labels to guide arc selection towards building the
+    shortest path, similar to Dijkstra's algorithm.
+    """
+
+    def __init__(self, solver: NetworkSimplex, source_idx: int, sink_idx: int):
+        """Initialize shortest path pivot strategy.
+
+        Args:
+            solver: The network simplex solver
+            source_idx: Node index of the source
+            sink_idx: Node index of the sink
+        """
+        self.solver = solver
+        self.source_idx = source_idx
+        self.sink_idx = sink_idx
+        # Distance labels from source (initialized on first use)
+        self.distance_labels: dict[int, float] | None = None
+
+    def find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
+        """Find entering arc using distance-label-based selection.
+
+        Maintains distance labels from the source and selects arcs that
+        extend the shortest known path towards the sink.
+
+        Args:
+            allow_zero: Whether to allow zero-improvement pivots
+
+        Returns:
+            Tuple of (arc_index, direction) or None if optimal
+        """
+        # Initialize distance labels if needed
+        if self.distance_labels is None:
+            self._initialize_distance_labels()
+
+        best_arc = None
+        best_rc = 0.0
+
+        for idx, arc in enumerate(self.solver.arcs):
+            if arc.in_tree or arc.artificial:
+                continue
+
+            # Compute reduced cost
+            rc = (
+                arc.cost
+                + self.solver.basis.potential[arc.tail]
+                - self.solver.basis.potential[arc.head]
+            )
+
+            # Check forward direction
+            forward_res = arc.forward_residual()
+            if forward_res > self.solver.tolerance and rc < -self.solver.tolerance:
+                # Prefer arcs that extend paths closer to sink
+                # Use distance labels as tie-breaker
+                tail_dist = self.distance_labels.get(arc.tail, float("inf"))
+                head_dist = self.distance_labels.get(arc.head, float("inf"))
+
+                # If this arc extends a known path, prioritize it
+                if tail_dist < float("inf"):
+                    # Merit = reduced cost weighted by distance improvement
+                    if rc < best_rc - self.solver.tolerance:
+                        best_rc = rc
+                        best_arc = (idx, 1)
+                        # Update distance label for head
+                        self.distance_labels[arc.head] = min(head_dist, tail_dist + arc.cost)
+
+            # Check backward direction
+            backward_res = arc.backward_residual()
+            if backward_res > self.solver.tolerance and rc > self.solver.tolerance:
+                if -rc < best_rc - self.solver.tolerance:
+                    best_rc = -rc
+                    best_arc = (idx, -1)
+
+        return best_arc
+
+    def _initialize_distance_labels(self) -> None:
+        """Initialize distance labels from source using current tree structure."""
+        self.distance_labels = {}
+        self.distance_labels[self.source_idx] = 0.0
+
+        # Use BFS to compute initial distance estimates from tree arcs
+        from collections import deque
+
+        queue = deque([self.source_idx])
+        visited = {self.source_idx}
+
+        while queue:
+            node = queue.popleft()
+            current_dist = self.distance_labels[node]
+
+            # Check all arcs from this node
+            for arc in self.solver.arcs:
+                if arc.artificial:
+                    continue
+
+                if arc.tail == node and arc.head not in visited:
+                    self.distance_labels[arc.head] = current_dist + arc.cost
+                    visited.add(arc.head)
+                    queue.append(arc.head)
+
+
 def select_pivot_strategy(solver: NetworkSimplex, network_type: str) -> any:
     """Select appropriate pivot strategy based on network type.
 
@@ -276,11 +446,13 @@ def select_pivot_strategy(solver: NetworkSimplex, network_type: str) -> any:
         Specialized pivot strategy instance or None for general
 
     Note:
-        Currently implemented strategies:
-        - TRANSPORTATION: Row-scan pricing
-        - ASSIGNMENT: Min-cost selection
-        - BIPARTITE_MATCHING: Augmenting path methods
-        - MAX_FLOW, SHORTEST_PATH, GENERAL: Use default Devex/Dantzig pricing
+        Implemented strategies:
+        - TRANSPORTATION: Row-scan pricing exploiting bipartite structure
+        - ASSIGNMENT: Min-cost selection for n×n unit problems
+        - BIPARTITE_MATCHING: Augmenting path methods for matching
+        - MAX_FLOW: Capacity-based selection for augmenting paths
+        - SHORTEST_PATH: Distance-label-based selection (Dijkstra-like)
+        - GENERAL: Use default Devex/Dantzig pricing
     """
     from .specializations import NetworkType
 
@@ -305,5 +477,37 @@ def select_pivot_strategy(solver: NetworkSimplex, network_type: str) -> any:
             return BipartiteMatchingPivotStrategy(solver, left_indices, right_indices)
         return None
 
-    # For MAX_FLOW, SHORTEST_PATH, and GENERAL types, use standard simplex pricing
+    elif network_type == NetworkType.MAX_FLOW.value:
+        # Find source and sink indices
+        source_idx = None
+        sink_idx = None
+        for idx, supply in enumerate(solver.node_supply):
+            if idx == solver.root:
+                continue
+            if supply > solver.tolerance and source_idx is None:
+                source_idx = idx
+            elif supply < -solver.tolerance and sink_idx is None:
+                sink_idx = idx
+
+        if source_idx is not None and sink_idx is not None:
+            return MaxFlowPivotStrategy(solver, source_idx, sink_idx)
+        return None
+
+    elif network_type == NetworkType.SHORTEST_PATH.value:
+        # Find source and sink indices
+        source_idx = None
+        sink_idx = None
+        for idx, supply in enumerate(solver.node_supply):
+            if idx == solver.root:
+                continue
+            if abs(supply - 1.0) <= solver.tolerance and source_idx is None:
+                source_idx = idx
+            elif abs(supply + 1.0) <= solver.tolerance and sink_idx is None:
+                sink_idx = idx
+
+        if source_idx is not None and sink_idx is not None:
+            return ShortestPathPivotStrategy(solver, source_idx, sink_idx)
+        return None
+
+    # For GENERAL type, use standard simplex pricing
     return None

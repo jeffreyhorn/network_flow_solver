@@ -19,8 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `TransportationPivotStrategy`: Row-scan pricing exploiting bipartite structure
     - `AssignmentPivotStrategy`: Min-cost selection for n×n unit-value problems
     - `BipartiteMatchingPivotStrategy`: Augmenting path methods for non-assignment bipartite matching
+    - `MaxFlowPivotStrategy`: Capacity-based selection prioritizing high-capacity arcs for larger flow increments
+    - `ShortestPathPivotStrategy`: Distance-label-based selection (Dijkstra-like) with path extension guidance
     - `select_pivot_strategy()`: Automatic strategy selection based on network type
-    - Note: MAX_FLOW and SHORTEST_PATH use standard Devex/Dantzig pricing (no specialized strategy yet)
+    - All 5 specialized problem types now have optimized pivot strategies
   - **Integrated into NetworkSimplex solver**:
     - Automatic detection during solver initialization
     - Specialized pivot strategies tried first, fallback to standard pricing

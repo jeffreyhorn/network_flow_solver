@@ -228,7 +228,8 @@ When a specialized structure is detected, the solver automatically uses optimize
 - **Transportation**: Row-scan pricing exploiting bipartite structure
 - **Assignment**: Min-cost selection for n×n unit problems
 - **Bipartite matching**: Augmenting path methods (for non-assignment bipartite matching)
-- **Max flow & Shortest path**: Standard Devex or Dantzig pricing (no specialized strategy yet)
+- **Max flow**: Capacity-based selection prioritizing high-capacity arcs for larger flow increments
+- **Shortest path**: Distance-label-based selection (Dijkstra-like) guiding arc selection toward sink
 - **General problems**: Standard Devex or Dantzig pricing
 
 ```python
