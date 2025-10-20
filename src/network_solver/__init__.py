@@ -11,6 +11,7 @@ from .exceptions import (
     UnboundedProblemError,
 )
 from .solver import load_problem, save_result, solve_min_cost_flow
+from .specializations import NetworkType, analyze_network_structure, get_specialization_info
 from .utils import (
     BottleneckArc,
     FlowPath,
@@ -34,6 +35,10 @@ __all__ = [
     # Progress tracking
     "ProgressCallback",
     "ProgressInfo",
+    # Specializations
+    "NetworkType",
+    "analyze_network_structure",
+    "get_specialization_info",
     # Utilities
     "extract_path",
     "validate_flow",

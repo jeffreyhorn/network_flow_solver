@@ -166,10 +166,10 @@ def main() -> None:
     print(f"  Increasing Factory B capacity by 1 unit saves: ${factory_b_value:.2f}")
 
     if factory_a_value > factory_b_value:
-        print(f"\n  ✓ RECOMMENDATION: Expand Factory A (higher marginal value)")
+        print("\n  ✓ RECOMMENDATION: Expand Factory A (higher marginal value)")
         print(f"    Marginal benefit: ${factory_a_value:.2f}/unit vs ${factory_b_value:.2f}/unit")
     else:
-        print(f"\n  ✓ RECOMMENDATION: Expand Factory B (higher marginal value)")
+        print("\n  ✓ RECOMMENDATION: Expand Factory B (higher marginal value)")
 
     # Capacity constraint analysis
     print_section_header("CAPACITY CONSTRAINT ANALYSIS")
@@ -190,7 +190,7 @@ def main() -> None:
         print(f"\n  Arc {tail} -> {head}:")
         print(f"    Flow: {flow:.2f} / Capacity: {capacity:.2f} ({utilization:.1f}%)")
         if at_capacity:
-            print(f"    ⚠ BOTTLENECK: Arc is at full capacity!")
+            print("    ⚠ BOTTLENECK: Arc is at full capacity!")
             print(f"    Increasing capacity here would reduce cost by ~${factory_a_value:.2f}/unit")
         else:
             slack = capacity - flow

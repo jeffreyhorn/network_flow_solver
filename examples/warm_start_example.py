@@ -22,7 +22,6 @@ Key benefits of warm-starting:
 """
 
 import time
-from typing import Any
 
 from network_solver import Basis, build_problem, solve_min_cost_flow
 
@@ -284,7 +283,7 @@ def scenario_4_sequential_optimization() -> None:
     basis: Basis | None = None
     baseline_iters = None
 
-    for week, demand in zip(weeks, weekly_demands):
+    for week, demand in zip(weeks, weekly_demands, strict=True):
         nodes = [
             {"id": "production", "supply": demand},
             {"id": "customer_a", "supply": -demand * 0.6},
@@ -342,9 +341,7 @@ def scenario_5_performance_comparison() -> None:
     for i in range(grid_size):
         for j in range(grid_size):
             node_id = f"n_{i}_{j}"
-            if i == 0 and j == 0:
-                nodes.append({"id": node_id, "supply": 0.0})  # Will vary
-            elif i == grid_size - 1 and j == grid_size - 1:
+            if i == 0 and j == 0 or i == grid_size - 1 and j == grid_size - 1:
                 nodes.append({"id": node_id, "supply": 0.0})  # Will vary
             else:
                 nodes.append({"id": node_id, "supply": 0.0})

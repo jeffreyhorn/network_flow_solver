@@ -19,10 +19,7 @@ def main() -> None:
     problem = load_problem(problem_path)
     result = solve_min_cost_flow(problem, max_iterations=5000)
     save_result(output_path, result)
-    print(
-        f"Solved {problem_path.name}: status={result.status}, "
-        f"objective={result.objective}"
-    )
+    print(f"Solved {problem_path.name}: status={result.status}, objective={result.objective}")
 
 
 if __name__ == "__main__":

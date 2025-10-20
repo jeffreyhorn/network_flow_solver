@@ -290,9 +290,9 @@ def test_validate_flow_with_tolerance():
 def test_compute_bottleneck_arcs_simple():
     """Test identifying bottleneck arcs at capacity."""
     nodes = [
-        {"id": "s", "supply": 100.0},
+        {"id": "s", "supply": 50.0},  # Fixed: match bottleneck capacity
         {"id": "m", "supply": 0.0},
-        {"id": "t", "supply": -100.0},
+        {"id": "t", "supply": -50.0},  # Fixed: match bottleneck capacity
     ]
     arcs = [
         {"tail": "s", "head": "m", "capacity": 50.0, "cost": 1.0},  # Bottleneck
