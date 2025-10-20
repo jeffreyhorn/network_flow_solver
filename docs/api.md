@@ -9,6 +9,7 @@ Complete API documentation for the network flow solver library.
 - [Solver Configuration](#solver-configuration)
 - [Results and Analysis](#results-and-analysis)
 - [Utility Functions](#utility-functions)
+- [Network Specializations](#network-specializations)
 - [Progress Tracking](#progress-tracking)
 - [Exceptions](#exceptions)
 - [Input/Output](#inputoutput)
@@ -571,6 +572,151 @@ class BottleneckArc:
     utilization: float | None # flow / capacity (None for infinite capacity)
     cost: float               # Cost per unit
     slack: float              # Remaining capacity (capacity - flow)
+```
+
+## Network Specializations
+
+The solver automatically detects special network structures and applies optimized pivot strategies.
+
+### analyze_network_structure
+
+```python
+def analyze_network_structure(problem: NetworkProblem) -> NetworkStructure
+```
+
+Analyze a network problem to detect its structure and type.
+
+**Parameters:**
+
+- `problem` (NetworkProblem): Problem to analyze
+
+**Returns:**
+
+- `NetworkStructure`: Detected structure with classification and properties
+
+**Algorithm:**
+
+Uses BFS 2-coloring to detect bipartite graphs, categorizes nodes as sources/sinks/transshipment, and classifies problem type based on structure.
+
+**Example:**
+
+```python
+from network_solver import build_problem, analyze_network_structure
+
+problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+structure = analyze_network_structure(problem)
+
+print(f"Network type: {structure.network_type.value}")
+print(f"Is bipartite: {structure.is_bipartite}")
+print(f"Sources: {len(structure.source_nodes)}")
+print(f"Sinks: {len(structure.sink_nodes)}")
+print(f"Transshipment nodes: {len(structure.transshipment_nodes)}")
+print(f"Balanced: {structure.is_balanced}")
+```
+
+### get_specialization_info
+
+```python
+def get_specialization_info(structure: NetworkStructure) -> dict[str, Any]
+```
+
+Get human-readable information about detected specialization.
+
+**Parameters:**
+
+- `structure` (NetworkStructure): Analyzed network structure
+
+**Returns:**
+
+- `dict`: Information dictionary with keys:
+  - `type` (str): Network type name
+  - `description` (str): Human-readable description
+  - `characteristics` (list[str]): Key characteristics
+  - `is_bipartite` (bool): Whether graph is bipartite
+
+**Example:**
+
+```python
+structure = analyze_network_structure(problem)
+info = get_specialization_info(structure)
+
+print(info['description'])
+# "Transportation problem: 2 sources → 3 sinks"
+
+for characteristic in info['characteristics']:
+    print(f"  - {characteristic}")
+# - Bipartite graph structure
+# - Only sources and sinks (no transshipment)
+# - Balanced (supply equals demand)
+```
+
+### NetworkType (Enum)
+
+Classification of network problem types.
+
+**Values:**
+
+- `GENERAL` - General network flow (no special structure)
+- `TRANSPORTATION` - Bipartite with only sources and sinks
+- `ASSIGNMENT` - Transportation with unit supplies/demands, n×n structure
+- `BIPARTITE_MATCHING` - Unit-value matching on bipartite graphs
+- `MAX_FLOW` - Single source/sink with uniform costs
+- `SHORTEST_PATH` - Unit flow from single source to single sink
+
+**Example:**
+
+```python
+from network_solver import NetworkType
+
+if structure.network_type == NetworkType.TRANSPORTATION:
+    print("Detected transportation problem")
+elif structure.network_type == NetworkType.ASSIGNMENT:
+    print("Detected assignment problem")
+```
+
+### NetworkStructure (Dataclass)
+
+```python
+@dataclass
+class NetworkStructure:
+    network_type: NetworkType              # Detected problem type
+    is_bipartite: bool                     # Whether graph is bipartite
+    source_nodes: set[str]                 # Nodes with supply > 0
+    sink_nodes: set[str]                   # Nodes with supply < 0
+    transshipment_nodes: set[str]          # Nodes with supply = 0
+    partitions: tuple[set[str], set[str]] | None  # Bipartite partitions
+    total_supply: float                    # Sum of all positive supplies
+    total_demand: float                    # Absolute value of sum of negative supplies
+    is_balanced: bool                      # Whether supply equals demand
+    has_lower_bounds: bool                 # Whether any arc has lower > 0
+    has_finite_capacities: bool            # Whether all arcs have finite capacity
+```
+
+**Detection Priority:**
+
+The detector classifies problems in this order (most specific first):
+1. Transportation (bipartite, sources/sinks only, no lower bounds)
+2. Assignment (transportation + unit values + n×n structure)
+3. Bipartite Matching (bipartite + unit values)
+4. Shortest Path (single source/sink + unit flow)
+5. Max Flow (single source/sink + uniform costs)
+6. General (fallback)
+
+**Specialized Pivot Strategies:**
+
+When a specialized structure is detected, the solver automatically uses optimized pivot selection:
+- **Transportation**: Row-scan pricing exploiting bipartite structure
+- **Assignment**: Min-cost selection for n×n unit problems
+- **Bipartite Matching**: Augmenting path methods
+- **General**: Standard Devex or Dantzig pricing
+
+**Automatic Integration:**
+
+The solver calls `analyze_network_structure()` automatically during initialization. Detection and strategy selection are logged at INFO level:
+
+```
+INFO: Detected network type: Transportation problem: 2 sources → 3 sinks
+INFO: Using specialized pivot strategy for transportation
 ```
 
 ## Progress Tracking
