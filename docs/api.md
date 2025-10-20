@@ -706,8 +706,10 @@ The detector classifies problems in this order (most specific first):
 
 When a specialized structure is detected, the solver automatically uses optimized pivot selection:
 - **Transportation**: Row-scan pricing exploiting bipartite structure
-- **Assignment**: Min-cost selection for n×n unit problems
-- **Bipartite Matching**: Augmenting path methods
+- **Assignment**: Min-cost selection for n×n unit problems (takes priority over bipartite matching)
+- **Bipartite Matching**: Augmenting path methods (for non-assignment bipartite matching)
+- **Max Flow**: Standard Devex or Dantzig pricing (no specialized strategy implemented)
+- **Shortest Path**: Standard Devex or Dantzig pricing (no specialized strategy implemented)
 - **General**: Standard Devex or Dantzig pricing
 
 **Automatic Integration:**
