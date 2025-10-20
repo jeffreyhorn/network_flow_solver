@@ -1,6 +1,7 @@
 """High-level entrypoints for the network simplex solver library."""
 
 from .data import Basis, ProgressCallback, ProgressInfo, SolverOptions, build_problem
+from .diagnostics import BasisHistory, ConvergenceMonitor
 from .exceptions import (
     InfeasibleProblemError,
     InvalidProblemError,
@@ -19,6 +20,12 @@ from .utils import (
     compute_bottleneck_arcs,
     extract_path,
     validate_flow,
+)
+from .validation import (
+    NumericAnalysis,
+    NumericWarning,
+    analyze_numeric_properties,
+    validate_numeric_properties,
 )
 
 __version__ = "0.1.0"
@@ -46,6 +53,14 @@ __all__ = [
     "FlowPath",
     "ValidationResult",
     "BottleneckArc",
+    # Numeric validation
+    "analyze_numeric_properties",
+    "validate_numeric_properties",
+    "NumericAnalysis",
+    "NumericWarning",
+    # Diagnostics
+    "ConvergenceMonitor",
+    "BasisHistory",
     # Exceptions
     "NetworkSolverError",
     "InvalidProblemError",
