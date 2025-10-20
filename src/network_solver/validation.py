@@ -55,32 +55,13 @@ class NumericAnalysis:
     recommended_tolerance: float
 
 
-def analyze_numeric_properties(problem: NetworkProblem) -> NumericAnalysis:
+def analyze_numeric_properties(problem: "NetworkProblem") -> NumericAnalysis:
     """Analyze numeric properties of a network problem.
 
     Checks for potential numeric issues including:
     - Extreme value ranges (very large or very small numbers)
     - Wide coefficient ranges that may cause numerical issues
     - Precision loss in floating-point arithmetic
-
-    Args:
-        problem: The network problem to analyze
-
-    Returns:
-        NumericAnalysis containing warnings and recommendations
-
-    Examples:
-        >>> from network_solver import build_problem, analyze_numeric_properties
-        >>> problem = build_problem(
-        ...     nodes=[{"id": "A", "supply": 1e12}, {"id": "B", "supply": -1e12}],
-        ...     arcs=[{"tail": "A", "head": "B", "capacity": 1e-8, "cost": 1e10}],
-        ...     directed=True,
-        ...     tolerance=1e-6
-        ... )
-        >>> analysis = analyze_numeric_properties(problem)
-        >>> if not analysis.is_well_conditioned:
-        ...     for warning in analysis.warnings:
-        ...         print(f"{warning.severity}: {warning.message}")
     """
     warnings_list: list[NumericWarning] = []
 
@@ -115,18 +96,18 @@ def analyze_numeric_properties(problem: NetworkProblem) -> NumericAnalysis:
         if abs(arc.cost) > extreme_threshold_high:
             has_extreme_values = True
             warnings_list.append(NumericWarning(
-                severity='medium',
-                category='range',
+                severity="medium",
+                category="range",
                 message=f"Arc {arc.tail}->{arc.head} has very large cost {arc.cost:.2e}",
-                recommendation="Consider scaling costs to range [0.01, 1000] for better stability"
+                recommendation="Consider scaling costs to range [0.01, 1000] for better stability",
             ))
         elif 0 < abs(arc.cost) < extreme_threshold_low:
             has_extreme_values = True
             warnings_list.append(NumericWarning(
-                severity='low',
-                category='range',
+                severity="low",
+                category="range",
                 message=f"Arc {arc.tail}->{arc.head} has very small cost {arc.cost:.2e}",
-                recommendation="Consider scaling costs to avoid precision loss"
+                recommendation="Consider scaling costs to avoid precision loss",
             ))
 
     # Check capacities
@@ -135,18 +116,18 @@ def analyze_numeric_properties(problem: NetworkProblem) -> NumericAnalysis:
             if arc.capacity > extreme_threshold_high:
                 has_extreme_values = True
                 warnings_list.append(NumericWarning(
-                    severity='medium',
-                    category='range',
+                    severity="medium",
+                    category="range",
                     message=f"Arc {arc.tail}->{arc.head} has very large capacity {arc.capacity:.2e}",
-                    recommendation="Consider scaling capacities or using infinite capacity"
+                    recommendation="Consider scaling capacities or using infinite capacity",
                 ))
             elif 0 < arc.capacity < extreme_threshold_low:
                 has_extreme_values = True
                 warnings_list.append(NumericWarning(
-                    severity='low',
-                    category='range',
+                    severity="low",
+                    category="range",
                     message=f"Arc {arc.tail}->{arc.head} has very small capacity {arc.capacity:.2e}",
-                    recommendation="Consider scaling capacities or removing near-zero arcs"
+                    recommendation="Consider scaling capacities or removing near-zero arcs",
                 ))
 
     # Check supplies
@@ -154,76 +135,76 @@ def analyze_numeric_properties(problem: NetworkProblem) -> NumericAnalysis:
         if abs(node.supply) > extreme_threshold_high:
             has_extreme_values = True
             warnings_list.append(NumericWarning(
-                severity='medium',
-                category='range',
+                severity="medium",
+                category="range",
                 message=f"Node {node_id} has very large supply/demand {node.supply:.2e}",
-                recommendation="Consider scaling supplies/demands for better numerical stability"
+                recommendation="Consider scaling supplies/demands for better numerical stability",
             ))
         elif 0 < abs(node.supply) < extreme_threshold_low:
             has_extreme_values = True
             warnings_list.append(NumericWarning(
-                severity='low',
-                category='range',
+                severity="low",
+                category="range",
                 message=f"Node {node_id} has very small supply/demand {node.supply:.2e}",
-                recommendation="Consider scaling supplies/demands or removing near-zero values"
+                recommendation="Consider scaling supplies/demands or removing near-zero values",
             ))
 
     # Check coefficient ranges
     if cost_range > 1e8:
         warnings_list.append(NumericWarning(
-            severity='high',
-            category='conditioning',
+            severity="high",
+            category="conditioning",
             message=f"Cost range is very wide: {cost_range:.2e} (max/min ratio)",
-            recommendation="Wide cost ranges can cause numerical instability. Consider cost scaling."
+            recommendation="Wide cost ranges can cause numerical instability. Consider cost scaling.",
         ))
     elif cost_range > 1e6:
         warnings_list.append(NumericWarning(
-            severity='medium',
-            category='conditioning',
+            severity="medium",
+            category="conditioning",
             message=f"Cost range is wide: {cost_range:.2e} (max/min ratio)",
-            recommendation="Consider scaling costs to improve numerical stability"
+            recommendation="Consider scaling costs to improve numerical stability",
         ))
 
     if capacity_range > 1e8:
         warnings_list.append(NumericWarning(
-            severity='high',
-            category='conditioning',
+            severity="high",
+            category="conditioning",
             message=f"Capacity range is very wide: {capacity_range:.2e} (max/min ratio)",
-            recommendation="Wide capacity ranges can cause issues. Consider capacity scaling."
+            recommendation="Wide capacity ranges can cause issues. Consider capacity scaling.",
         ))
     elif capacity_range > 1e6:
         warnings_list.append(NumericWarning(
-            severity='medium',
-            category='conditioning',
+            severity="medium",
+            category="conditioning",
             message=f"Capacity range is wide: {capacity_range:.2e} (max/min ratio)",
-            recommendation="Consider scaling capacities to improve stability"
+            recommendation="Consider scaling capacities to improve stability",
         ))
 
     if supply_range > 1e8:
         warnings_list.append(NumericWarning(
-            severity='high',
-            category='conditioning',
+            severity="high",
+            category="conditioning",
             message=f"Supply/demand range is very wide: {supply_range:.2e} (max/min ratio)",
-            recommendation="Wide supply ranges can cause issues. Consider supply scaling."
+            recommendation="Wide supply ranges can cause issues. Consider supply scaling.",
         ))
     elif supply_range > 1e6:
         warnings_list.append(NumericWarning(
-            severity='medium',
-            category='conditioning',
+            severity="medium",
+            category="conditioning",
             message=f"Supply/demand range is wide: {supply_range:.2e} (max/min ratio)",
-            recommendation="Consider scaling supplies/demands"
+            recommendation="Consider scaling supplies/demands",
         ))
 
     # Determine if well-conditioned
     # Consider medium and high severity as problematic
-    high_severity_count = sum(1 for w in warnings_list if w.severity == 'high')
-    medium_severity_count = sum(1 for w in warnings_list if w.severity == 'medium')
+    high_severity_count = sum(1 for w in warnings_list if w.severity == "high")
+    medium_severity_count = sum(1 for w in warnings_list if w.severity == "medium")
     is_well_conditioned = (
-        high_severity_count == 0 and
-        medium_severity_count == 0 and
-        cost_range < 1e8 and
-        capacity_range < 1e8 and
-        supply_range < 1e8
+        high_severity_count == 0
+        and medium_severity_count == 0
+        and cost_range < 1e8
+        and capacity_range < 1e8
+        and supply_range < 1e8
     )
 
     # Recommend tolerance based on coefficient ranges
@@ -247,7 +228,7 @@ def analyze_numeric_properties(problem: NetworkProblem) -> NumericAnalysis:
 
 
 def validate_numeric_properties(
-    problem: NetworkProblem,
+    problem: "NetworkProblem",
     strict: bool = False,
     warn: bool = True,
 ) -> None:
@@ -260,33 +241,14 @@ def validate_numeric_properties(
 
     Raises:
         ValueError: If strict=True and high-severity issues are found
-
-    Examples:
-        >>> from network_solver import build_problem
-        >>> problem = build_problem(
-        ...     nodes=[{"id": "A", "supply": 100.0}, {"id": "B", "supply": -100.0}],
-        ...     arcs=[{"tail": "A", "head": "B", "capacity": 200.0, "cost": 5.0}],
-        ...     directed=True,
-        ...     tolerance=1e-6
-        ... )
-        >>> validate_numeric_properties(problem)  # No warnings - well-conditioned
-        >>>
-        >>> # Problem with extreme values
-        >>> bad_problem = build_problem(
-        ...     nodes=[{"id": "A", "supply": 1e12}, {"id": "B", "supply": -1e12}],
-        ...     arcs=[{"tail": "A", "head": "B", "capacity": 1e-8, "cost": 1e10}],
-        ...     directed=True,
-        ...     tolerance=1e-6
-        ... )
-        >>> validate_numeric_properties(bad_problem)  # Emits warnings
     """
     analysis = analyze_numeric_properties(problem)
 
     if warn and analysis.warnings:
         # Group warnings by severity
-        high_warnings = [w for w in analysis.warnings if w.severity == 'high']
-        medium_warnings = [w for w in analysis.warnings if w.severity == 'medium']
-        low_warnings = [w for w in analysis.warnings if w.severity == 'low']
+        high_warnings = [w for w in analysis.warnings if w.severity == "high"]
+        medium_warnings = [w for w in analysis.warnings if w.severity == "medium"]
+        low_warnings = [w for w in analysis.warnings if w.severity == "low"]
 
         # Emit warnings
         if high_warnings:
@@ -311,9 +273,84 @@ def validate_numeric_properties(
             warnings.warn(msg, UserWarning, stacklevel=2)
 
     if strict:
-        high_warnings = [w for w in analysis.warnings if w.severity == 'high']
+        high_warnings = [w for w in analysis.warnings if w.severity == "high"]
         if high_warnings:
             error_msg = "Problem has high-severity numeric issues:\n"
             for w in high_warnings:
                 error_msg += f"  - {w.message}\n    → {w.recommendation}\n"
             raise ValueError(error_msg)
+
+"""# High-level entrypoints for the network simplex solver library.
+
+from .data import Basis, ProgressCallback, ProgressInfo, SolverOptions, build_problem
+from .diagnostics import BasisHistory, ConvergenceMonitor
+from .exceptions import (
+    InfeasibleProblemError,
+    InvalidProblemError,
+    IterationLimitError,
+    NetworkSolverError,
+    NumericalInstabilityError,
+    SolverConfigurationError,
+    UnboundedProblemError,
+)
+from .solver import load_problem, save_result, solve_min_cost_flow
+from .specializations import NetworkType, analyze_network_structure, get_specialization_info
+from .utils import (
+    BottleneckArc,
+    FlowPath,
+    ValidationResult,
+    compute_bottleneck_arcs,
+    extract_path,
+    validate_flow,
+)
+from .validation import (
+    NumericAnalysis,
+    NumericWarning,
+    analyze_numeric_properties,
+    validate_numeric_properties,
+)
+
+__version__ = "0.1.0"
+
+__all__ = [
+    # Main API
+    "build_problem",
+    "load_problem",
+    "solve_min_cost_flow",
+    "save_result",
+    # Configuration
+    "SolverOptions",
+    "Basis",
+    # Progress tracking
+    "ProgressCallback",
+    "ProgressInfo",
+    # Specializations
+    "NetworkType",
+    "analyze_network_structure",
+    "get_specialization_info",
+    # Utilities
+    "extract_path",
+    "validate_flow",
+    "compute_bottleneck_arcs",
+    "FlowPath",
+    "ValidationResult",
+    "BottleneckArc",
+    # Numeric validation
+    "analyze_numeric_properties",
+    "validate_numeric_properties",
+    "NumericAnalysis",
+    "NumericWarning",
+    # Diagnostics
+    "ConvergenceMonitor",
+    "BasisHistory",
+    # Exceptions
+    "NetworkSolverError",
+    "InvalidProblemError",
+    "InfeasibleProblemError",
+    "UnboundedProblemError",
+    "NumericalInstabilityError",
+    "IterationLimitError",
+    "SolverConfigurationError",
+    # Version
+    "__version__",
+]
