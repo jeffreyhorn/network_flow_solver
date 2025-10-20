@@ -262,7 +262,7 @@ class BasisHistory:
         # Try to find repeating pattern
         for pattern_len in range(2, len(recent) // 2):
             pattern = recent[-pattern_len:]
-            prev_segment = recent[-2 * pattern_len:-pattern_len]
+            prev_segment = recent[-2 * pattern_len : -pattern_len]
 
             if pattern == prev_segment:
                 return pattern_len
@@ -278,4 +278,3 @@ class BasisHistory:
         if not self.visit_counts:
             return 0
         return max(self.visit_counts.values())
-

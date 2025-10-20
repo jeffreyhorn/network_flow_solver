@@ -54,6 +54,7 @@ def example_well_conditioned_problem():
     print(f"  Objective: ${result.objective:.2f}")
     print(f"  Iterations: {result.iterations}")
 
+
 def example_ill_conditioned_problem():
     """Example 2: Ill-conditioned problem triggers warnings."""
     print("\n" + "=" * 70)
@@ -68,7 +69,7 @@ def example_ill_conditioned_problem():
         ],
         arcs=[
             {"tail": "A", "head": "B", "capacity": 200.0, "cost": 1e-6},  # Very small cost
-            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 1e6},   # Very large cost
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 1e6},  # Very large cost
         ],
         directed=True,
         tolerance=1e-6,
@@ -108,7 +109,7 @@ def example_extreme_values():
 
     problem = build_problem(
         nodes=[
-            {"id": "A", "supply": 1e11},      # Very large supply
+            {"id": "A", "supply": 1e11},  # Very large supply
             {"id": "B", "supply": -1e11},
         ],
         arcs=[
@@ -217,8 +218,8 @@ def example_strict_validation():
             {"id": "C", "supply": -100.0},
         ],
         arcs=[
-            {"tail": "A", "head": "B", "capacity": 1e-8, "cost": 1.0},   # Tiny capacity
-            {"tail": "B", "head": "C", "capacity": 1e10, "cost": 1.0},   # Huge capacity
+            {"tail": "A", "head": "B", "capacity": 1e-8, "cost": 1.0},  # Tiny capacity
+            {"tail": "B", "head": "C", "capacity": 1e10, "cost": 1.0},  # Huge capacity
         ],
         directed=True,
         tolerance=1e-6,

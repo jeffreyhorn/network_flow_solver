@@ -127,15 +127,15 @@ class TestConvergenceMonitor:
 
         summary = monitor.get_diagnostic_summary()
 
-        assert 'total_pivots' in summary
-        assert 'degenerate_pivots' in summary
-        assert 'degeneracy_ratio' in summary
-        assert 'is_stalled' in summary
-        assert 'recent_improvement' in summary
+        assert "total_pivots" in summary
+        assert "degenerate_pivots" in summary
+        assert "degeneracy_ratio" in summary
+        assert "is_stalled" in summary
+        assert "recent_improvement" in summary
 
-        assert summary['total_pivots'] == 10
-        assert isinstance(summary['degeneracy_ratio'], float)
-        assert isinstance(summary['is_stalled'], bool)
+        assert summary["total_pivots"] == 10
+        assert isinstance(summary["degeneracy_ratio"], float)
+        assert isinstance(summary["is_stalled"], bool)
 
     def test_zero_objective_handling(self):
         """Test handling of zero objective values."""
