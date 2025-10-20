@@ -24,15 +24,6 @@ class ConvergenceMonitor:
         window_size: Number of recent iterations to track
         stall_threshold: Relative improvement threshold for stalling detection
         degeneracy_threshold: Ratio threshold for degeneracy warning
-
-    Examples:
-        >>> monitor = ConvergenceMonitor(window_size=50, stall_threshold=1e-8)
-        >>> for iteration in range(num_iterations):
-        ...     monitor.record_iteration(objective_value, is_degenerate_pivot)
-        ...     if monitor.is_stalled():
-        ...         print("Warning: solver may be stalled")
-        ...     if monitor.is_highly_degenerate():
-        ...         print("Warning: high degeneracy detected")
     """
 
     window_size: int = 50
@@ -162,9 +153,9 @@ class ConvergenceMonitor:
         # If stalled for long time with minimal improvement, increasing tolerance may help
         recent_improvement = self.get_recent_improvement()
         return (
-            self.is_stalled(min_consecutive=20) and
-            recent_improvement is not None and
-            recent_improvement < 1e-10
+            self.is_stalled(min_consecutive=20)
+            and recent_improvement is not None
+            and recent_improvement < 1e-10
         )
 
     def get_diagnostic_summary(self) -> dict[str, float | bool | int]:
@@ -174,14 +165,14 @@ class ConvergenceMonitor:
             Dictionary with diagnostic metrics
         """
         return {
-            'total_pivots': self.total_pivots,
-            'degenerate_pivots': self.degenerate_pivots,
-            'degeneracy_ratio': self.get_degeneracy_ratio(),
-            'is_stalled': self.is_stalled(),
-            'is_highly_degenerate': self.is_highly_degenerate(),
-            'consecutive_no_improvement': self.consecutive_no_improvement,
-            'recent_improvement': self.get_recent_improvement() or 0.0,
-            'avg_improvement_rate': self.get_average_improvement_rate() or 0.0,
+            "total_pivots": self.total_pivots,
+            "degenerate_pivots": self.degenerate_pivots,
+            "degeneracy_ratio": self.get_degeneracy_ratio(),
+            "is_stalled": self.is_stalled(),
+            "is_highly_degenerate": self.is_highly_degenerate(),
+            "consecutive_no_improvement": self.consecutive_no_improvement,
+            "recent_improvement": self.get_recent_improvement() or 0.0,
+            "avg_improvement_rate": self.get_average_improvement_rate() or 0.0,
         }
 
 
@@ -194,14 +185,6 @@ class BasisHistory:
 
     Attributes:
         max_history: Maximum number of basis states to track
-
-    Examples:
-        >>> history = BasisHistory(max_history=100)
-        >>> for iteration in range(num_iterations):
-        ...     tree_arcs = get_current_tree_arcs()
-        ...     if history.is_cycling(tree_arcs):
-        ...         print("Warning: cycling detected")
-        ...     history.record_basis(tree_arcs)
     """
 
     max_history: int = 100
@@ -257,7 +240,7 @@ class BasisHistory:
             return False
 
         # Check if any basis in recent history has been revisited
-        recent_hashes = list(self.history)[-20:]  # Check last 20
+        recent_hashes = list(self.history)[-20:]
         for basis_hash in recent_hashes:
             if self.visit_counts.get(basis_hash, 0) >= min_revisits:
                 return True
@@ -295,3 +278,4 @@ class BasisHistory:
         if not self.visit_counts:
             return 0
         return max(self.visit_counts.values())
+
