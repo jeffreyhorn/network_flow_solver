@@ -451,7 +451,23 @@ class NetworkSimplex:
             arc.in_tree = True
             # Use flow from basis if available, otherwise keep at 0
             if arc.key in warm_start_basis.arc_flows:
-                arc.flow = warm_start_basis.arc_flows[arc.key]
+                basis_flow = warm_start_basis.arc_flows[arc.key]
+
+                # Validate that basis flow is within arc capacity bounds
+                if basis_flow < arc.lower - self.tolerance:
+                    self.logger.warning(
+                        f"Warm-start basis has flow {basis_flow:.2f} below lower bound "
+                        f"{arc.lower:.2f} on arc {arc.key}. Falling back to cold start."
+                    )
+                    return False
+                if basis_flow > arc.upper + self.tolerance:
+                    self.logger.warning(
+                        f"Warm-start basis has flow {basis_flow:.2f} exceeding capacity "
+                        f"{arc.upper:.2f} on arc {arc.key}. Falling back to cold start."
+                    )
+                    return False
+
+                arc.flow = basis_flow
 
         # Find connected components using Union-Find
         # We need to connect each component to the root
@@ -534,7 +550,12 @@ class NetworkSimplex:
             return False
 
         # Recompute tree arc flows to satisfy flow conservation
-        self._recompute_tree_flows()
+        if not self._recompute_tree_flows():
+            # Flow recomputation failed due to capacity violations
+            self.logger.warning(
+                "Warm-start basis incompatible with current capacities. Falling back to cold start."
+            )
+            return False
 
         # Log success
         self.logger.info(
@@ -547,7 +568,7 @@ class NetworkSimplex:
         )
         return True
 
-    def _recompute_tree_flows(self) -> None:
+    def _recompute_tree_flows(self) -> bool:
         """Recompute flows on artificial tree arcs to satisfy flow conservation.
 
         This is called during warm-start to set flows on artificial arcs that
@@ -556,6 +577,10 @@ class NetworkSimplex:
 
         Uses post-order tree traversal to compute flows that satisfy
         conservation at each node given the current node supplies.
+
+        Returns:
+            True if flows could be computed without violating capacity constraints,
+            False if the warm-start basis is incompatible with current capacities.
         """
         # Build parent structure via BFS from root
         parent: list[int | None] = [None] * self.node_count
@@ -579,9 +604,14 @@ class NetworkSimplex:
                 parent_arc_idx[neighbor] = arc_idx
                 queue.append(neighbor)
 
+        # Track if any capacity violations occur
+        capacity_violated = False
+
         # Compute flows using post-order traversal
         def compute_flow_to_parent(node: int) -> None:
             """Recursively compute flow on arc to parent."""
+            nonlocal capacity_violated
+
             # First, process all children
             for arc_idx in self.tree_adj[node]:
                 arc = self.arcs[arc_idx]
@@ -618,13 +648,28 @@ class NetworkSimplex:
                         # Flow from node to child (outflow)
                         flow_balance -= child_arc.flow
 
-            # Set flow on arc to parent
-            if arc.tail == node:
-                # Arc points from node to parent
-                arc.flow = max(0.0, min(arc.upper, flow_balance))
-            else:
-                # Arc points from parent to node
-                arc.flow = max(0.0, min(arc.upper, -flow_balance))
+            # Compute required flow on arc to parent
+            required_flow = flow_balance if arc.tail == node else -flow_balance
+
+            # Check if required flow violates capacity constraints
+            if required_flow < -self.tolerance:
+                # Negative flow required (violates lower bound of 0)
+                self.logger.warning(
+                    f"Warm-start requires negative flow {required_flow:.2f} on arc {arc.key}"
+                )
+                capacity_violated = True
+                return
+            elif required_flow > arc.upper + self.tolerance:
+                # Flow exceeds capacity
+                self.logger.warning(
+                    f"Warm-start requires flow {required_flow:.2f} exceeding capacity "
+                    f"{arc.upper:.2f} on arc {arc.key}"
+                )
+                capacity_violated = True
+                return
+
+            # Set flow on arc to parent (clamp to valid range for numerical stability)
+            arc.flow = max(0.0, min(arc.upper, required_flow))
 
         # Start recursion from all children of root
         for arc_idx in self.tree_adj[self.root]:
@@ -634,6 +679,9 @@ class NetworkSimplex:
             neighbor = arc.head if arc.tail == self.root else arc.tail
             if parent[neighbor] == self.root:
                 compute_flow_to_parent(neighbor)
+
+        # Return whether flow recomputation succeeded without capacity violations
+        return not capacity_violated
 
     def _extract_basis(self) -> Basis:
         """Extract the current basis (spanning tree) for warm-starting future solves."""
@@ -1166,7 +1214,33 @@ class NetworkSimplex:
             iters = 0
             self.logger.info("Phase 1 skipped (warm-start basis is feasible)")
 
-        infeasible = any(arc.artificial and arc.flow > self.tolerance for arc in self.arcs)
+        # Check for infeasibility: artificial arcs have flow
+        has_artificial_flow = any(arc.artificial and arc.flow > self.tolerance for arc in self.arcs)
+
+        # For warm-start cases, also verify flow conservation (catches cases where warm-start
+        # leads to invalid state with zero artificial flow but violated conservation)
+        flow_conservation_violated = False
+        if warm_start_applied:
+            for node_idx in range(1, self.node_count):
+                if node_idx == self.root:
+                    continue
+
+                # Calculate net flow: supply + inflow - outflow
+                net_flow = self.node_supply[node_idx]
+                for arc in self.arcs:
+                    if arc.tail == node_idx:
+                        net_flow -= arc.flow
+                    elif arc.head == node_idx:
+                        net_flow += arc.flow
+
+                if abs(net_flow) > self.tolerance:
+                    self.logger.error(
+                        f"Flow conservation violated at node {self.node_ids[node_idx]}: "
+                        f"imbalance = {net_flow:.6f}"
+                    )
+                    flow_conservation_violated = True
+
+        infeasible = has_artificial_flow or flow_conservation_violated
         if infeasible:
             if total_iterations >= max_iterations:
                 self.logger.error(
