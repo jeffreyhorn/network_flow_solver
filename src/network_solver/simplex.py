@@ -649,12 +649,7 @@ class NetworkSimplex:
                         flow_balance -= child_arc.flow
 
             # Compute required flow on arc to parent
-            if arc.tail == node:
-                # Arc points from node to parent
-                required_flow = flow_balance
-            else:
-                # Arc points from parent to node
-                required_flow = -flow_balance
+            required_flow = flow_balance if arc.tail == node else -flow_balance
 
             # Check if required flow violates capacity constraints
             if required_flow < -self.tolerance:
