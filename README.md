@@ -14,6 +14,7 @@ Pure Python implementation of the network simplex algorithm for classic minimum-
 - **[API Reference](docs/api.md)** - Complete API documentation with all functions, classes, and examples
 - **[Examples Guide](docs/examples.md)** - Annotated code examples for common use cases
 - **[Performance Guide](docs/benchmarks.md)** - Benchmarks, optimization tips, and scaling behavior
+- **[Troubleshooting Guide](docs/troubleshooting.md)** - 🆕 Diagnose and resolve numeric issues, convergence problems, and performance issues
 
 ## Installation
 
@@ -551,9 +552,79 @@ Set `"directed": false` to create an undirected graph. **Important requirements:
 
 See [API Reference - Undirected Graphs](docs/api.md#working-with-undirected-graphs) for detailed examples and `examples/undirected_graph_example.py` for a complete demonstration.
 
+## Numeric Validation and Diagnostics
+
+The solver includes built-in tools to detect and diagnose numeric and convergence issues:
+
+### Numeric Validation
+
+Analyze problem properties before solving to detect potential numeric issues:
+
+```python
+from network_solver import analyze_numeric_properties, validate_numeric_properties
+
+# Analyze numeric properties
+analysis = analyze_numeric_properties(problem)
+
+if not analysis.is_well_conditioned:
+    print("Numeric issues detected:")
+    for warning in analysis.warnings:
+        print(f"  {warning.severity}: {warning.message}")
+        print(f"  → {warning.recommendation}")
+
+# Strict validation (raises exception on high-severity issues)
+validate_numeric_properties(problem, strict=True, warn=True)
+```
+
+**Detects:**
+- Extreme values (very large or very small coefficients)
+- Wide coefficient ranges (may cause precision loss)
+- Ill-conditioned problems
+- Provides actionable recommendations for scaling
+
+See [Troubleshooting Guide](docs/troubleshooting.md) for detailed guidance on resolving numeric issues.
+
+### Convergence Monitoring
+
+Track solver progress and detect convergence issues:
+
+```python
+from network_solver import ConvergenceMonitor
+
+monitor = ConvergenceMonitor(window_size=50, stall_threshold=1e-8)
+
+def track_convergence(info):
+    monitor.record_iteration(
+        objective=info.objective_estimate,
+        is_degenerate=False,  # Can detect from solver state
+        iteration=info.iteration
+    )
+    
+    if monitor.is_stalled():
+        print(f"Warning: Stalling detected at iteration {info.iteration}")
+        diagnostics = monitor.get_diagnostic_summary()
+        print(f"  Degeneracy ratio: {diagnostics['degeneracy_ratio']:.2%}")
+        print(f"  Recent improvement: {diagnostics['recent_improvement']:.2e}")
+
+result = solve_min_cost_flow(
+    problem,
+    progress_callback=track_convergence,
+    progress_interval=100
+)
+```
+
+**Features:**
+- Stalling detection (objective not improving)
+- Degeneracy monitoring (zero-pivot ratio)
+- Cycling detection (basis state history)
+- Improvement rate tracking
+- Adaptive tolerance recommendations
+
 ## Testing
 
 - `tests/unit/` – validation, IO, simplex edge cases (pricing, pivots, flow cleanup), and property-based generators
+  - `test_validation.py` – 🆕 Numeric property analysis and validation (13 tests)
+  - `test_diagnostics.py` – 🆕 Convergence monitoring and diagnostics (18 tests)
 - `tests/integration/` – CLI round-trips, JSON contracts, unbounded/infeasible detection, performance/expansion guards, and failure-path checks for malformed configs
 - `examples/dimacs_small_problem.json` – small DIMACS-inspired chain (5 nodes, 4 arcs)
 - `examples/textbook_transport_problem.json` – 2×3 transportation example (85.0 optimal cost)
