@@ -55,7 +55,7 @@ class NumericAnalysis:
     recommended_tolerance: float
 
 
-def analyze_numeric_properties(problem: "NetworkProblem") -> NumericAnalysis:
+def analyze_numeric_properties(problem: NetworkProblem) -> NumericAnalysis:
     """Analyze numeric properties of a network problem.
 
     Checks for potential numeric issues including:
@@ -228,7 +228,7 @@ def analyze_numeric_properties(problem: "NetworkProblem") -> NumericAnalysis:
 
 
 def validate_numeric_properties(
-    problem: "NetworkProblem",
+    problem: NetworkProblem,
     strict: bool = False,
     warn: bool = True,
 ) -> None:
