@@ -36,12 +36,14 @@ def main() -> None:
     for i in range(10):
         for j in range(10):
             cost = abs(i - j) + 1.0  # Cost increases with distance
-            arcs.append({
-                "tail": f"supplier_{i}",
-                "head": f"customer_{j}",
-                "capacity": 50.0,
-                "cost": cost,
-            })
+            arcs.append(
+                {
+                    "tail": f"supplier_{i}",
+                    "head": f"customer_{j}",
+                    "capacity": 50.0,
+                    "cost": cost,
+                }
+            )
 
     # Add some intermediate warehouse nodes to make it more interesting
     for i in range(10):
@@ -50,12 +52,14 @@ def main() -> None:
     # Connect suppliers to warehouses (100 more arcs)
     for i in range(10):
         for j in range(10):
-            arcs.append({
-                "tail": f"supplier_{i}",
-                "head": f"warehouse_{j}",
-                "capacity": 30.0,
-                "cost": 1.0,
-            })
+            arcs.append(
+                {
+                    "tail": f"supplier_{i}",
+                    "head": f"warehouse_{j}",
+                    "capacity": 30.0,
+                    "cost": 1.0,
+                }
+            )
 
     problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
 

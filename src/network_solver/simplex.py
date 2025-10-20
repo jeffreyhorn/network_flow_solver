@@ -154,7 +154,6 @@ class NetworkSimplex:
         self._reset_devex_weights()
 
         # Initialize specialized pivot strategy after basis is set up
-        from .specialized_pivots import select_pivot_strategy
 
         self.specialized_pivot_strategy = select_pivot_strategy(
             self, self.network_structure.network_type.value

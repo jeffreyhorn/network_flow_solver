@@ -1,7 +1,5 @@
 """Tests for network specialization detection."""
 
-import pytest
-
 from network_solver import NetworkType, analyze_network_structure, build_problem
 
 

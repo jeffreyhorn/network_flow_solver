@@ -16,11 +16,10 @@ and detailed solver control.
 """
 
 import time
-from typing import Any
 
 import networkx as nx
 
-from network_solver import build_problem, solve_min_cost_flow, SolverOptions
+from network_solver import SolverOptions, build_problem, solve_min_cost_flow
 
 
 def print_section_header(title: str) -> None:
@@ -104,7 +103,7 @@ def example_1_api_comparison() -> None:
     # -------------------------
     print_subsection("NetworkX Approach")
 
-    G = nx.DiGraph()
+    G = nx.DiGraph()  # noqa: N806
     # Add nodes with demand (positive = receive, negative = send)
     # Note: NetworkX uses opposite sign convention!
     G.add_node("warehouse_a", demand=-60)  # Negative = supply in NetworkX
@@ -173,7 +172,7 @@ def example_2_feature_comparison() -> None:
     problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
 
     # NetworkX equivalent
-    G = nx.DiGraph()
+    G = nx.DiGraph()  # noqa: N806
     G.add_node("source", demand=-100)
     G.add_node("sink", demand=100)
     G.add_edge("source", "sink", weight=1, capacity=100)
@@ -315,20 +314,20 @@ def example_3_performance_comparison() -> None:
 
         # Solve with network_solver
         start = time.perf_counter()
-        result_ns = solve_min_cost_flow(problem)
+        _ = solve_min_cost_flow(problem)
         time_ns = (time.perf_counter() - start) * 1000
 
         # Generate grid for NetworkX
-        G = create_networkx_grid(rows, cols)
+        G = create_networkx_grid(rows, cols)  # noqa: N806
 
         # Solve with NetworkX
         start = time.perf_counter()
         try:
-            flow_dict = nx.min_cost_flow(G)
+            _ = nx.min_cost_flow(G)
             time_nx = (time.perf_counter() - start) * 1000
             speedup = time_nx / time_ns if time_ns > 0 else 0
             speedup_str = f"{speedup:.2f}x"
-        except Exception as e:
+        except Exception:
             time_nx = float("inf")
             speedup_str = "N/A"
 
@@ -453,7 +452,7 @@ def generate_grid_network(rows: int, cols: int) -> tuple[list[dict], list[dict]]
 
 def create_networkx_grid(rows: int, cols: int) -> nx.DiGraph:
     """Create a NetworkX grid network matching generate_grid_network."""
-    G = nx.DiGraph()
+    G = nx.DiGraph()  # noqa: N806
     total_supply = rows * cols * 10.0
 
     # Add nodes with demand
