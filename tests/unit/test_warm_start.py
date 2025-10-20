@@ -775,10 +775,10 @@ class TestWarmStartLogging:
 
         # Check for Phase 1 skip message
         log_messages = [record.message for record in caplog.records]
-        phase_skip_logs = [
-            msg for msg in log_messages if "Phase 1" in msg and "skip" in msg.lower()
-        ]
 
         # May or may not skip Phase 1 depending on exact basis
         # Just verify logging infrastructure exists
         assert len(caplog.records) > 0
+
+        # Verify we have some log messages about warm-start or phases
+        assert any("warm" in msg.lower() or "phase" in msg.lower() for msg in log_messages)
