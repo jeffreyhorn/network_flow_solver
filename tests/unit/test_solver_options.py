@@ -63,6 +63,9 @@ def test_solver_options_invalid_block_size():
     with pytest.raises(InvalidProblemError, match="Block size must be positive"):
         SolverOptions(block_size=-10)
 
+    with pytest.raises(InvalidProblemError, match="Invalid block_size"):
+        SolverOptions(block_size="invalid")
+
 
 def test_solver_options_invalid_ft_update_limit():
     """Test that invalid FT update limit raises an error."""
@@ -271,3 +274,151 @@ def test_solver_options_applied_to_network_simplex():
     assert solver.options.pricing_strategy == "dantzig"
     assert solver.block_size == 5
     assert solver.options.ft_update_limit == 50
+
+
+def test_block_size_auto_string():
+    """Test that block_size='auto' enables auto-tuning."""
+    nodes = [
+        {"id": "s", "supply": 50.0},
+        {"id": "t", "supply": -50.0},
+    ]
+    arcs = [
+        {"tail": "s", "head": "t", "capacity": 100.0, "cost": 1.0},
+    ]
+
+    problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+    options = SolverOptions(block_size="auto")
+    solver = NetworkSimplex(problem, options=options)
+
+    assert solver.auto_tune_block_size is True
+    # Should compute initial block size based on heuristic
+    assert solver.block_size > 0
+
+
+def test_block_size_none_enables_auto_tuning():
+    """Test that block_size=None enables auto-tuning (default)."""
+    nodes = [
+        {"id": "s", "supply": 50.0},
+        {"id": "t", "supply": -50.0},
+    ]
+    arcs = [
+        {"tail": "s", "head": "t", "capacity": 100.0, "cost": 1.0},
+    ]
+
+    problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+    options = SolverOptions(block_size=None)
+    solver = NetworkSimplex(problem, options=options)
+
+    assert solver.auto_tune_block_size is True
+
+
+def test_block_size_int_disables_auto_tuning():
+    """Test that explicit int block_size disables auto-tuning."""
+    nodes = [
+        {"id": "s", "supply": 50.0},
+        {"id": "t", "supply": -50.0},
+    ]
+    arcs = [
+        {"tail": "s", "head": "t", "capacity": 100.0, "cost": 1.0},
+    ]
+
+    problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+    options = SolverOptions(block_size=25)
+    solver = NetworkSimplex(problem, options=options)
+
+    assert solver.auto_tune_block_size is False
+    assert solver.block_size == 25
+
+
+def test_initial_block_size_heuristic_very_small():
+    """Test initial block size heuristic for very small problems (<100 arcs)."""
+    nodes = [{"id": f"n{i}", "supply": 0.0} for i in range(10)]
+    nodes[0]["supply"] = 50.0
+    nodes[-1]["supply"] = -50.0
+
+    # Create 50 arcs (very small problem)
+    arcs = []
+    for i in range(5):
+        for j in range(i + 1, min(i + 11, 10)):
+            arcs.append({"tail": f"n{i}", "head": f"n{j}", "capacity": 10.0, "cost": 1.0})
+
+    problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+    options = SolverOptions(block_size="auto")
+    solver = NetworkSimplex(problem, options=options)
+
+    # Very small: should use num_arcs // 4
+    expected = max(1, solver.actual_arc_count // 4)
+    assert solver.block_size == expected
+
+
+def test_initial_block_size_heuristic_small():
+    """Test initial block size heuristic for small problems (100-1000 arcs)."""
+    nodes = [{"id": f"n{i}", "supply": 0.0} for i in range(25)]
+    nodes[0]["supply"] = 100.0
+    nodes[-1]["supply"] = -100.0
+
+    # Create ~250 arcs (small problem)
+    arcs = []
+    for i in range(25):
+        for j in range(i + 1, min(i + 11, 25)):
+            arcs.append({"tail": f"n{i}", "head": f"n{j}", "capacity": 10.0, "cost": float(i + j)})
+
+    problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+    options = SolverOptions(block_size="auto")
+    solver = NetworkSimplex(problem, options=options)
+
+    # Small: should use num_arcs // 4
+    expected = max(1, solver.actual_arc_count // 4)
+    assert solver.block_size == expected
+
+
+def test_initial_block_size_heuristic_medium():
+    """Test initial block size heuristic for medium problems (1000-10000 arcs)."""
+    # Create a problem with ~1500 arcs by building a denser graph
+    nodes = [{"id": f"n{i}", "supply": 0.0} for i in range(50)]
+    nodes[0]["supply"] = 500.0
+    nodes[-1]["supply"] = -500.0
+
+    arcs = []
+    for i in range(50):
+        for j in range(i + 1, min(i + 31, 50)):
+            arcs.append({"tail": f"n{i}", "head": f"n{j}", "capacity": 20.0, "cost": float(i + j)})
+
+    problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+    options = SolverOptions(block_size="auto")
+    solver = NetworkSimplex(problem, options=options)
+
+    # Medium: should use num_arcs // 8
+    expected = max(1, solver.actual_arc_count // 8)
+    assert solver.block_size == expected
+
+
+def test_auto_tuning_solves_correctly():
+    """Test that auto-tuning doesn't break correctness."""
+    nodes = [
+        {"id": "s", "supply": 100.0},
+        {"id": "m1", "supply": 0.0},
+        {"id": "m2", "supply": 0.0},
+        {"id": "t", "supply": -100.0},
+    ]
+    arcs = [
+        {"tail": "s", "head": "m1", "capacity": 100.0, "cost": 1.0},
+        {"tail": "s", "head": "m2", "capacity": 100.0, "cost": 2.0},
+        {"tail": "m1", "head": "t", "capacity": 100.0, "cost": 1.0},
+        {"tail": "m2", "head": "t", "capacity": 100.0, "cost": 1.0},
+    ]
+
+    problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+
+    # Solve with auto-tuning
+    options_auto = SolverOptions(block_size="auto")
+    result_auto = solve_min_cost_flow(problem, options=options_auto)
+
+    # Solve with fixed block size
+    options_fixed = SolverOptions(block_size=10)
+    result_fixed = solve_min_cost_flow(problem, options=options_fixed)
+
+    # Both should find optimal solution
+    assert result_auto.status == "optimal"
+    assert result_fixed.status == "optimal"
+    assert result_auto.objective == pytest.approx(result_fixed.objective, abs=1e-6)

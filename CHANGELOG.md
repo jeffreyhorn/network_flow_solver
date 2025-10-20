@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Block size auto-tuning with hybrid approach**
+  - `SolverOptions.block_size` now accepts `int`, `"auto"`, or `None`
+  - `None` and `"auto"` enable automatic tuning (new default behavior)
+  - Explicit `int` value disables auto-tuning (fixed block size)
+  - **Static heuristic** selects initial block size based on problem size:
+    - Very small (<100 arcs): `num_arcs // 4`
+    - Small (100-1000 arcs): `num_arcs // 4`
+    - Medium (1000-10000 arcs): `num_arcs // 8`
+    - Large (>10000 arcs): `num_arcs // 16`
+  - **Runtime adaptation** adjusts block size every 50 iterations based on performance:
+    - High degenerate pivot ratio (>30%): increase block size by 1.5x (explore wider)
+    - Low degenerate pivot ratio (<10%): decrease block size by 0.75x (focused search)
+    - Clamped to range `[10, num_arcs]`
+  - Structured logging at DEBUG level for adaptation events with metrics
+  - New test suite with 7 comprehensive tests for auto-tuning (22 total solver options tests)
+
+### Changed
+- **Default block_size behavior is now auto-tuning**
+  - Previously: `None` defaulted to `num_arcs // 8` (static)
+  - Now: `None` enables auto-tuning with problem-size-based initial value and runtime adaptation
+  - Users can still specify explicit `int` for fixed block size (backward compatible)
+- **Updated documentation for auto-tuning**
+  - SolverOptions docstring with auto-tuning examples
+  - README section explaining static heuristic and runtime adaptation
+  - Performance tuning guidance updated
+
 ### Fixed
 - **Warm-start implementation fully functional** - Fixed critical bugs preventing warm-start from working correctly
   - Fixed Union-Find component detection to correctly identify connected components in basis
@@ -15,8 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed early validation in `_apply_warm_start_basis()` to check basis before modifying state
   - Reimplemented `_recompute_tree_flows()` using proper post-order tree traversal
   - All 16 warm-start tests now passing (previously marked as xfail)
-  
-### Changed
+
+### Changed (Warm-Start)
 - **Removed experimental status from warm-start feature**
   - Removed xfail markers from all warm-start tests
   - Updated README.md to remove experimental warnings
