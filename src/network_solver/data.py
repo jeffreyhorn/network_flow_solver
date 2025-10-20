@@ -362,20 +362,24 @@ class SolverOptions:
                          - "devex" (default): Devex normalized pricing (usually faster)
                          - "dantzig": Most negative reduced cost (simpler, sometimes better for dense problems)
         block_size: Number of arcs to examine per pricing block.
-                   If None, defaults to num_arcs/8.
+                   - None or "auto": Auto-tune based on problem size with runtime adaptation
+                   - int: Fixed block size (no adaptation)
                    Smaller blocks (10-50) = more pivots, larger blocks = fewer pivots.
         ft_update_limit: Maximum Forrest-Tomlin basis updates before full rebuild (default: 64).
                         Lower values (20-40) = more stable but slower.
                         Higher values (100-200) = faster but may lose numerical stability.
 
     Examples:
-        >>> # Default options (good for most problems)
+        >>> # Default options (auto-tuning enabled)
         >>> options = SolverOptions()
+
+        >>> # Explicit auto-tuning
+        >>> options = SolverOptions(block_size="auto")
 
         >>> # High-precision solve
         >>> options = SolverOptions(tolerance=1e-10, ft_update_limit=32)
 
-        >>> # Fast solve for large problems (trade precision for speed)
+        >>> # Fast solve with fixed block size (no auto-tuning)
         >>> options = SolverOptions(
         ...     tolerance=1e-4,
         ...     pricing_strategy="devex",
@@ -397,7 +401,7 @@ class SolverOptions:
     max_iterations: int | None = None
     tolerance: float = 1e-6
     pricing_strategy: str = "devex"
-    block_size: int | None = None
+    block_size: int | str | None = None
     ft_update_limit: int = 64
 
     def __post_init__(self) -> None:
@@ -410,11 +414,17 @@ class SolverOptions:
             raise InvalidProblemError(
                 f"Invalid pricing strategy '{self.pricing_strategy}'. Must be 'devex' or 'dantzig'."
             )
-        if self.block_size is not None and self.block_size <= 0:
-            raise InvalidProblemError(
-                f"Block size must be positive, got {self.block_size}. "
-                f"Block size controls how many arcs are examined per pricing iteration."
-            )
+        if self.block_size is not None:
+            if isinstance(self.block_size, str):
+                if self.block_size != "auto":
+                    raise InvalidProblemError(
+                        f"Invalid block_size '{self.block_size}'. Must be a positive integer, 'auto', or None."
+                    )
+            elif self.block_size <= 0:
+                raise InvalidProblemError(
+                    f"Block size must be positive, got {self.block_size}. "
+                    f"Block size controls how many arcs are examined per pricing iteration."
+                )
         if self.ft_update_limit <= 0:
             raise InvalidProblemError(
                 f"FT update limit must be positive, got {self.ft_update_limit}. "
