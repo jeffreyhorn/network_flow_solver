@@ -89,6 +89,18 @@ class NetworkSimplex:
         self.logger = logging.getLogger(__name__)
         self.ft_rebuilds = 0
         self.ft_updates_since_rebuild = 0
+
+        # Detect network specializations for potential optimizations
+        from .specializations import analyze_network_structure, get_specialization_info
+
+        self.network_structure = analyze_network_structure(problem)
+        self.specialization_info = get_specialization_info(self.network_structure)
+
+        if self.logger.isEnabledFor(logging.INFO):
+            self.logger.info(
+                f"Detected network type: {self.specialization_info['description']}",
+                extra=self.specialization_info,
+            )
         # Store node ids in a dense index space so core routines can use list lookups.
         self.node_ids: list[str] = [self.ROOT_NODE] + sorted(problem.nodes.keys())
         self.node_index: dict[str, int] = {
