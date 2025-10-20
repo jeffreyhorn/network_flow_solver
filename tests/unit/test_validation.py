@@ -51,7 +51,7 @@ def test_extreme_cost_detection():
     analysis = analyze_numeric_properties(problem)
     assert not analysis.is_well_conditioned
     assert analysis.has_extreme_values
-    assert any(w.category == 'range' and 'large cost' in w.message for w in analysis.warnings)
+    assert any(w.category == "range" and "large cost" in w.message for w in analysis.warnings)
 
 
 def test_extreme_capacity_detection():
@@ -71,7 +71,7 @@ def test_extreme_capacity_detection():
     analysis = analyze_numeric_properties(problem)
     assert not analysis.is_well_conditioned
     assert analysis.has_extreme_values
-    assert any(w.category == 'range' and 'large capacity' in w.message for w in analysis.warnings)
+    assert any(w.category == "range" and "large capacity" in w.message for w in analysis.warnings)
 
 
 def test_extreme_supply_detection():
@@ -91,7 +91,7 @@ def test_extreme_supply_detection():
     analysis = analyze_numeric_properties(problem)
     assert not analysis.is_well_conditioned
     assert analysis.has_extreme_values
-    assert any(w.category == 'range' and 'large supply' in w.message for w in analysis.warnings)
+    assert any(w.category == "range" and "large supply" in w.message for w in analysis.warnings)
 
 
 def test_wide_cost_range_detection():
@@ -113,7 +113,9 @@ def test_wide_cost_range_detection():
     analysis = analyze_numeric_properties(problem)
     assert not analysis.is_well_conditioned
     assert analysis.cost_range > 1e10
-    assert any(w.category == 'conditioning' and 'Cost range' in w.message for w in analysis.warnings)
+    assert any(
+        w.category == "conditioning" and "Cost range" in w.message for w in analysis.warnings
+    )
 
 
 def test_wide_capacity_range_detection():
@@ -135,7 +137,9 @@ def test_wide_capacity_range_detection():
     analysis = analyze_numeric_properties(problem)
     assert not analysis.is_well_conditioned
     assert analysis.capacity_range > 1e10
-    assert any(w.category == 'conditioning' and 'Capacity range' in w.message for w in analysis.warnings)
+    assert any(
+        w.category == "conditioning" and "Capacity range" in w.message for w in analysis.warnings
+    )
 
 
 def test_recommended_tolerance_adjustment():
@@ -303,5 +307,5 @@ def test_multiple_warning_severities():
 
     # Should have multiple warnings with different severities
     severities = [w.severity for w in analysis.warnings]
-    assert 'high' in severities
-    assert 'medium' in severities
+    assert "high" in severities
+    assert "medium" in severities

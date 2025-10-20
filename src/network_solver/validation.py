@@ -68,7 +68,8 @@ def analyze_numeric_properties(problem: NetworkProblem) -> NumericAnalysis:
     # Collect all numeric values (non-zero)
     costs = [abs(arc.cost) for arc in problem.arcs if arc.cost != 0.0]
     capacities = [
-        abs(arc.capacity) for arc in problem.arcs
+        abs(arc.capacity)
+        for arc in problem.arcs
         if arc.capacity is not None and not math.isinf(arc.capacity) and arc.capacity != 0.0
     ]
     supplies = [abs(node.supply) for node in problem.nodes.values() if node.supply != 0.0]
@@ -95,105 +96,129 @@ def analyze_numeric_properties(problem: NetworkProblem) -> NumericAnalysis:
     for arc in problem.arcs:
         if abs(arc.cost) > extreme_threshold_high:
             has_extreme_values = True
-            warnings_list.append(NumericWarning(
-                severity="medium",
-                category="range",
-                message=f"Arc {arc.tail}->{arc.head} has very large cost {arc.cost:.2e}",
-                recommendation="Consider scaling costs to range [0.01, 1000] for better stability",
-            ))
+            warnings_list.append(
+                NumericWarning(
+                    severity="medium",
+                    category="range",
+                    message=f"Arc {arc.tail}->{arc.head} has very large cost {arc.cost:.2e}",
+                    recommendation="Consider scaling costs to range [0.01, 1000] for better stability",
+                )
+            )
         elif 0 < abs(arc.cost) < extreme_threshold_low:
             has_extreme_values = True
-            warnings_list.append(NumericWarning(
-                severity="low",
-                category="range",
-                message=f"Arc {arc.tail}->{arc.head} has very small cost {arc.cost:.2e}",
-                recommendation="Consider scaling costs to avoid precision loss",
-            ))
+            warnings_list.append(
+                NumericWarning(
+                    severity="low",
+                    category="range",
+                    message=f"Arc {arc.tail}->{arc.head} has very small cost {arc.cost:.2e}",
+                    recommendation="Consider scaling costs to avoid precision loss",
+                )
+            )
 
     # Check capacities
     for arc in problem.arcs:
         if arc.capacity is not None and not math.isinf(arc.capacity):
             if arc.capacity > extreme_threshold_high:
                 has_extreme_values = True
-                warnings_list.append(NumericWarning(
-                    severity="medium",
-                    category="range",
-                    message=f"Arc {arc.tail}->{arc.head} has very large capacity {arc.capacity:.2e}",
-                    recommendation="Consider scaling capacities or using infinite capacity",
-                ))
+                warnings_list.append(
+                    NumericWarning(
+                        severity="medium",
+                        category="range",
+                        message=f"Arc {arc.tail}->{arc.head} has very large capacity {arc.capacity:.2e}",
+                        recommendation="Consider scaling capacities or using infinite capacity",
+                    )
+                )
             elif 0 < arc.capacity < extreme_threshold_low:
                 has_extreme_values = True
-                warnings_list.append(NumericWarning(
-                    severity="low",
-                    category="range",
-                    message=f"Arc {arc.tail}->{arc.head} has very small capacity {arc.capacity:.2e}",
-                    recommendation="Consider scaling capacities or removing near-zero arcs",
-                ))
+                warnings_list.append(
+                    NumericWarning(
+                        severity="low",
+                        category="range",
+                        message=f"Arc {arc.tail}->{arc.head} has very small capacity {arc.capacity:.2e}",
+                        recommendation="Consider scaling capacities or removing near-zero arcs",
+                    )
+                )
 
     # Check supplies
     for node_id, node in problem.nodes.items():
         if abs(node.supply) > extreme_threshold_high:
             has_extreme_values = True
-            warnings_list.append(NumericWarning(
-                severity="medium",
-                category="range",
-                message=f"Node {node_id} has very large supply/demand {node.supply:.2e}",
-                recommendation="Consider scaling supplies/demands for better numerical stability",
-            ))
+            warnings_list.append(
+                NumericWarning(
+                    severity="medium",
+                    category="range",
+                    message=f"Node {node_id} has very large supply/demand {node.supply:.2e}",
+                    recommendation="Consider scaling supplies/demands for better numerical stability",
+                )
+            )
         elif 0 < abs(node.supply) < extreme_threshold_low:
             has_extreme_values = True
-            warnings_list.append(NumericWarning(
-                severity="low",
-                category="range",
-                message=f"Node {node_id} has very small supply/demand {node.supply:.2e}",
-                recommendation="Consider scaling supplies/demands or removing near-zero values",
-            ))
+            warnings_list.append(
+                NumericWarning(
+                    severity="low",
+                    category="range",
+                    message=f"Node {node_id} has very small supply/demand {node.supply:.2e}",
+                    recommendation="Consider scaling supplies/demands or removing near-zero values",
+                )
+            )
 
     # Check coefficient ranges
     if cost_range > 1e8:
-        warnings_list.append(NumericWarning(
-            severity="high",
-            category="conditioning",
-            message=f"Cost range is very wide: {cost_range:.2e} (max/min ratio)",
-            recommendation="Wide cost ranges can cause numerical instability. Consider cost scaling.",
-        ))
+        warnings_list.append(
+            NumericWarning(
+                severity="high",
+                category="conditioning",
+                message=f"Cost range is very wide: {cost_range:.2e} (max/min ratio)",
+                recommendation="Wide cost ranges can cause numerical instability. Consider cost scaling.",
+            )
+        )
     elif cost_range > 1e6:
-        warnings_list.append(NumericWarning(
-            severity="medium",
-            category="conditioning",
-            message=f"Cost range is wide: {cost_range:.2e} (max/min ratio)",
-            recommendation="Consider scaling costs to improve numerical stability",
-        ))
+        warnings_list.append(
+            NumericWarning(
+                severity="medium",
+                category="conditioning",
+                message=f"Cost range is wide: {cost_range:.2e} (max/min ratio)",
+                recommendation="Consider scaling costs to improve numerical stability",
+            )
+        )
 
     if capacity_range > 1e8:
-        warnings_list.append(NumericWarning(
-            severity="high",
-            category="conditioning",
-            message=f"Capacity range is very wide: {capacity_range:.2e} (max/min ratio)",
-            recommendation="Wide capacity ranges can cause issues. Consider capacity scaling.",
-        ))
+        warnings_list.append(
+            NumericWarning(
+                severity="high",
+                category="conditioning",
+                message=f"Capacity range is very wide: {capacity_range:.2e} (max/min ratio)",
+                recommendation="Wide capacity ranges can cause issues. Consider capacity scaling.",
+            )
+        )
     elif capacity_range > 1e6:
-        warnings_list.append(NumericWarning(
-            severity="medium",
-            category="conditioning",
-            message=f"Capacity range is wide: {capacity_range:.2e} (max/min ratio)",
-            recommendation="Consider scaling capacities to improve stability",
-        ))
+        warnings_list.append(
+            NumericWarning(
+                severity="medium",
+                category="conditioning",
+                message=f"Capacity range is wide: {capacity_range:.2e} (max/min ratio)",
+                recommendation="Consider scaling capacities to improve stability",
+            )
+        )
 
     if supply_range > 1e8:
-        warnings_list.append(NumericWarning(
-            severity="high",
-            category="conditioning",
-            message=f"Supply/demand range is very wide: {supply_range:.2e} (max/min ratio)",
-            recommendation="Wide supply ranges can cause issues. Consider supply scaling.",
-        ))
+        warnings_list.append(
+            NumericWarning(
+                severity="high",
+                category="conditioning",
+                message=f"Supply/demand range is very wide: {supply_range:.2e} (max/min ratio)",
+                recommendation="Wide supply ranges can cause issues. Consider supply scaling.",
+            )
+        )
     elif supply_range > 1e6:
-        warnings_list.append(NumericWarning(
-            severity="medium",
-            category="conditioning",
-            message=f"Supply/demand range is wide: {supply_range:.2e} (max/min ratio)",
-            recommendation="Consider scaling supplies/demands",
-        ))
+        warnings_list.append(
+            NumericWarning(
+                severity="medium",
+                category="conditioning",
+                message=f"Supply/demand range is wide: {supply_range:.2e} (max/min ratio)",
+                recommendation="Consider scaling supplies/demands",
+            )
+        )
 
     # Determine if well-conditioned
     # Consider medium and high severity as problematic
