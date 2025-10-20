@@ -1,4 +1,6 @@
-"""Tests for convergence diagnostics."""
+"""
+Tests for convergence diagnostics.
+"""
 
 import pytest
 
