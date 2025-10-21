@@ -17,6 +17,13 @@ from .exceptions import (
     SolverConfigurationError,
     UnboundedProblemError,
 )
+from .scaling import (
+    ScalingFactors,
+    compute_scaling_factors,
+    scale_problem,
+    should_scale_problem,
+    unscale_solution,
+)
 
 DEVEX_WEIGHT_MIN = 1e-12  # Prevent division by zero or runaway weights in Devex pricing.
 DEVEX_WEIGHT_MAX = 1e12  # Cap the Devex weight to avoid catastrophic scaling.
@@ -90,13 +97,6 @@ class NetworkSimplex:
         # Apply automatic scaling if enabled
         self.scaling_factors = None
         if self.options.auto_scale:
-            from .scaling import (
-                ScalingFactors,
-                compute_scaling_factors,
-                scale_problem,
-                should_scale_problem,
-            )
-
             if should_scale_problem(problem):
                 self.scaling_factors = compute_scaling_factors(problem)
                 problem = scale_problem(problem, self.scaling_factors)
@@ -113,8 +113,6 @@ class NetworkSimplex:
                 self.scaling_factors = ScalingFactors(enabled=False)
         else:
             # Scaling disabled
-            from .scaling import ScalingFactors
-
             self.scaling_factors = ScalingFactors(enabled=False)
 
         self.problem = problem
@@ -1394,8 +1392,6 @@ class NetworkSimplex:
 
         # Unscale solution if automatic scaling was applied
         if self.scaling_factors and self.scaling_factors.enabled:
-            from .scaling import unscale_solution
-
             flows, objective = unscale_solution(flows, objective, self.scaling_factors)
             self.logger.debug("Unscaled solution back to original units")
 
