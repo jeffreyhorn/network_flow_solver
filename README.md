@@ -213,6 +213,85 @@ By default (`block_size=None` or `"auto"`), the solver automatically selects and
 
 See `examples/solver_options_example.py` for a comprehensive demonstration. For performance benchmarks and optimization guidance, see the [Performance Guide](docs/benchmarks.md).
 
+### Automatic Problem Scaling
+
+The solver automatically detects and scales problems with extreme value ranges to improve numerical stability. This is particularly useful when costs, capacities, or supplies span many orders of magnitude.
+
+**Automatic Scaling (Enabled by Default):**
+```python
+from network_solver import build_problem, solve_min_cost_flow
+
+# Problem with extreme value ranges
+problem = build_problem(
+    nodes=[
+        {"id": "source", "supply": 100_000_000.0},  # 100 million units
+        {"id": "sink", "supply": -100_000_000.0},
+    ],
+    arcs=[
+        {"tail": "source", "head": "sink", "capacity": 200_000_000.0, "cost": 0.001},
+        # Range: 0.001 to 200,000,000 (11 orders of magnitude!)
+    ],
+    directed=True,
+    tolerance=1e-6,
+)
+
+# Solver automatically detects wide range and scales the problem
+result = solve_min_cost_flow(problem)
+# INFO: Applied automatic problem scaling
+#       cost_scale=1000.0, capacity_scale=5e-09, supply_scale=1e-08
+# Solution is automatically unscaled back to original units
+print(f"Objective: ${result.objective:,.2f}")  # $100,000.00
+print(f"Flow: {result.flows[('source', 'sink')]:,.0f}")  # 100,000,000 units
+```
+
+**How It Works:**
+1. **Detection**: Scaling triggers when values differ by >6 orders of magnitude (threshold: 1,000,000)
+2. **Scaling**: Uses geometric mean to normalize costs, capacities, and supplies independently
+3. **Target Range**: Brings values into [0.1, 100] range for numerical stability
+4. **Solving**: Solver works on scaled problem with well-conditioned values
+5. **Unscaling**: Solution automatically converted back to original units
+
+**Manual Control:**
+```python
+from network_solver import (
+    should_scale_problem,
+    compute_scaling_factors,
+    SolverOptions,
+)
+
+# Check if scaling is recommended
+if should_scale_problem(problem):
+    factors = compute_scaling_factors(problem)
+    print(f"Cost scale: {factors.cost_scale:.2e}")
+    print(f"Capacity scale: {factors.capacity_scale:.2e}")
+    print(f"Supply scale: {factors.supply_scale:.2e}")
+
+# Disable automatic scaling if needed
+options = SolverOptions(auto_scale=False)
+result = solve_min_cost_flow(problem, options=options)
+```
+
+**When Scaling Helps:**
+- Micro-costs (e.g., $0.0001) combined with macro-supplies (e.g., millions of units)
+- Very large capacities with very small costs
+- Mixed-scale transportation/assignment problems
+- Any problem where values span >6 orders of magnitude
+
+**When to Disable Scaling:**
+- Testing specific numerical behaviors
+- Working with pre-scaled problems
+- Debugging scaling-related issues
+- Well-balanced problems (scaling is skipped automatically anyway)
+
+**Benefits:**
+- **Improved stability**: Reduces round-off errors and catastrophic cancellation
+- **Better convergence**: Well-conditioned problems may converge faster
+- **Automatic**: No manual intervention needed
+- **Transparent**: Solutions returned in original units
+- **Safe**: Well-balanced problems are not affected
+
+See `examples/automatic_scaling_example.py` for a comprehensive demonstration with transportation problems.
+
 ### Network Specializations and Optimized Pivots
 
 The solver automatically detects special network structures and applies specialized pivot strategies for improved performance:
