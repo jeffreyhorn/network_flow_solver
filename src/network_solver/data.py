@@ -368,6 +368,11 @@ class SolverOptions:
         ft_update_limit: Maximum Forrest-Tomlin basis updates before full rebuild (default: 64).
                         Lower values (20-40) = more stable but slower.
                         Higher values (100-200) = faster but may lose numerical stability.
+        auto_scale: Enable automatic problem scaling for numerical stability (default: True).
+                   - True: Automatically detect and scale problems with wide value ranges
+                   - False: Use original problem values without scaling
+                   Scaling is applied when costs, capacities, or supplies differ by >6 orders of magnitude.
+                   The solution is automatically unscaled back to original units.
 
     Examples:
         >>> # Default options (auto-tuning enabled)
@@ -403,6 +408,7 @@ class SolverOptions:
     pricing_strategy: str = "devex"
     block_size: int | str | None = None
     ft_update_limit: int = 64
+    auto_scale: bool = True
 
     def __post_init__(self) -> None:
         if self.tolerance <= 0:

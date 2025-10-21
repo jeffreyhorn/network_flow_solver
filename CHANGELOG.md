@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Automatic problem scaling for numerical stability**
+  - **Scaling detection** (`scaling.py`) automatically detects problems with wide value ranges:
+    - Triggers when costs, capacities, or supplies differ by >6 orders of magnitude (threshold: 1e6)
+    - Analyzes cross-category ranges (e.g., tiny costs vs. huge capacities)
+    - Ignores infinite capacities and zero values in range calculations
+  - **Geometric mean-based scaling factors**:
+    - `ScalingFactors` dataclass stores cost_scale, capacity_scale, supply_scale, and enabled flag
+    - `compute_scaling_factors()` uses geometric mean to normalize each category to ~1.0
+    - Brings values into target range [0.1, 100] for 3 orders of magnitude buffer
+  - **Automatic scaling transformations**:
+    - `scale_problem()` creates scaled copy: costs × cost_scale, capacities × capacity_scale, supplies × supply_scale
+    - `unscale_solution()` reverses scaling: flows ÷ supply_scale, objective ÷ (cost_scale × supply_scale)
+    - Preserves problem structure and feasibility
+  - **Integrated into NetworkSimplex solver**:
+    - Enabled by default via `SolverOptions(auto_scale=True)`
+    - Scaling applied in `__init__()` before basis construction
+    - Solution unscaled in `solve()` before returning FlowResult
+    - Logging at INFO level when scaling applied with factor values
+  - **Public API exports**:
+    - `should_scale_problem()` for manual scaling detection
+    - `compute_scaling_factors()` for factor computation
+    - `ScalingFactors` dataclass
+    - `SolverOptions.auto_scale` configuration (default: True)
+  - **Comprehensive test suite** (`tests/unit/test_scaling.py`):
+    - 21 tests covering detection, factor computation, transformations, integration, and edge cases
+    - Tests for wide cost/capacity/supply ranges and cross-category detection
+    - Tests for scaling with infinite capacities and lower bounds
+    - Integration tests verify solver produces correct results with/without scaling
+  - **Example and documentation**:
+    - `examples/automatic_scaling_example.py`: Demonstrates scaling with extreme value ranges
+    - Shows scaling factors, compares scaled vs unscaled solving
+    - Includes transportation problem with micro-costs and macro-supplies
+
 ### Fixed
 - **Warm-start infeasibility detection**: Fixed critical bug where warm-start with capacity-reduced arcs would return invalid solutions
   - Added flow conservation validation after Phase 1 for warm-start cases

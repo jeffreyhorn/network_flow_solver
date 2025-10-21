@@ -84,9 +84,40 @@ class NetworkSimplex:
     ROOT_NODE = "__network_simplex_root__"
 
     def __init__(self, problem: NetworkProblem, options: SolverOptions | None = None):
-        self.problem = problem
         self.options = options if options is not None else SolverOptions()
         self.logger = logging.getLogger(__name__)
+
+        # Apply automatic scaling if enabled
+        self.scaling_factors = None
+        if self.options.auto_scale:
+            from .scaling import (
+                ScalingFactors,
+                compute_scaling_factors,
+                scale_problem,
+                should_scale_problem,
+            )
+
+            if should_scale_problem(problem):
+                self.scaling_factors = compute_scaling_factors(problem)
+                problem = scale_problem(problem, self.scaling_factors)
+                self.logger.info(
+                    "Applied automatic problem scaling",
+                    extra={
+                        "cost_scale": self.scaling_factors.cost_scale,
+                        "capacity_scale": self.scaling_factors.capacity_scale,
+                        "supply_scale": self.scaling_factors.supply_scale,
+                    },
+                )
+            else:
+                # No scaling needed
+                self.scaling_factors = ScalingFactors(enabled=False)
+        else:
+            # Scaling disabled
+            from .scaling import ScalingFactors
+
+            self.scaling_factors = ScalingFactors(enabled=False)
+
+        self.problem = problem
         self.ft_rebuilds = 0
         self.ft_updates_since_rebuild = 0
 
@@ -1360,6 +1391,13 @@ class NetworkSimplex:
         basis = None
         if status in ("optimal", "iteration_limit"):
             basis = self._extract_basis()
+
+        # Unscale solution if automatic scaling was applied
+        if self.scaling_factors and self.scaling_factors.enabled:
+            from .scaling import unscale_solution
+
+            flows, objective = unscale_solution(flows, objective, self.scaling_factors)
+            self.logger.debug("Unscaled solution back to original units")
 
         return FlowResult(
             objective=float(round(objective, 12)),

@@ -11,6 +11,7 @@ from .exceptions import (
     SolverConfigurationError,
     UnboundedProblemError,
 )
+from .scaling import ScalingFactors, compute_scaling_factors, should_scale_problem
 from .solver import load_problem, save_result, solve_min_cost_flow
 from .specializations import NetworkType, analyze_network_structure, get_specialization_info
 from .utils import (
@@ -46,6 +47,10 @@ __all__ = [
     "NetworkType",
     "analyze_network_structure",
     "get_specialization_info",
+    # Scaling
+    "should_scale_problem",
+    "compute_scaling_factors",
+    "ScalingFactors",
     # Utilities
     "extract_path",
     "validate_flow",
