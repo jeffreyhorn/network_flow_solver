@@ -182,7 +182,7 @@ def main():
     print("=" * 70)
     print()
     print("✓ Automatic scaling is ENABLED by default")
-    print("✓ Scaling activates when values differ by >1 million (6 orders of magnitude)")
+    print("✓ Scaling triggers when values differ by >1 million (6 orders of magnitude)")
     print("✓ The solver uses geometric mean to compute scaling factors")
     print("✓ Solutions are automatically unscaled to original units")
     print("✓ Scaling improves numerical stability for extreme value ranges")
