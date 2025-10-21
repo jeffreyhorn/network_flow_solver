@@ -465,3 +465,26 @@ class TestScalingEdgeCases:
         arc = next(a for a in scaled.arcs if a.tail == "s" and a.head == "t")
         assert arc.lower == pytest.approx(0.5)  # 50 * 0.01
         assert arc.capacity == pytest.approx(10.0)  # 1000 * 0.01
+
+    def test_scaling_disabled_when_all_factors_are_one(self):
+        """Scaling is disabled when all factors would be 1.0."""
+        # Problem where geometric mean of each category is exactly 1.0
+        problem = build_problem(
+            directed=True,
+            tolerance=1e-6,
+            nodes=[
+                {"id": "s", "supply": 1.0},
+                {"id": "t", "supply": -1.0},
+            ],
+            arcs=[
+                {"tail": "s", "head": "t", "capacity": 1.0, "cost": 1.0},
+            ],
+        )
+
+        factors = compute_scaling_factors(problem)
+        # All factors should be 1.0 (or very close)
+        assert factors.cost_scale == pytest.approx(1.0, abs=1e-9)
+        assert factors.capacity_scale == pytest.approx(1.0, abs=1e-9)
+        assert factors.supply_scale == pytest.approx(1.0, abs=1e-9)
+        # Scaling should be disabled since no actual scaling is needed
+        assert factors.enabled is False
