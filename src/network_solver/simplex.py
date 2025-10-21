@@ -95,25 +95,18 @@ class NetworkSimplex:
         self.logger = logging.getLogger(__name__)
 
         # Apply automatic scaling if enabled
-        self.scaling_factors = None
-        if self.options.auto_scale:
-            if should_scale_problem(problem):
-                self.scaling_factors = compute_scaling_factors(problem)
-                problem = scale_problem(problem, self.scaling_factors)
-                self.logger.info(
-                    "Applied automatic problem scaling",
-                    extra={
-                        "cost_scale": self.scaling_factors.cost_scale,
-                        "capacity_scale": self.scaling_factors.capacity_scale,
-                        "supply_scale": self.scaling_factors.supply_scale,
-                    },
-                )
-            else:
-                # No scaling needed
-                self.scaling_factors = ScalingFactors(enabled=False)
-        else:
-            # Scaling disabled
-            self.scaling_factors = ScalingFactors(enabled=False)
+        self.scaling_factors = ScalingFactors(enabled=False)
+        if self.options.auto_scale and should_scale_problem(problem):
+            self.scaling_factors = compute_scaling_factors(problem)
+            problem = scale_problem(problem, self.scaling_factors)
+            self.logger.info(
+                "Applied automatic problem scaling",
+                extra={
+                    "cost_scale": self.scaling_factors.cost_scale,
+                    "capacity_scale": self.scaling_factors.capacity_scale,
+                    "supply_scale": self.scaling_factors.supply_scale,
+                },
+            )
 
         self.problem = problem
         self.ft_rebuilds = 0
