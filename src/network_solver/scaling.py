@@ -11,6 +11,8 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 if TYPE_CHECKING:
     from .data import NetworkProblem
 
@@ -123,27 +125,27 @@ def compute_scaling_factors(
     """
     factors = ScalingFactors()
 
-    # Compute geometric mean for costs
+    # Compute geometric mean for costs using NumPy for efficiency
     costs = [abs(arc.cost) for arc in problem.arcs if arc.cost != 0]
     if costs:
-        geo_mean = math.exp(sum(math.log(c) for c in costs) / len(costs))
+        geo_mean = float(np.exp(np.mean(np.log(costs))))
         # Scale to bring geometric mean to 1.0
         factors.cost_scale = 1.0 / geo_mean if geo_mean > 0 else 1.0
 
-    # Compute geometric mean for capacities
+    # Compute geometric mean for capacities using NumPy for efficiency
     capacities = [
         arc.capacity
         for arc in problem.arcs
         if arc.capacity is not None and math.isfinite(arc.capacity) and arc.capacity > 0
     ]
     if capacities:
-        geo_mean = math.exp(sum(math.log(c) for c in capacities) / len(capacities))
+        geo_mean = float(np.exp(np.mean(np.log(capacities))))
         factors.capacity_scale = 1.0 / geo_mean if geo_mean > 0 else 1.0
 
-    # Compute geometric mean for supplies
+    # Compute geometric mean for supplies using NumPy for efficiency
     supplies = [abs(node.supply) for node in problem.nodes.values() if node.supply != 0]
     if supplies:
-        geo_mean = math.exp(sum(math.log(s) for s in supplies) / len(supplies))
+        geo_mean = float(np.exp(np.mean(np.log(supplies))))
         factors.supply_scale = 1.0 / geo_mean if geo_mean > 0 else 1.0
 
     # Only enable scaling if at least one factor differs from 1.0
