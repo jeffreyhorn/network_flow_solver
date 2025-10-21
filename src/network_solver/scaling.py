@@ -68,7 +68,7 @@ def should_scale_problem(problem: NetworkProblem, threshold: float = 1e6) -> boo
     supplies = [abs(node.supply) for node in problem.nodes.values() if node.supply != 0]
 
     # Check each category for wide range
-    for values, name in [(costs, "costs"), (capacities, "capacities"), (supplies, "supplies")]:
+    for values in [costs, capacities, supplies]:
         if len(values) < 2:
             continue
 
