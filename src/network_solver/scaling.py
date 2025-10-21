@@ -250,8 +250,8 @@ def unscale_solution(
 
     # Unscale objective: divide by (cost_scale * supply_scale)
     # Original: obj = sum(cost_i * flow_i)
-    # Scaled: obj_scaled = sum((cost_i * cost_scale) * (flow_i * supply_scale))
-    # So: obj_scaled = cost_scale * supply_scale * sum(cost_i * flow_i) = cost_scale * supply_scale * obj
+    # Scaled: obj_scaled = cost_scale * supply_scale * sum(cost_i * flow_i)
+    # So: obj_scaled = cost_scale * supply_scale * obj
     # Therefore: obj = obj_scaled / (cost_scale * supply_scale)
     unscaled_objective = objective / (factors.cost_scale * factors.supply_scale)
 
