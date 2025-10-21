@@ -146,7 +146,14 @@ def compute_scaling_factors(
         geo_mean = math.exp(sum(math.log(s) for s in supplies) / len(supplies))
         factors.supply_scale = 1.0 / geo_mean if geo_mean > 0 else 1.0
 
-    factors.enabled = True
+    # Only enable scaling if at least one factor differs from 1.0
+    # Use a small tolerance to account for floating-point precision
+    tolerance = 1e-10
+    factors.enabled = (
+        abs(factors.cost_scale - 1.0) > tolerance
+        or abs(factors.capacity_scale - 1.0) > tolerance
+        or abs(factors.supply_scale - 1.0) > tolerance
+    )
     return factors
 
 
