@@ -456,7 +456,13 @@ def test_flow_post_processing_removes_and_rounds_near_zero():
         {"tail": "s", "head": "n", "capacity": 2.0, "cost": 0.0},
         {"tail": "n", "head": "m", "capacity": 2.0, "cost": 2.0},
     ]
-    result = NetworkSimplex(build_problem(nodes, arcs, directed=True, tolerance=1e-6)).solve()
+    # Disable auto_scale to test raw post-processing behavior
+    from network_solver import SolverOptions
+
+    options = SolverOptions(auto_scale=False)
+    result = NetworkSimplex(
+        build_problem(nodes, arcs, directed=True, tolerance=1e-6), options
+    ).solve()
     assert result.flows == {("s", "m"): pytest.approx(1.0)}
 
 
