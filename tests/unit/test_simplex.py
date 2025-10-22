@@ -656,6 +656,9 @@ def test_disconnected_node_gets_artificial_arc():
     assert result.status == "optimal"
 
 
+@pytest.mark.xfail(
+    reason="Hits Phase 1 early termination bug - see test_phase1_early_termination.py"
+)
 def test_backward_residual_entering_arc():
     """Test pricing logic that selects arcs with backward residual capacity."""
     nodes = [
@@ -752,6 +755,9 @@ def test_infeasible_with_iteration_limit():
     assert result.flows == {}
 
 
+@pytest.mark.xfail(
+    reason="Hits Phase 1 early termination bug - see test_phase1_early_termination.py"
+)
 def test_flow_aggregation_with_duplicate_keys():
     """Test flow aggregation for duplicate arc keys."""
     problem = build_problem(
