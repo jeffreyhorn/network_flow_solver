@@ -29,6 +29,7 @@ from .validation import (
     analyze_numeric_properties,
     validate_numeric_properties,
 )
+from .visualization import visualize_bottlenecks, visualize_flows, visualize_network
 
 __version__ = "0.1.0"
 
@@ -71,6 +72,10 @@ __all__ = [
     # Diagnostics
     "ConvergenceMonitor",
     "BasisHistory",
+    # Visualization
+    "visualize_network",
+    "visualize_flows",
+    "visualize_bottlenecks",
     # Exceptions
     "NetworkSolverError",
     "InvalidProblemError",

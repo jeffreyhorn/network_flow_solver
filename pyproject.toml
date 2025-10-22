@@ -58,9 +58,15 @@ tutorial = [
     "networkx>=3.0"
 ]
 
+# Visualization support for network graphs and flow solutions
+visualization = [
+    "matplotlib>=3.5.0",
+    "networkx>=3.0"
+]
+
 # All optional dependencies combined
 all = [
-    "network-flow-solver[dev,umfpack,tutorial]"
+    "network-flow-solver[dev,umfpack,tutorial,visualization]"
 ]
 
 [project.urls]
@@ -100,7 +106,7 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
 [[tool.mypy.overrides]]
-module = ["hypothesis.*", "scipy.*", "numpy.*"]
+module = ["hypothesis.*", "scipy.*", "numpy.*", "matplotlib.*", "networkx.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
@@ -127,6 +133,9 @@ ignore = [
 "tests/**/*.py" = [
     "D",    # pydocstyle - tests don't need full docstrings
     "S101", # assert - allowed in tests
+]
+"src/network_solver/visualization.py" = [
+    "N806", # Allow uppercase G variable (conventional in graph theory)
 ]
 
 [tool.coverage.run]
