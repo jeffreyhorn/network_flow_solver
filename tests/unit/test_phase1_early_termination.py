@@ -12,25 +12,17 @@ from network_solver import build_problem, solve_min_cost_flow
 
 
 def test_phase1_early_termination_parallel_paths():
-    """Test that Phase 1 termination bug is caught by flow conservation check.
+    """Test that Phase 1 finds feasible solution for parallel path problem.
 
-    This problem has a feasible solution but Phase 1 terminates early with:
-    - All artificial arcs at zero flow (old stopping criterion)
-    - Flow conservation violated at some nodes
+    This problem has two paths from a to d:
+    - Long path: a->b->c->d (capacity 15 each, cost 3 total)
+    - Short path: a->d (capacity 10, cost 4)
 
-    The fix detects this and returns 'infeasible' status. This is correct behavior
-    given the Phase 1 bug, but ideally Phase 1 should find the feasible solution.
+    Optimal solution uses 15 units through long path (cost = 45).
 
-    Expected feasible solution:
-        a->b: 15, b->c: 15, c->d: 15 (cost=45)
-
-    Bug behavior (before fix):
-        Returns 'optimal' with a->b: 10, b->c: 10, c->d: 10 (violates conservation)
-
-    Current behavior (after fix):
-        Returns 'infeasible' (correctly detects the bug)
-
-    TODO: Fix root cause in Phase 1 iteration logic to find the feasible solution.
+    Historical note: This test originally documented a pivot bug where theta
+    computation incorrectly skipped the entering arc's capacity constraint,
+    causing conservation violations. The bug is now fixed.
     """
     problem = build_problem(
         nodes=[
@@ -51,15 +43,18 @@ def test_phase1_early_termination_parallel_paths():
 
     result = solve_min_cost_flow(problem)
 
-    # With the fix, solver correctly detects Phase 1 failed
-    assert result.status == "infeasible"
-    assert result.flows == {}
+    # Solver should find optimal solution
+    assert result.status == "optimal"
+    assert result.objective == pytest.approx(45.0)
 
-    # Document that this problem is actually feasible (Phase 1 bug prevents finding solution)
-    # TODO: Once Phase 1 is fixed, update this test to expect 'optimal' status
+    # Verify flows use the long path (cheaper)
+    assert result.flows[("a", "b")] == pytest.approx(15.0)
+    assert result.flows[("b", "c")] == pytest.approx(15.0)
+    assert result.flows[("c", "d")] == pytest.approx(15.0)
+    # Short path unused
+    assert ("a", "d") not in result.flows or result.flows[("a", "d")] == pytest.approx(0.0)
 
 
-@pytest.mark.xfail(reason="Phase 1 early termination bug - needs algorithmic fix")
 def test_phase1_should_find_feasible_solution():
     """Test that documents the expected behavior once Phase 1 is fixed.
 

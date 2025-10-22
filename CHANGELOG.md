@@ -8,14 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **CRITICAL: Pivot theta computation bug causing flow conservation violations** (`simplex.py:951-995`)
+  - **Root cause**: The theta computation loop was incorrectly skipping the entering arc's capacity constraint
+  - **Impact**: Pivots could assign flow exceeding the entering arc's capacity, causing flow to "disappear" and violating conservation
+  - **Symptoms**: Solver would return invalid solutions with violated flow conservation, or incorrectly report feasible problems as infeasible
+  - **Fix**: Removed the `if idx == arc_idx: continue` check that was skipping the entering arc in theta computation
+  - **Result**: All pivots now correctly maintain flow conservation throughout the algorithm
+  - **Tests fixed**: 8 previously failing/xfail tests now pass, including:
+    - `test_phase1_early_termination_parallel_paths` - now finds optimal solution (cost=45)
+    - `test_tight_tolerance_solve` - high precision solve now works correctly
+    - `test_flow_aggregation_with_duplicate_keys` - duplicate arc handling fixed
+    - `test_undirected_multiple_edges` - parallel edges in undirected graphs
+    - `test_extract_path_with_branching` - path extraction with multiple paths
+    - `test_compute_bottleneck_arcs_sorting` - bottleneck analysis sorting
+  - **Investigation details**: See `tests/unit/test_phase1_early_termination.py` for detailed documentation
+
 - **Phase 1 flow conservation validation** (`simplex.py:1275-1318`)
   - Added flow conservation check after Phase 1 completes (for all cases, not just warm-start)
-  - Prevents solver from returning invalid "optimal" solutions when Phase 1 terminates early
-  - Detects cases where artificial arcs have zero flow but flow conservation is violated
+  - Defensive check that detected the pivot bug before it was fixed
+  - Prevents solver from returning invalid "optimal" solutions
   - Returns "infeasible" status when conservation violations are detected
-  - **Root cause**: Phase 1 has an early termination bug where it stops when artificial flow reaches zero without verifying flow conservation. The conservation check now correctly detects this condition.
-  - **Known limitation**: Some feasible problems now return "infeasible" because Phase 1 terminates early. This is correct behavior given the Phase 1 bug (better to report failure than return invalid solution). See `tests/unit/test_phase1_early_termination.py` for details.
-  - **Future work**: Fix Phase 1 stopping criteria to continue iterating until a truly feasible solution is found
 
 ### Added
 - **Jupyter notebook tutorial for visualization utilities** (`tutorials/visualization_tutorial.ipynb`)
