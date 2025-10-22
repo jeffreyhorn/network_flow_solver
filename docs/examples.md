@@ -620,6 +620,173 @@ print(f"\nAll objectives equal: {all(abs(r.objective - result1.objective) < 1e-4
                                       for r in [result2, result3, result4, result5])}")
 ```
 
+## Adaptive Basis Refactorization
+
+**Problem:** Maintain numerical stability while maximizing performance for diverse problem types.
+
+Adaptive basis refactorization monitors the **condition number** of the basis matrix during the solve. When numerical issues are detected (high condition number), the solver triggers a basis rebuild and adjusts the refactorization frequency. This provides automatic stability without manual tuning.
+
+### What is Adaptive Refactorization?
+
+The network simplex solver maintains a **basis factorization** that must be updated after each pivot. After many updates, numerical errors can accumulate, degrading accuracy. Traditional approaches use a **fixed update limit** (e.g., rebuild every 64 pivots), but this is inefficient:
+
+- **Too frequent rebuilds** → Slower performance on well-conditioned problems
+- **Too infrequent rebuilds** → Numerical instability on ill-conditioned problems
+
+**Adaptive refactorization** automatically finds the optimal balance by:
+1. **Monitoring** the condition number after each pivot
+2. **Triggering rebuilds** when condition number exceeds threshold
+3. **Adjusting frequency** based on observed numerical behavior
+
+### Basic Usage (Enabled by Default)
+
+```python
+from network_solver import solve_min_cost_flow, SolverOptions
+
+# Adaptive refactorization is enabled by default
+result = solve_min_cost_flow(problem)
+
+# Explicitly enable with default settings
+options = SolverOptions(adaptive_refactorization=True)
+result = solve_min_cost_flow(problem, options=options)
+```
+
+### Configuration Options
+
+```python
+# Customize adaptive behavior
+options = SolverOptions(
+    adaptive_refactorization=True,       # Enable adaptive mode (default)
+    condition_number_threshold=1e12,     # Trigger threshold (default)
+    adaptive_ft_min=20,                  # Minimum refactorization limit
+    adaptive_ft_max=200,                 # Maximum refactorization limit
+    ft_update_limit=64,                  # Initial/fixed limit
+)
+result = solve_min_cost_flow(problem, options=options)
+```
+
+**Parameters explained:**
+- `condition_number_threshold`: When condition number exceeds this, trigger rebuild
+  - Lower (1e10): More conservative, more rebuilds, better stability
+  - Higher (1e14): More aggressive, fewer rebuilds, faster but less stable
+  - Default (1e12): Good balance for most problems
+- `adaptive_ft_min/max`: Bounds for adaptive adjustment
+  - Narrow range [20, 40]: Tight control, minimal adaptation
+  - Wide range [10, 200]: More flexibility, better adaptation
+
+### Example 1: Ill-Conditioned Problem
+
+Problems with **extreme value ranges** can cause numerical issues:
+
+```python
+from network_solver import build_problem, solve_min_cost_flow, SolverOptions
+
+# Problem with micro-costs and macro-capacities (9 orders of magnitude!)
+nodes = [
+    {"id": "factory", "supply": 1_000_000.0},
+    {"id": "warehouse", "supply": -1_000_000.0},
+]
+arcs = [
+    {"tail": "factory", "head": "warehouse", "capacity": 2_000_000.0, "cost": 0.001},
+]
+problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+# With adaptive refactorization (default)
+result_adaptive = solve_min_cost_flow(problem)
+print(f"Adaptive: Status={result_adaptive.status}, Obj=${result_adaptive.objective:.2f}")
+
+# Without adaptive refactorization
+options_fixed = SolverOptions(adaptive_refactorization=False, ft_update_limit=64)
+result_fixed = solve_min_cost_flow(problem, options=options_fixed)
+print(f"Fixed:    Status={result_fixed.status}, Obj=${result_fixed.objective:.2f}")
+
+# Both should find optimal solution
+# Adaptive automatically maintains stability
+```
+
+### Example 2: Custom Threshold for Conservative Rebuilds
+
+For critical applications requiring maximum stability:
+
+```python
+# More conservative: lower threshold triggers more rebuilds
+options = SolverOptions(
+    adaptive_refactorization=True,
+    condition_number_threshold=1e10,  # More aggressive rebuilding
+)
+result = solve_min_cost_flow(problem, options=options)
+print(f"Conservative approach: {result.status}, {result.iterations} iterations")
+```
+
+### Example 3: Disable for Predictable Behavior
+
+When you need fixed, predictable refactorization (e.g., benchmarking):
+
+```python
+# Disable adaptive, use fixed limit
+options = SolverOptions(
+    adaptive_refactorization=False,
+    ft_update_limit=64,  # Fixed: rebuild every 64 pivots
+)
+result = solve_min_cost_flow(problem, options=options)
+print(f"Fixed refactorization: {result.status}, {result.iterations} iterations")
+```
+
+### When to Use Adaptive Refactorization
+
+**✓ Enable (default) when:**
+- Working with ill-conditioned problems (wide value ranges)
+- Problem characteristics are unknown
+- Numerical stability is critical
+- You want automatic tuning
+
+**✗ Disable when:**
+- Well-conditioned problems with narrow value ranges
+- You need predictable, fixed behavior (testing/benchmarking)
+- You've manually optimized `ft_update_limit` for your workload
+
+### How Adaptive Adjustment Works
+
+The solver tracks condition number history and adjusts `ft_update_limit`:
+
+- **Very high** condition (>10× threshold): Reduce limit by 50% → more rebuilds
+- **Moderately high** (>threshold): Reduce limit by 20% → gradual increase
+- **Good** conditioning: Increase limit by 10% → fewer rebuilds
+
+Adjustments respect `adaptive_ft_min` and `adaptive_ft_max` bounds.
+
+### Combination with Automatic Scaling
+
+Adaptive refactorization works seamlessly with **automatic problem scaling**:
+
+```python
+# Both features enabled by default
+options = SolverOptions(
+    auto_scale=True,                 # Automatic scaling (default)
+    adaptive_refactorization=True,   # Adaptive refactorization (default)
+)
+
+# Scaling normalizes value ranges (reduces ill-conditioning)
+# Adaptive refactorization handles remaining numerical issues
+result = solve_min_cost_flow(problem, options=options)
+```
+
+Together, these features provide robust numerical behavior across diverse problems.
+
+### Complete Example
+
+See `examples/adaptive_refactorization_example.py` for comprehensive demonstrations including:
+- Default vs custom configurations
+- Ill-conditioned problem comparisons
+- Adaptive vs fixed refactorization strategies
+- Configuration tuning guidelines
+
+**Key takeaways:**
+- Enabled by default for automatic stability
+- No manual tuning needed for most users
+- Customizable for specialized requirements
+- Works in combination with automatic scaling
+
 ## Incremental Resolving
 
 **Use case:** Efficiently re-solve problems with modifications for scenario analysis, capacity planning, and iterative optimization.

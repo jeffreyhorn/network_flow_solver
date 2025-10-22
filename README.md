@@ -292,6 +292,80 @@ result = solve_min_cost_flow(problem, options=options)
 
 See `examples/automatic_scaling_example.py` for a comprehensive demonstration with transportation problems.
 
+### Adaptive Basis Refactorization
+
+The solver features **adaptive refactorization** that monitors numerical stability and automatically adjusts basis rebuild frequency to maintain accuracy while maximizing performance.
+
+**How It Works:**
+The solver tracks the **condition number** of the basis matrix during each pivot. When the condition number exceeds a threshold (indicating potential numerical issues), the solver triggers a basis rebuild and adaptively adjusts the refactorization frequency.
+
+**Enabled by Default:**
+```python
+from network_solver import solve_min_cost_flow, SolverOptions
+
+# Default settings enable adaptive refactorization
+options = SolverOptions()  # adaptive_refactorization=True
+result = solve_min_cost_flow(problem, options=options)
+```
+
+**Configuration Options:**
+```python
+# Customize adaptive behavior
+options = SolverOptions(
+    adaptive_refactorization=True,       # Enable adaptive mode (default)
+    condition_number_threshold=1e12,     # Trigger threshold (default)
+    adaptive_ft_min=20,                  # Minimum refactorization limit
+    adaptive_ft_max=200,                 # Maximum refactorization limit
+    ft_update_limit=64,                  # Initial/fixed limit
+)
+```
+
+**Parameters:**
+- `adaptive_refactorization` - Enable/disable adaptive behavior (default: `True`)
+- `condition_number_threshold` - Condition number limit for triggering rebuild (default: `1e12`)
+  - Lower (1e10): More conservative, more rebuilds, better stability
+  - Higher (1e14): More aggressive, fewer rebuilds, faster but less stable
+- `adaptive_ft_min` - Minimum value for adaptive ft_update_limit (default: `20`)
+- `adaptive_ft_max` - Maximum value for adaptive ft_update_limit (default: `200`)
+- `ft_update_limit` - Starting limit or fixed limit if adaptive disabled (default: `64`)
+
+**When Adaptive Refactorization Helps:**
+- **Ill-conditioned problems** with wide value ranges
+- **Mixed-scale networks** (micro-costs with macro-capacities)
+- **Long-running solves** where stability is critical
+- **Unknown problem characteristics** (adaptive tuning finds optimal frequency)
+
+**Disable for:**
+- **Well-conditioned problems** with narrow value ranges
+- **Predictable behavior** when you need fixed refactorization
+- **Manual tuning** when you've optimized ft_update_limit for your workload
+
+**Example - Ill-Conditioned Problem:**
+```python
+# Problem with extreme value ranges (costs: 0.001, capacities: millions)
+nodes = [
+    {"id": "factory", "supply": 1_000_000.0},
+    {"id": "warehouse", "supply": -1_000_000.0},
+]
+arcs = [
+    {"tail": "factory", "head": "warehouse", "capacity": 2_000_000.0, "cost": 0.001},
+]
+problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+# Adaptive refactorization automatically maintains stability
+result = solve_min_cost_flow(problem)  # Works correctly with defaults
+```
+
+**Benefits:**
+- **Automatic tuning** - No manual adjustment of ft_update_limit needed
+- **Improved stability** - Detects and responds to numerical issues
+- **Better performance** - Reduces unnecessary rebuilds for well-conditioned problems
+- **Transparent** - Works seamlessly with automatic scaling
+
+**Note:** Adaptive refactorization works in combination with automatic problem scaling. Together, these features provide robust numerical behavior across diverse problem types.
+
+See `examples/adaptive_refactorization_example.py` for comprehensive demonstrations and tuning guidelines.
+
 ### Network Specializations and Optimized Pivots
 
 The solver automatically detects special network structures and applies specialized pivot strategies for improved performance:
@@ -538,6 +612,7 @@ python examples/networkx_comparison_example.py  # Comparison with NetworkX
 python examples/warm_start_example.py  # Warm-starting for sequential solves
 python examples/progress_logging_example.py  # Progress monitoring
 python examples/solver_options_example.py  # Solver configuration and tuning
+python examples/adaptive_refactorization_example.py  # Adaptive basis refactorization
 python examples/utils_example.py  # Flow analysis utilities
 python examples/undirected_graph_example.py  # Undirected graph handling
 ```
