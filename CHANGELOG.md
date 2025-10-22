@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Phase 1 flow conservation validation** (`simplex.py:1275-1318`)
+  - Added flow conservation check after Phase 1 completes (for all cases, not just warm-start)
+  - Prevents solver from returning invalid "optimal" solutions when Phase 1 terminates early
+  - Detects cases where artificial arcs have zero flow but flow conservation is violated
+  - Returns "infeasible" status when conservation violations are detected
+  - **Root cause**: Phase 1 has an early termination bug where it stops when artificial flow reaches zero without verifying flow conservation. The conservation check now correctly detects this condition.
+  - **Known limitation**: Some feasible problems now return "infeasible" because Phase 1 terminates early. This is correct behavior given the Phase 1 bug (better to report failure than return invalid solution). See `tests/unit/test_phase1_early_termination.py` for details.
+  - **Future work**: Fix Phase 1 stopping criteria to continue iterating until a truly feasible solution is found
+
 ### Added
 - **Jupyter notebook tutorial for visualization utilities** (`tutorials/visualization_tutorial.ipynb`)
   - Comprehensive tutorial demonstrating all visualization features

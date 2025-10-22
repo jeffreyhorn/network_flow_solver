@@ -1276,28 +1276,28 @@ class NetworkSimplex:
         # Check for infeasibility: artificial arcs have flow
         has_artificial_flow = any(arc.artificial and arc.flow > self.tolerance for arc in self.arcs)
 
-        # For warm-start cases, also verify flow conservation (catches cases where warm-start
-        # leads to invalid state with zero artificial flow but violated conservation)
+        # Verify flow conservation for ALL cases after Phase 1 (not just warm-start)
+        # This catches cases where Phase 1 terminates prematurely with zero artificial flow
+        # but violated conservation - which indicates an algorithmic bug
         flow_conservation_violated = False
-        if warm_start_applied:
-            for node_idx in range(1, self.node_count):
-                if node_idx == self.root:
-                    continue
+        for node_idx in range(1, self.node_count):
+            if node_idx == self.root:
+                continue
 
-                # Calculate net flow: supply + inflow - outflow
-                net_flow = self.node_supply[node_idx]
-                for arc in self.arcs:
-                    if arc.tail == node_idx:
-                        net_flow -= arc.flow
-                    elif arc.head == node_idx:
-                        net_flow += arc.flow
+            # Calculate net flow: supply + inflow - outflow
+            net_flow = self.node_supply[node_idx]
+            for arc in self.arcs:
+                if arc.tail == node_idx:
+                    net_flow -= arc.flow
+                elif arc.head == node_idx:
+                    net_flow += arc.flow
 
-                if abs(net_flow) > self.tolerance:
-                    self.logger.error(
-                        f"Flow conservation violated at node {self.node_ids[node_idx]}: "
-                        f"imbalance = {net_flow:.6f}"
-                    )
-                    flow_conservation_violated = True
+            if abs(net_flow) > self.tolerance:
+                self.logger.error(
+                    f"Flow conservation violated at node {self.node_ids[node_idx]}: "
+                    f"imbalance = {net_flow:.6f}"
+                )
+                flow_conservation_violated = True
 
         infeasible = has_artificial_flow or flow_conservation_violated
         if infeasible:
