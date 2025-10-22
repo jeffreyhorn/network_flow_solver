@@ -620,6 +620,109 @@ for bottleneck in bottlenecks:
 
 See `examples/utils_example.py` for a complete demonstration of all utility functions. Full API documentation available in the [API Reference](docs/api.md#utility-functions).
 
+### Visualization Utilities
+
+The solver provides **visualization utilities** to create publication-quality graphs of network structures, flow solutions, and bottleneck analysis using matplotlib and networkx.
+
+**Installation:**
+```bash
+pip install 'network_solver[visualization]'
+```
+
+#### Visualize Network Structure
+
+Display network topology with nodes, arcs, costs, and capacities:
+
+```python
+from network_solver import build_problem, visualize_network
+
+problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+# Visualize network structure
+fig = visualize_network(problem, layout="spring", figsize=(12, 8))
+fig.savefig("network.png")
+```
+
+**Features:**
+- Automatic node categorization (sources=green, sinks=red, transshipment=blue)
+- Arc labels showing costs and capacities
+- Supply/demand values on nodes
+- Multiple layout algorithms (spring, circular, kamada_kawai, planar)
+
+#### Visualize Flow Solution
+
+Display optimal flows with optional bottleneck highlighting:
+
+```python
+from network_solver import solve_min_cost_flow, visualize_flows
+
+result = solve_min_cost_flow(problem)
+
+# Visualize flows with bottleneck highlighting
+fig = visualize_flows(
+    problem,
+    result,
+    highlight_bottlenecks=True,
+    bottleneck_threshold=0.9,  # Highlight arcs ≥90% utilization
+    show_zero_flows=False,      # Hide zero flows for clarity
+)
+fig.savefig("flows.png")
+```
+
+**Features:**
+- Flow values displayed on arcs
+- Arc thickness proportional to flow magnitude
+- Bottleneck highlighting in red (utilization ≥ threshold)
+- Utilization percentages displayed
+- Statistics box (objective, status, iterations)
+- Option to hide zero flows
+
+#### Visualize Bottlenecks
+
+Focused analysis of capacity constraints with utilization heatmap:
+
+```python
+from network_solver import visualize_bottlenecks
+
+# Show arcs with ≥80% utilization
+fig = visualize_bottlenecks(problem, result, threshold=0.8)
+fig.savefig("bottlenecks.png")
+```
+
+**Features:**
+- Utilization heatmap with color gradient (red=high, yellow=medium, green=low)
+- Only shows arcs above threshold
+- Displays utilization % and slack capacity
+- Color bar for scale reference
+- Statistics (bottleneck count, average utilization)
+
+#### Customization Options
+
+All visualization functions support extensive customization:
+
+```python
+fig = visualize_network(
+    problem,
+    layout="kamada_kawai",      # Layout algorithm
+    figsize=(14, 10),            # Figure size
+    node_size=1200,              # Node marker size
+    font_size=10,                # Label font size
+    show_arc_labels=True,        # Show/hide arc labels
+    title="My Custom Network",   # Custom title
+)
+```
+
+**Use Cases:**
+- Visual problem understanding (structure, complexity, bottlenecks)
+- Flow pattern analysis (routing decisions, utilization)
+- Capacity planning (identify constraints, prioritize investments)
+- Publication-quality figures for reports and presentations
+- Interactive problem exploration and debugging
+
+**Note:** Requires optional dependencies matplotlib and networkx. Install with `pip install 'network_solver[visualization]'`.
+
+See `examples/visualization_example.py` for comprehensive demonstrations generating 8 different visualizations.
+
 ### Sensitivity Analysis with Dual Values
 
 The solver returns **dual values** (also called **shadow prices** or **node potentials**) which represent the marginal cost of supply/demand changes:
@@ -712,6 +815,7 @@ python examples/solve_dimacs_example.py  # DIMACS-style instance
 python examples/solve_textbook_transport.py  # Textbook transportation problem
 python examples/solve_large_transport.py  # 10×10 transportation instance
 python examples/preprocessing_example.py  # Problem preprocessing and optimization
+python examples/visualization_example.py  # Network and flow visualization (requires matplotlib)
 python examples/sensitivity_analysis_example.py  # Dual values and shadow prices
 python examples/incremental_resolving_example.py  # Scenario analysis and what-if modeling
 python examples/performance_profiling_example.py  # Performance analysis and benchmarking

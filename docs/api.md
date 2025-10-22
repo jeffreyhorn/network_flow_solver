@@ -10,6 +10,7 @@ Complete API documentation for the network flow solver library.
 - [Solver Configuration](#solver-configuration)
 - [Results and Analysis](#results-and-analysis)
 - [Utility Functions](#utility-functions)
+- [Visualization](#visualization)
 - [Network Specializations](#network-specializations)
 - [Progress Tracking](#progress-tracking)
 - [Exceptions](#exceptions)
@@ -780,6 +781,207 @@ class BottleneckArc:
     cost: float               # Cost per unit
     slack: float              # Remaining capacity (capacity - flow)
 ```
+
+## Visualization
+
+Functions for visualizing network structures, flow solutions, and bottleneck analysis.
+
+**Installation:** Requires optional dependencies. Install with:
+```bash
+pip install 'network_solver[visualization]'
+```
+
+### visualize_network
+
+```python
+def visualize_network(
+    problem: NetworkProblem,
+    layout: str = "spring",
+    figsize: tuple[float, float] = (12, 8),
+    node_size: int = 1000,
+    font_size: int = 10,
+    show_arc_labels: bool = True,
+    title: str | None = None,
+) -> Figure
+```
+
+Visualize network structure showing nodes, arcs, supplies, and costs.
+
+**Parameters:**
+
+- `problem` (NetworkProblem): Network flow problem to visualize
+- `layout` (str): Graph layout algorithm - "spring", "circular", "kamada_kawai", or "planar" (default: "spring")
+- `figsize` (tuple[float, float]): Figure size (width, height) in inches (default: (12, 8))
+- `node_size` (int): Size of node markers (default: 1000)
+- `font_size` (int): Font size for labels (default: 10)
+- `show_arc_labels` (bool): Whether to show cost/capacity labels on arcs (default: True)
+- `title` (str | None): Custom title for the plot (default: "Network Structure")
+
+**Returns:**
+
+- `Figure`: matplotlib Figure object
+
+**Raises:**
+
+- `ImportError`: If matplotlib or networkx are not installed
+
+**Features:**
+
+- Automatic node categorization:
+  - Sources (supply > 0): green
+  - Sinks (supply < 0): red
+  - Transshipment (supply = 0): lightblue
+- Arc labels showing costs and capacities
+- Supply/demand values displayed on nodes
+- Legend for node types
+
+**Example:**
+
+```python
+from network_solver import build_problem, visualize_network
+
+problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+fig = visualize_network(problem, layout="spring")
+fig.savefig("network.png")
+```
+
+**See Also:**
+- `visualize_flows()` - Visualize flow solution
+- `visualize_bottlenecks()` - Visualize bottleneck analysis
+
+### visualize_flows
+
+```python
+def visualize_flows(
+    problem: NetworkProblem,
+    result: FlowResult,
+    layout: str = "spring",
+    figsize: tuple[float, float] = (14, 10),
+    node_size: int = 1200,
+    font_size: int = 10,
+    highlight_bottlenecks: bool = True,
+    bottleneck_threshold: float = 0.9,
+    show_zero_flows: bool = False,
+    title: str | None = None,
+) -> Figure
+```
+
+Visualize flow solution with optional bottleneck highlighting.
+
+**Parameters:**
+
+- `problem` (NetworkProblem): Network flow problem
+- `result` (FlowResult): Flow solution from solve_min_cost_flow()
+- `layout` (str): Graph layout algorithm (default: "spring")
+- `figsize` (tuple[float, float]): Figure size in inches (default: (14, 10))
+- `node_size` (int): Size of node markers (default: 1200)
+- `font_size` (int): Font size for labels (default: 10)
+- `highlight_bottlenecks` (bool): Whether to highlight high-utilization arcs (default: True)
+- `bottleneck_threshold` (float): Utilization threshold for bottleneck (default: 0.9 = 90%)
+- `show_zero_flows` (bool): Whether to show arcs with zero flow (default: False)
+- `title` (str | None): Custom title (default: "Flow Solution (Cost: $...)")
+
+**Returns:**
+
+- `Figure`: matplotlib Figure object
+
+**Raises:**
+
+- `ImportError`: If matplotlib or networkx are not installed
+
+**Features:**
+
+- Flow values displayed on arcs
+- Arc thickness proportional to flow magnitude
+- Bottleneck arcs highlighted in red (utilization ≥ threshold)
+- Utilization percentages displayed
+- Statistics box showing objective, status, iterations
+- Option to hide zero flows for cleaner visualization
+
+**Example:**
+
+```python
+from network_solver import solve_min_cost_flow, visualize_flows
+
+result = solve_min_cost_flow(problem)
+
+# Visualize with bottleneck highlighting
+fig = visualize_flows(
+    problem,
+    result,
+    highlight_bottlenecks=True,
+    bottleneck_threshold=0.9,
+    show_zero_flows=False,
+)
+fig.savefig("flows.png")
+```
+
+**See Also:**
+- `visualize_network()` - Visualize problem structure
+- `visualize_bottlenecks()` - Focused bottleneck visualization
+- `compute_bottleneck_arcs()` - Identify bottlenecks programmatically
+
+### visualize_bottlenecks
+
+```python
+def visualize_bottlenecks(
+    problem: NetworkProblem,
+    result: FlowResult,
+    threshold: float = 0.8,
+    layout: str = "spring",
+    figsize: tuple[float, float] = (14, 10),
+    node_size: int = 1200,
+    font_size: int = 10,
+    title: str | None = None,
+) -> Figure
+```
+
+Visualize bottleneck analysis with utilization heatmap.
+
+**Parameters:**
+
+- `problem` (NetworkProblem): Network flow problem
+- `result` (FlowResult): Flow solution from solve_min_cost_flow()
+- `threshold` (float): Minimum utilization to display (default: 0.8 = 80%)
+- `layout` (str): Graph layout algorithm (default: "spring")
+- `figsize` (tuple[float, float]): Figure size in inches (default: (14, 10))
+- `node_size` (int): Size of node markers (default: 1200)
+- `font_size` (int): Font size for labels (default: 10)
+- `title` (str | None): Custom title (default: "Bottleneck Analysis (≥...% utilization)")
+
+**Returns:**
+
+- `Figure`: matplotlib Figure object
+
+**Raises:**
+
+- `ImportError`: If matplotlib or networkx are not installed
+
+**Features:**
+
+- Utilization heatmap with color gradient:
+  - Red: high utilization (near capacity)
+  - Yellow: medium utilization
+  - Green: lower utilization (within threshold)
+- Only shows arcs above threshold
+- Displays utilization percentage and slack capacity
+- Color bar for utilization scale
+- Statistics box (bottleneck count, average utilization)
+- Returns figure with "No bottlenecks found" message if none exist
+
+**Example:**
+
+```python
+from network_solver import visualize_bottlenecks
+
+# Show arcs with ≥80% utilization
+fig = visualize_bottlenecks(problem, result, threshold=0.8)
+fig.savefig("bottlenecks.png")
+```
+
+**See Also:**
+- `visualize_flows()` - Full flow visualization
+- `compute_bottleneck_arcs()` - Identify bottlenecks programmatically
 
 ## Network Specializations
 
