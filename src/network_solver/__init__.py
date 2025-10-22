@@ -30,6 +30,25 @@ from .validation import (
     validate_numeric_properties,
 )
 
+# Optional visualization imports (requires matplotlib and networkx)
+try:
+    from .visualization import visualize_bottlenecks, visualize_flows, visualize_network
+
+    _has_visualization = True
+except ImportError:
+    _has_visualization = False
+
+    # Provide stub functions that raise ImportError with helpful message
+    def _visualization_not_available(*args, **kwargs):  # type: ignore[no-untyped-def]
+        raise ImportError(
+            "Visualization requires optional dependencies. "
+            "Install with: pip install 'network_solver[visualization]'"
+        )
+
+    visualize_network = _visualization_not_available
+    visualize_flows = _visualization_not_available
+    visualize_bottlenecks = _visualization_not_available
+
 __version__ = "0.1.0"
 
 __all__ = [
@@ -71,6 +90,10 @@ __all__ = [
     # Diagnostics
     "ConvergenceMonitor",
     "BasisHistory",
+    # Visualization
+    "visualize_network",
+    "visualize_flows",
+    "visualize_bottlenecks",
     # Exceptions
     "NetworkSolverError",
     "InvalidProblemError",

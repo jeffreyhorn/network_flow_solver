@@ -8,6 +8,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Visualization utilities for network graphs and flow solutions**
+  - **Three visualization functions** (`visualization.py`) for interactive analysis:
+    - **visualize_network()**: Network structure with nodes, arcs, costs, capacities
+    - **visualize_flows()**: Flow solution with bottleneck highlighting
+    - **visualize_bottlenecks()**: Focused bottleneck analysis with utilization heatmap
+  - **Network structure visualization**:
+    - Automatic node categorization (sources=green, sinks=red, transshipment=blue)
+    - Arc labels showing costs and capacities
+    - Supply/demand values displayed on nodes
+    - Multiple layout algorithms (spring, circular, kamada_kawai, planar)
+  - **Flow solution visualization**:
+    - Flow values displayed on arcs
+    - Arc thickness proportional to flow magnitude
+    - Bottleneck highlighting (arcs ≥ threshold shown in red)
+    - Utilization percentages displayed
+    - Option to hide zero flows for cleaner visualization
+    - Statistics box showing objective, status, iterations
+  - **Bottleneck analysis visualization**:
+    - Utilization heatmap with color gradient (red=high, yellow=medium, green=low)
+    - Only shows arcs above utilization threshold
+    - Displays utilization percentage and slack capacity
+    - Color bar for utilization scale
+    - Statistics showing bottleneck count and average utilization
+  - **Customization options**:
+    - Layout algorithm selection
+    - Figure size, node size, font size
+    - Custom titles
+    - Bottleneck threshold adjustment
+    - Show/hide zero flows
+  - **Optional dependencies**:
+    - New `visualization` dependency group in pyproject.toml
+    - Requires matplotlib>=3.5.0 and networkx>=3.0
+    - Install with: `pip install 'network_solver[visualization]'`
+    - Graceful ImportError when dependencies missing
+  - **Comprehensive test suite** (`tests/unit/test_visualization.py`):
+    - 26 tests covering all visualization functions
+    - Tests for customization options and layouts
+    - Error handling and edge cases
+    - Integration tests with different problem types
+    - All tests passing
+  - **Example demonstration** (`examples/visualization_example.py`):
+    - 6 complete examples showing all features
+    - Basic network, flows, bottleneck highlighting
+    - Transportation problem (3×3)
+    - Multi-stage supply chain with transshipment
+    - Bottleneck analysis with heatmap
+    - Generates 8 PNG files with detailed visualizations
+  - **Benefits**:
+    - Visual problem understanding (structure, complexity)
+    - Flow pattern analysis (routing, utilization)
+    - Bottleneck identification (capacity constraints)
+    - Publication-quality figures for reports
+    - Interactive problem exploration
+  - **Integration**:
+    - Exported from main `network_solver` module
+    - Works with all problem types (directed/undirected)
+    - Compatible with all solver features
+    - Returns matplotlib Figure objects for further customization
+
+### Added
 - **Problem preprocessing for reduced problem size and faster solving**
   - **Four optimization techniques** (`preprocessing.py`) to simplify problems before solving:
     - **Remove redundant arcs**: Parallel arcs with identical costs merged (capacities combined)
