@@ -5,6 +5,7 @@ Complete API documentation for the network flow solver library.
 ## Table of Contents
 
 - [Main Functions](#main-functions)
+- [Problem Preprocessing](#problem-preprocessing)
 - [Problem Definition](#problem-definition)
 - [Solver Configuration](#solver-configuration)
 - [Results and Analysis](#results-and-analysis)
@@ -105,6 +106,170 @@ arcs = [
 ]
 problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
 ```
+
+## Problem Preprocessing
+
+Functions for simplifying network flow problems before solving by removing redundancies and merging arcs.
+
+### preprocess_problem
+
+```python
+def preprocess_problem(
+    problem: NetworkProblem,
+    remove_redundant: bool = True,
+    detect_disconnected: bool = True,
+    simplify_series: bool = True,
+    remove_zero_supply: bool = True,
+) -> PreprocessingResult
+```
+
+Preprocess a network flow problem to reduce size and improve solving performance.
+
+**Parameters:**
+
+- `problem` (NetworkProblem): The network flow problem to preprocess
+- `remove_redundant` (bool): Remove redundant parallel arcs (default: True)
+- `detect_disconnected` (bool): Detect disconnected components (default: True)
+- `simplify_series` (bool): Simplify series arcs (default: True)
+- `remove_zero_supply` (bool): Remove zero-supply single-arc nodes (default: True)
+
+**Returns:**
+
+- `PreprocessingResult`: Contains preprocessed problem and statistics
+
+**Optimization Techniques:**
+
+1. **Remove redundant arcs**: Parallel arcs with identical costs are merged (capacities combined)
+2. **Detect disconnected components**: BFS-based connectivity analysis warns of potential infeasibility
+3. **Simplify series arcs**: Merge consecutive arcs through zero-supply transshipment nodes
+4. **Remove zero-supply nodes**: Eliminate transshipment nodes with single incident arc
+
+**Example:**
+
+```python
+from network_solver import preprocess_problem, solve_min_cost_flow
+
+# Preprocess problem
+result = preprocess_problem(problem)
+print(f"Removed {result.removed_arcs} arcs, {result.removed_nodes} nodes")
+print(f"Preprocessing time: {result.preprocessing_time_ms:.2f}ms")
+
+# Solve preprocessed problem
+flow_result = solve_min_cost_flow(result.problem)
+```
+
+**Selective Preprocessing:**
+
+```python
+# Only apply specific optimizations
+result = preprocess_problem(
+    problem,
+    remove_redundant=True,
+    simplify_series=True,
+    detect_disconnected=False,  # Skip connectivity check
+    remove_zero_supply=False,    # Keep all nodes
+)
+```
+
+**See Also:**
+- `preprocess_and_solve()` - Convenience function
+- `PreprocessingResult` - Result dataclass
+- [Examples: Problem Preprocessing](examples.md#problem-preprocessing)
+
+### preprocess_and_solve
+
+```python
+def preprocess_and_solve(
+    problem: NetworkProblem,
+    **solve_kwargs: Any
+) -> tuple[PreprocessingResult, FlowResult]
+```
+
+Convenience function to preprocess and solve in one call.
+
+**Parameters:**
+
+- `problem` (NetworkProblem): Network flow problem to solve
+- `**solve_kwargs`: Additional arguments passed to `solve_min_cost_flow()`
+
+**Returns:**
+
+- `tuple[PreprocessingResult, FlowResult]`: Preprocessing statistics and flow solution
+
+**Example:**
+
+```python
+from network_solver import preprocess_and_solve
+
+# Preprocess and solve in one call
+preproc_result, flow_result = preprocess_and_solve(problem)
+
+print(f"Removed {preproc_result.removed_arcs} arcs")
+print(f"Optimal cost: ${flow_result.objective:.2f}")
+```
+
+**With Solver Options:**
+
+```python
+from network_solver import preprocess_and_solve, SolverOptions
+
+options = SolverOptions(tolerance=1e-8, pricing_strategy="devex")
+preproc_result, flow_result = preprocess_and_solve(problem, options=options)
+```
+
+### PreprocessingResult
+
+```python
+@dataclass
+class PreprocessingResult:
+    problem: NetworkProblem
+    removed_arcs: int = 0
+    removed_nodes: int = 0
+    merged_arcs: int = 0
+    redundant_arcs: int = 0
+    disconnected_components: int = 0
+    preprocessing_time_ms: float = 0.0
+    optimizations: dict[str, int] = field(default_factory=dict)
+```
+
+Result of preprocessing a network flow problem.
+
+**Attributes:**
+
+- `problem` (NetworkProblem): The preprocessed problem instance
+- `removed_arcs` (int): Number of arcs removed during preprocessing
+- `removed_nodes` (int): Number of nodes removed during preprocessing
+- `merged_arcs` (int): Number of arc series that were merged
+- `redundant_arcs` (int): Number of redundant parallel arcs removed
+- `disconnected_components` (int): Number of disconnected components detected
+- `preprocessing_time_ms` (float): Time spent preprocessing in milliseconds
+- `optimizations` (dict[str, int]): Detailed breakdown by optimization type
+
+**Example:**
+
+```python
+result = preprocess_problem(problem)
+
+print(f"Statistics:")
+print(f"  Removed {result.removed_arcs} arcs")
+print(f"  Removed {result.removed_nodes} nodes")
+print(f"  Merged {result.merged_arcs} series arcs")
+print(f"  Found {result.redundant_arcs} redundant arcs")
+print(f"  Detected {result.disconnected_components} components")
+print(f"  Time: {result.preprocessing_time_ms:.2f}ms")
+
+print(f"\nDetailed optimizations:")
+for opt_name, count in result.optimizations.items():
+    print(f"  {opt_name}: {count}")
+```
+
+**Optimizations Dictionary Keys:**
+
+- `"redundant_arcs_removed"`: Count of parallel arcs merged
+- `"disconnected_components"`: Number of separate components
+- `"series_arcs_merged"`: Count of series arcs merged
+- `"series_nodes_removed"`: Count of transshipment nodes removed
+- `"zero_supply_nodes_removed"`: Count of single-arc nodes removed
 
 ## Problem Definition
 
