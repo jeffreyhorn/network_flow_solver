@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Jupyter notebook tutorial for visualization utilities** (`tutorials/visualization_tutorial.ipynb`)
+  - Comprehensive tutorial demonstrating all visualization features
+  - Six interactive examples covering different network types
+  - Shows network structure visualization, flow solutions, and bottleneck analysis
+  - Demonstrates multiple layout algorithms and customization options
+  - Includes examples of saving figures for reports and presentations
+
 - **Visualization utilities for network graphs and flow solutions**
   - **Three visualization functions** (`visualization.py`) for interactive analysis:
     - **visualize_network()**: Network structure with nodes, arcs, costs, capacities
