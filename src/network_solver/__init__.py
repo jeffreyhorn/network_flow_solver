@@ -11,6 +11,7 @@ from .exceptions import (
     SolverConfigurationError,
     UnboundedProblemError,
 )
+from .preprocessing import PreprocessingResult, preprocess_and_solve, preprocess_problem
 from .scaling import ScalingFactors, compute_scaling_factors, should_scale_problem
 from .solver import load_problem, save_result, solve_min_cost_flow
 from .specializations import NetworkType, analyze_network_structure, get_specialization_info
@@ -43,6 +44,10 @@ __all__ = [
     # Progress tracking
     "ProgressCallback",
     "ProgressInfo",
+    # Preprocessing
+    "preprocess_problem",
+    "preprocess_and_solve",
+    "PreprocessingResult",
     # Specializations
     "NetworkType",
     "analyze_network_structure",
