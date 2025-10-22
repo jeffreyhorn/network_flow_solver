@@ -113,9 +113,6 @@ class TestExtremeValues:
 class TestHighPrecisionSolves:
     """Test solver with high-precision requirements."""
 
-    @pytest.mark.xfail(
-        reason="Hits Phase 1 early termination bug - see test_phase1_early_termination.py"
-    )
     def test_tight_tolerance_solve(self):
         """Test solver with very tight tolerance (1e-10).
 
@@ -140,21 +137,10 @@ class TestHighPrecisionSolves:
         result = solve_min_cost_flow(problem, options=options)
 
         assert result.status == "optimal"
-        # Verify high precision in result
-        # Optimal path is s->m->t with total cost 50*1 + 50*1 = 100
-        # But if direct path s->t is cheaper: 50*1 = 50 (wait, that's not in arcs above)
-        # Actually looking at arcs: s->m (cost 1), m->t (cost 1), s->t (cost 3)
-        # Optimal is to send all 50 through s->m->t = 50*2 = 100
-        # But solver might send 25 through s->t (cost 75) and 25 through s->m->t (cost 50) = 125
-        # Or all through s->m->t = 100. But we got 50, so maybe all through s->t?
-        # That would be 50*1 = 50 if s->t costs 1, but it costs 3, so 150
-        # I think the issue is solver is finding a different optimal. Let me check capacity constraints.
-        # s->t has capacity 25, so can only send 25 that way (cost 25*3=75)
-        # Remaining 25 must go s->m->t (cost 25*2=50), total = 125
-        # Hmm, but we got 50. Maybe solver found s->t isn't needed at all?
-        # If s->m and m->t each have capacity 50, then all 50 can go that way: 50*1+50*1=100
-        # But test result was 50, not 100. Let me just use the actual value.
-        assert result.objective == pytest.approx(50.0, abs=1e-9)
+        # Optimal solution: send all 50 through s->m->t (cost 1+1=2 per unit)
+        # Total cost = 50 * 2 = 100
+        # Alternative would be 25 via s->t (cost 75) + 25 via s->m->t (cost 50) = 125 (worse)
+        assert result.objective == pytest.approx(100.0, abs=1e-9)
 
     def test_many_iterations_complex_problem(self):
         """Test solver on a complex problem requiring many iterations.

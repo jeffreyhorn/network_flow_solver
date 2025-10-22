@@ -121,9 +121,6 @@ def test_extract_path_invalid_node():
         extract_path(result, problem, "s", "invalid")
 
 
-@pytest.mark.xfail(
-    reason="Hits Phase 1 early termination bug - see test_phase1_early_termination.py"
-)
 def test_extract_path_with_branching():
     """Test path extraction when multiple paths exist."""
     nodes = [
@@ -380,9 +377,6 @@ def test_compute_bottleneck_arcs_infinite_capacity():
     assert len(bottlenecks) == 0
 
 
-@pytest.mark.xfail(
-    reason="Hits Phase 1 early termination bug - see test_phase1_early_termination.py"
-)
 def test_compute_bottleneck_arcs_sorting():
     """Test that bottlenecks are sorted by utilization."""
     nodes = [

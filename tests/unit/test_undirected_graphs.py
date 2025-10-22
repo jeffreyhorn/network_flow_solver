@@ -145,9 +145,6 @@ def test_undirected_with_build_problem():
     assert math.isclose(result.objective, 21.0, abs_tol=1e-6)  # 7 * 3
 
 
-@pytest.mark.xfail(
-    reason="Hits Phase 1 early termination bug - see test_phase1_early_termination.py"
-)
 def test_undirected_multiple_edges():
     """Test undirected graph with multiple parallel edges."""
     nodes = {

@@ -952,9 +952,6 @@ class NetworkSimplex:
 
         for idx, sign in cycle:
             arc = self.arcs[idx]
-            if idx == arc_idx:
-                # The entering arc was appended to the cycle for flow updates only.
-                continue
             if sign == 1:
                 residual = arc.forward_residual()
                 if residual < theta - self.tolerance:
