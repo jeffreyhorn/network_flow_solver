@@ -2,7 +2,7 @@
 
 Annotated examples demonstrating various features and use cases.
 
-**New to network flow problems?** Start with the **[Jupyter Notebook Tutorial](../tutorials/network_flow_tutorial.ipynb)** for an interactive, step-by-step introduction covering all major features with executable code cells and visualizations.
+**New to network flow problems?** Start with the **[Jupyter Notebook Tutorial](../tutorials/network_flow_tutorial.ipynb)** for an interactive, step-by-step introduction covering all major features with executable code cells and visualizations. Also see the **[Visualization Tutorial](../tutorials/visualization_tutorial.ipynb)** for a dedicated guide to the visualization utilities.
 
 **Note:** Many example scripts in the `examples/` directory support the `--verbose` flag:
 - No flag: Quiet operation (WARNING+ only)
@@ -1595,7 +1595,7 @@ print("  3_bottlenecks.png - Capacity constraints")
 **See Also:**
 - `examples/visualization_example.py` - Complete demonstration with 6 examples
 - [API: Visualization](api.md#visualization) - Full API documentation
-- [Tutorial: Visualization](../tutorials/network_flow_tutorial.ipynb) - Interactive examples
+- [Visualization Tutorial](../tutorials/visualization_tutorial.ipynb) - Interactive tutorial with 6 examples
 
 ## Structured Logging for Monitoring
 

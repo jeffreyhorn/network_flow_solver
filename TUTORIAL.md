@@ -1,4 +1,4 @@
-# Running the Jupyter Notebook Tutorial
+# Running the Jupyter Notebook Tutorials
 
 ## Quick Start
 
@@ -22,9 +22,11 @@
    - Open your web browser automatically
    - Show the file browser
 
-3. **Navigate to the tutorial**:
+3. **Navigate to the tutorials**:
    - In the browser, navigate to `tutorials/`
-   - Click on `network_flow_tutorial.ipynb`
+   - Choose a tutorial:
+     - **`network_flow_tutorial.ipynb`** - Comprehensive introduction to all solver features
+     - **`visualization_tutorial.ipynb`** - Interactive guide to visualization utilities
 
 4. **Run the notebook**:
    - Click on each code cell and press `Shift+Enter` to execute
@@ -42,7 +44,7 @@ pip install jupyterlab
 jupyter lab
 ```
 
-Then navigate to `tutorials/network_flow_tutorial.ipynb`
+Then navigate to `tutorials/network_flow_tutorial.ipynb` or `tutorials/visualization_tutorial.ipynb`
 
 ## Alternative: VS Code
 
@@ -92,9 +94,11 @@ Or install via the tutorial group:
 pip install -e ".[tutorial]"
 ```
 
-## What's in the Tutorial?
+## What's in the Tutorials?
 
-The notebook covers:
+### Network Flow Tutorial (`network_flow_tutorial.ipynb`)
+
+The main tutorial covers:
 
 1. **Installation and Setup** - Getting started
 2. **First Network Flow Problem** - Basic transportation problem
@@ -107,7 +111,18 @@ The notebook covers:
 9. **Visualization** (Optional) - Plotting networks
 10. **Summary and Next Steps** - Key takeaways
 
-Each section has:
+### Visualization Tutorial (`visualization_tutorial.ipynb`)
+
+The visualization tutorial demonstrates:
+
+1. **Simple Supply Chain** - Basic network and flow visualization
+2. **Transportation Network** - Multiple layout algorithms comparison
+3. **Multi-Stage Supply Chain** - Transshipment nodes and complex flows
+4. **Bottleneck Analysis** - Utilization heatmaps and capacity constraints
+5. **Customization Options** - Figure sizes, layouts, and styling
+6. **Saving Figures** - Export visualizations for reports
+
+Each tutorial section has:
 - **Markdown cells** explaining the concepts
 - **Code cells** with executable examples
 - **Output** showing expected results
