@@ -373,6 +373,20 @@ class SolverOptions:
                    - False: Use original problem values without scaling
                    Scaling is applied when costs, capacities, or supplies differ by >6 orders of magnitude.
                    The solution is automatically unscaled back to original units.
+        adaptive_refactorization: Enable adaptive basis refactorization (default: True).
+                                 - True: Monitor condition number and trigger rebuilds adaptively
+                                 - False: Use fixed ft_update_limit only
+                                 When enabled, rebuilds are triggered by either:
+                                 1. Condition number exceeds threshold
+                                 2. Update count exceeds current ft_update_limit
+        condition_number_threshold: Condition number limit for triggering rebuild (default: 1e12).
+                                   Lower values (1e10) = more frequent rebuilds, more stable
+                                   Higher values (1e14) = fewer rebuilds, faster but less stable
+                                   Only used when adaptive_refactorization=True.
+        adaptive_ft_min: Minimum value for adaptive ft_update_limit (default: 20).
+                        Prevents limit from becoming too small.
+        adaptive_ft_max: Maximum value for adaptive ft_update_limit (default: 200).
+                        Prevents limit from becoming too large.
 
     Examples:
         >>> # Default options (auto-tuning enabled)
@@ -409,6 +423,10 @@ class SolverOptions:
     block_size: int | str | None = None
     ft_update_limit: int = 64
     auto_scale: bool = True
+    adaptive_refactorization: bool = True
+    condition_number_threshold: float = 1e12
+    adaptive_ft_min: int = 20
+    adaptive_ft_max: int = 200
 
     def __post_init__(self) -> None:
         if self.tolerance <= 0:
@@ -435,6 +453,15 @@ class SolverOptions:
             raise InvalidProblemError(
                 f"FT update limit must be positive, got {self.ft_update_limit}. "
                 f"This controls how often the basis factorization is rebuilt."
+            )
+        if self.condition_number_threshold <= 1:
+            raise InvalidProblemError(
+                f"Condition number threshold must be > 1, got {self.condition_number_threshold}. "
+                f"Typical values are 1e10 to 1e14."
+            )
+        if self.adaptive_ft_min <= 0 or self.adaptive_ft_min > self.adaptive_ft_max:
+            raise InvalidProblemError(
+                f"Adaptive FT min must be positive and <= max, got min={self.adaptive_ft_min}, max={self.adaptive_ft_max}."
             )
 
 
