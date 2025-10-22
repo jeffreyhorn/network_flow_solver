@@ -212,7 +212,7 @@ class TreeBasis:
         norm_ainv = np.linalg.norm(self.basis_inverse, ord=1)
 
         # Condition number estimate
-        return norm_a * norm_ainv
+        return float(norm_a * norm_ainv)
 
     def replace_arc(
         self, leaving_idx: int, entering_idx: int, arcs: Sequence[ArcState], tol: float
