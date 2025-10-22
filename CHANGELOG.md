@@ -8,6 +8,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Adaptive basis refactorization for improved numerical stability**
+  - **Condition number monitoring** (`basis.py`) tracks numerical stability during solve:
+    - `estimate_condition_number()` method in TreeBasis class
+    - Fast 1-norm approximation: `cond(A) ≈ ||A||_1 * ||A^-1||_1`
+    - Returns None when basis matrix not available
+    - Values > 1e12 typically indicate ill-conditioning
+  - **Adaptive refactorization logic** (`simplex.py`) responds to numerical issues:
+    - Tracks `condition_number_history` during solve (list of float)
+    - Monitors condition number after each pivot operation
+    - Triggers rebuild when condition number exceeds threshold
+    - `_adjust_ft_limit()` method adapts refactorization frequency dynamically
+    - `current_ft_limit` adjusted based on observed conditioning behavior
+  - **Adaptive adjustment strategy**:
+    - Very high condition (>10x threshold): reduce limit by 50% (more frequent rebuilds)
+    - Moderately high (>threshold): reduce limit by 20% (gradual increase in frequency)
+    - Low/good conditioning: increase limit by 10% (fewer rebuilds for efficiency)
+    - Always respects configured `adaptive_ft_min` and `adaptive_ft_max` bounds
+  - **Configuration options** (`data.py` SolverOptions):
+    - `adaptive_refactorization: bool` - Enable/disable adaptive mode (default: True)
+    - `condition_number_threshold: float` - Trigger threshold (default: 1e12)
+    - `adaptive_ft_min: int` - Minimum refactorization limit (default: 20)
+    - `adaptive_ft_max: int` - Maximum refactorization limit (default: 200)
+    - `ft_update_limit: int` - Starting limit or fixed limit if adaptive disabled (default: 64)
+    - Comprehensive validation with helpful error messages
+  - **Integration into solver**:
+    - Enabled by default for all solves (adaptive_refactorization=True)
+    - Works in combination with automatic problem scaling
+    - Dual triggering: condition number OR update count
+    - Structured logging at DEBUG level for rebuild events with metrics
+    - Zero performance impact for well-conditioned problems
+  - **Comprehensive test suite** (`tests/unit/test_adaptive_refactorization.py`):
+    - 17 tests covering configuration, validation, estimation, behavior, stability, edge cases
+    - Tests for default options and customization
+    - Validation tests for invalid thresholds and bounds
+    - Condition number estimation with valid basis and None fallback
+    - Behavior tests for enabled/disabled modes, history tracking, limit adjustment
+    - Stability tests comparing adaptive vs fixed strategies
+    - Edge cases: single arc, zero costs, extreme thresholds, tight bounds
+    - All tests passing with comprehensive coverage
+  - **Example and documentation**:
+    - `examples/adaptive_refactorization_example.py`: 6 scenarios demonstrating feature
+    - Shows default settings, custom configuration, ill-conditioned problems
+    - Compares adaptive vs fixed refactorization strategies
+    - Includes usage guidelines and tuning recommendations
+    - README.md: New "Adaptive Basis Refactorization" section with complete examples
+
+### Added
 - **Automatic problem scaling for numerical stability**
   - **Scaling detection** (`scaling.py`) automatically detects problems with wide value ranges:
     - Triggers when costs, capacities, or supplies differ by >6 orders of magnitude (threshold: 1e6)

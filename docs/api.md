@@ -341,8 +341,13 @@ class SolverOptions:
     max_iterations: int | None = None
     tolerance: float = 1e-6
     pricing_strategy: str = "devex"
-    block_size: int | None = None
+    block_size: int | str | None = None
     ft_update_limit: int = 64
+    auto_scale: bool = True
+    adaptive_refactorization: bool = True
+    condition_number_threshold: float = 1e12
+    adaptive_ft_min: int = 20
+    adaptive_ft_max: int = 200
 ```
 
 Configuration options for the solver.
@@ -354,27 +359,64 @@ Configuration options for the solver.
 - `pricing_strategy` (str): Arc selection strategy
   - `"devex"` (default): Devex normalized pricing (faster)
   - `"dantzig"`: Most negative reduced cost (simpler)
-- `block_size` (int, optional): Arcs per pricing block. Default: `num_arcs/8`
+- `block_size` (int | str, optional): Arcs per pricing block
+  - `None` or `"auto"` (default): Auto-tune based on problem size with runtime adaptation
+  - int: Fixed block size (no adaptation)
 - `ft_update_limit` (int): Forrest-Tomlin updates before refactorization (default: 64)
+  - Initial limit when adaptive_refactorization=True
+  - Fixed limit when adaptive_refactorization=False
+- `auto_scale` (bool): Enable automatic problem scaling (default: True)
+  - Automatically detects and scales problems with wide value ranges
+  - See [Automatic Problem Scaling](../README.md#automatic-problem-scaling) for details
+- `adaptive_refactorization` (bool): Enable adaptive basis refactorization (default: True)
+  - Monitors condition number and adjusts refactorization frequency automatically
+  - Improves numerical stability for ill-conditioned problems
+- `condition_number_threshold` (float): Condition number limit for triggering rebuild (default: 1e12)
+  - Lower values (1e10): More conservative, more rebuilds, better stability
+  - Higher values (1e14): More aggressive, fewer rebuilds, faster but less stable
+  - Only used when adaptive_refactorization=True
+- `adaptive_ft_min` (int): Minimum adaptive ft_update_limit (default: 20)
+  - Prevents limit from becoming too small
+  - Only used when adaptive_refactorization=True
+- `adaptive_ft_max` (int): Maximum adaptive ft_update_limit (default: 200)
+  - Prevents limit from becoming too large
+  - Only used when adaptive_refactorization=True
 
 **Validation:**
 
 - `tolerance > 0`
 - `pricing_strategy` in `{"devex", "dantzig"}`
-- `block_size > 0` if provided
+- `block_size > 0` if provided (or `"auto"`)
 - `ft_update_limit > 0`
+- `condition_number_threshold > 1`
+- `adaptive_ft_min > 0` and `adaptive_ft_min <= adaptive_ft_max`
 
-**Example:**
+**Examples:**
 
 ```python
 # High-precision solve
 options = SolverOptions(tolerance=1e-10)
 
-# Dantzig pricing with small blocks
+# Dantzig pricing with fixed block size
 options = SolverOptions(pricing_strategy="dantzig", block_size=10)
 
-# Aggressive refactorization for stability
-options = SolverOptions(ft_update_limit=20)
+# Conservative refactorization for maximum stability
+options = SolverOptions(
+    adaptive_refactorization=True,
+    condition_number_threshold=1e10,  # More aggressive rebuilding
+    adaptive_ft_min=10,
+    adaptive_ft_max=50,
+)
+
+# Disable adaptive features for predictable behavior
+options = SolverOptions(
+    auto_scale=False,
+    adaptive_refactorization=False,
+    ft_update_limit=64,  # Fixed refactorization
+)
+
+# Default settings (recommended for most users)
+options = SolverOptions()  # All adaptive features enabled
 ```
 
 ## Results and Analysis

@@ -190,6 +190,30 @@ class TreeBasis:
                 return solved
         return None
 
+    def estimate_condition_number(self) -> float | None:
+        """Estimate the condition number of the basis matrix.
+
+        Uses the 1-norm condition number estimate: cond(A) ≈ ||A||_1 * ||A^-1||_1
+        This is a fast approximation that's suitable for monitoring numerical stability.
+
+        Returns:
+            Estimated condition number, or None if basis matrix not available.
+            Values > 1e12 typically indicate ill-conditioning.
+
+        Note:
+            This is an approximation using matrix norms. For exact condition number,
+            use np.linalg.cond, but that's much more expensive (requires SVD).
+        """
+        if self.basis_matrix is None or self.basis_inverse is None:
+            return None
+
+        # Compute 1-norm (max column sum) of basis matrix and its inverse
+        norm_a = np.linalg.norm(self.basis_matrix, ord=1)
+        norm_ainv = np.linalg.norm(self.basis_inverse, ord=1)
+
+        # Condition number estimate
+        return norm_a * norm_ainv
+
     def replace_arc(
         self, leaving_idx: int, entering_idx: int, arcs: Sequence[ArcState], tol: float
     ) -> bool:
