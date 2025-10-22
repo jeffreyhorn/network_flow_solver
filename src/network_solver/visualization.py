@@ -27,17 +27,17 @@ logger = logging.getLogger(__name__)
 
 # Check for optional dependencies
 try:
-    import matplotlib
-    import matplotlib.cm
-    import matplotlib.pyplot as plt
-    import networkx as nx  # type: ignore[import-untyped]
-    from matplotlib.colors import Normalize
-    from matplotlib.figure import Figure
+    import matplotlib  # type: ignore[import-not-found,unused-ignore]
+    import matplotlib.cm  # type: ignore[import-not-found,unused-ignore]
+    import matplotlib.pyplot as plt  # type: ignore[import-not-found,unused-ignore]
+    import networkx as nx  # type: ignore[import-not-found,import-untyped,unused-ignore]
+    from matplotlib.colors import Normalize  # type: ignore[import-not-found,unused-ignore]
+    from matplotlib.figure import Figure  # type: ignore[import-not-found,unused-ignore]
 
     _HAS_VISUALIZATION_DEPS = True
 except ImportError:
     _HAS_VISUALIZATION_DEPS = False
-    Figure = Any  # type: ignore[assignment,misc]
+    Figure = Any  # type: ignore[assignment,misc,unused-ignore]
 
 
 def _check_dependencies() -> None:
@@ -588,7 +588,7 @@ def visualize_bottlenecks(
     utilizations = [util for _, _, _, _, util, _ in bottleneck_data]
 
     # Use colormap for utilization gradient
-    cmap = matplotlib.cm.RdYlGn_r  # type: ignore[attr-defined]  # Red (high) to Yellow to Green (low)
+    cmap = matplotlib.cm.RdYlGn_r  # type: ignore[attr-defined,unused-ignore]  # Red (high) to Yellow to Green (low)
     edge_colors = [cmap(util) for util in utilizations]
 
     # Calculate edge widths
