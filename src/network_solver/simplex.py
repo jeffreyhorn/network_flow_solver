@@ -112,6 +112,11 @@ class NetworkSimplex:
         self.ft_rebuilds = 0
         self.ft_updates_since_rebuild = 0
 
+        # Adaptive refactorization tracking
+        self.current_ft_limit = self.options.ft_update_limit
+        self.condition_number_history: list[float] = []
+        self.adaptive_rebuild_count = 0
+
         # Detect network specializations for potential optimizations
         from .specializations import analyze_network_structure, get_specialization_info
         from .specialized_pivots import select_pivot_strategy
@@ -1060,26 +1065,58 @@ class NetworkSimplex:
                 },
             )
 
-        # Check if we've hit the FT update limit and need a full rebuild
-        force_rebuild = self.ft_updates_since_rebuild >= self.options.ft_update_limit
+        # Check if we need a full rebuild (adaptive or fixed threshold)
+        force_rebuild = False
+        rebuild_reason = ""
+        condition_number = None
+
+        if self.options.adaptive_refactorization:
+            # Monitor condition number for adaptive triggering
+            condition_number = self.basis.estimate_condition_number()
+            if condition_number is not None:
+                self.condition_number_history.append(condition_number)
+
+                # Trigger rebuild if condition number exceeds threshold
+                if condition_number > self.options.condition_number_threshold:
+                    force_rebuild = True
+                    rebuild_reason = "condition_number_threshold"
+                    self.adaptive_rebuild_count += 1
+
+        # Also check fixed update limit
+        if self.ft_updates_since_rebuild >= self.current_ft_limit:
+            force_rebuild = True
+            if not rebuild_reason:
+                rebuild_reason = "ft_update_limit"
 
         basis_updated = self.basis.replace_arc(leaving_idx, arc_idx, self.arcs, self.tolerance)
         self._update_tree_sets()
 
         if force_rebuild:
-            # Periodic rebuild to maintain numerical stability
+            # Rebuild to maintain numerical stability
+            log_extra = {
+                "leaving_idx": leaving_idx,
+                "entering_idx": arc_idx,
+                "ft_updates": self.ft_updates_since_rebuild,
+                "rebuild_reason": rebuild_reason,
+            }
+            if condition_number is not None:
+                log_extra["condition_number"] = f"{condition_number:.2e}"
+
             self.logger.debug(
-                "FT update limit reached; rebuilding basis",
-                extra={
-                    "leaving_idx": leaving_idx,
-                    "entering_idx": arc_idx,
-                    "ft_updates": self.options.ft_update_limit,
-                },
+                f"Rebuilding basis ({rebuild_reason})",
+                extra=log_extra,
             )
             self.basis.rebuild(self.tree_adj, self.arcs, build_numeric=True)
             self.ft_rebuilds += 1
             self.ft_updates_since_rebuild = 0
             self._reset_devex_weights()
+
+            # Adjust ft_update_limit adaptively if enabled
+            if (
+                self.options.adaptive_refactorization
+                and rebuild_reason == "condition_number_threshold"
+            ):
+                self._adjust_ft_limit(condition_number)
         elif not basis_updated:
             # FT update failed: refresh the numeric basis and reset Devex heuristics.
             self.logger.warning(
@@ -1400,6 +1437,39 @@ class NetworkSimplex:
     def _reset_devex_weights(self) -> None:
         for idx in range(len(self.devex_weights)):
             self.devex_weights[idx] = 1.0
+
+    def _adjust_ft_limit(self, condition_number: float | None) -> None:
+        """Adaptively adjust ft_update_limit based on numerical behavior.
+
+        Strategy:
+        - If condition number triggered rebuild early, decrease limit (be more conservative)
+        - Use problem characteristics to determine appropriate limit
+        - Keep within configured min/max bounds
+        """
+        if condition_number is None:
+            return
+
+        # If condition number is very high, be more aggressive with rebuilds
+        if condition_number > self.options.condition_number_threshold * 10:
+            # Very ill-conditioned: reduce limit significantly
+            new_limit = max(self.options.adaptive_ft_min, int(self.current_ft_limit * 0.5))
+        elif condition_number > self.options.condition_number_threshold:
+            # Moderately ill-conditioned: reduce limit gradually
+            new_limit = max(self.options.adaptive_ft_min, int(self.current_ft_limit * 0.8))
+        else:
+            # Condition number is good, can potentially increase limit
+            new_limit = min(self.options.adaptive_ft_max, int(self.current_ft_limit * 1.1))
+
+        if new_limit != self.current_ft_limit:
+            self.logger.debug(
+                f"Adjusted ft_update_limit: {self.current_ft_limit} → {new_limit}",
+                extra={
+                    "old_limit": self.current_ft_limit,
+                    "new_limit": new_limit,
+                    "condition_number": f"{condition_number:.2e}",
+                },
+            )
+            self.current_ft_limit = new_limit
 
     def _compute_objective_estimate(self) -> float:
         """Compute current objective value estimate based on current flows and costs."""
