@@ -24,6 +24,7 @@ Example: `python examples/solve_example.py -v`
 - [Solver Configuration](#solver-configuration)
 - [Incremental Resolving](#incremental-resolving)
 - [Flow Validation and Analysis](#flow-validation-and-analysis)
+- [Visualization](#visualization)
 - [Structured Logging for Monitoring](#structured-logging-for-monitoring)
 - [Performance Profiling](#performance-profiling)
 - [Comparison with NetworkX](#comparison-with-networkx)
@@ -1401,6 +1402,200 @@ This example demonstrates the complete workflow:
 3. Extract specific flow paths
 4. Identify capacity bottlenecks
 5. Generate a comprehensive report
+
+## Visualization
+
+**Purpose:** Create publication-quality visualizations of network structures, flow solutions, and bottleneck analysis using matplotlib and networkx.
+
+**Installation:** Requires optional dependencies:
+```bash
+pip install 'network_solver[visualization]'
+```
+
+### Network Structure Visualization
+
+**Example:** Visualize problem topology with nodes, arcs, costs, and capacities.
+
+```python
+from network_solver import build_problem, visualize_network
+
+# Transportation problem
+nodes = [
+    {"id": "factory_a", "supply": 100.0},
+    {"id": "factory_b", "supply": 80.0},
+    {"id": "warehouse_1", "supply": -70.0},
+    {"id": "warehouse_2", "supply": -60.0},
+    {"id": "warehouse_3", "supply": -50.0},
+]
+arcs = [
+    {"tail": "factory_a", "head": "warehouse_1", "capacity": 70.0, "cost": 2.0},
+    {"tail": "factory_a", "head": "warehouse_2", "capacity": 70.0, "cost": 3.0},
+    {"tail": "factory_a", "head": "warehouse_3", "capacity": 70.0, "cost": 4.0},
+    {"tail": "factory_b", "head": "warehouse_1", "capacity": 60.0, "cost": 1.5},
+    {"tail": "factory_b", "head": "warehouse_2", "capacity": 60.0, "cost": 2.5},
+    {"tail": "factory_b", "head": "warehouse_3", "capacity": 60.0, "cost": 3.5},
+]
+
+problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+# Visualize network structure
+fig = visualize_network(problem, layout="spring", figsize=(12, 8))
+fig.savefig("network.png")
+```
+
+**Output:** Graph showing sources (green), sinks (red), arcs with costs and capacities.
+
+### Flow Solution Visualization
+
+**Example:** Visualize optimal flows with bottleneck highlighting.
+
+```python
+from network_solver import solve_min_cost_flow, visualize_flows
+
+# Solve problem
+result = solve_min_cost_flow(problem)
+
+# Visualize flows with bottleneck highlighting
+fig = visualize_flows(
+    problem,
+    result,
+    highlight_bottlenecks=True,
+    bottleneck_threshold=0.9,  # Highlight arcs ≥90% utilization
+    show_zero_flows=False,      # Hide zero flows for clarity
+    layout="spring",
+    figsize=(14, 10),
+)
+fig.savefig("flows.png")
+
+print(f"Optimal cost: ${result.objective:.2f}")
+print(f"Iterations: {result.iterations}")
+```
+
+**Output:** Graph showing flow values, with bottleneck arcs highlighted in red.
+
+**Features:**
+- Arc thickness proportional to flow magnitude
+- Bottleneck arcs (≥90% utilization) highlighted in red
+- Utilization percentages displayed
+- Statistics box (objective, status, iterations)
+- Zero flows hidden for cleaner visualization
+
+### Bottleneck Analysis Visualization
+
+**Example:** Focused analysis of capacity constraints with utilization heatmap.
+
+```python
+from network_solver import visualize_bottlenecks
+
+# Visualize bottlenecks (≥80% utilization)
+fig = visualize_bottlenecks(
+    problem,
+    result,
+    threshold=0.8,
+    layout="spring",
+    figsize=(12, 8),
+)
+fig.savefig("bottlenecks.png")
+
+# Get bottleneck details programmatically
+from network_solver import compute_bottleneck_arcs
+
+bottlenecks = compute_bottleneck_arcs(problem, result, threshold=0.8)
+print(f"\nIdentified {len(bottlenecks)} bottlenecks:")
+for b in bottlenecks:
+    print(f"  {b.tail} → {b.head}: {b.utilization*100:.1f}% utilization")
+    print(f"    Flow: {b.flow:.0f} / Capacity: {b.capacity:.0f}")
+    print(f"    Slack: {b.slack:.0f} units")
+```
+
+**Output:** Graph with utilization heatmap (red=high, yellow=medium, green=low).
+
+**Features:**
+- Only shows arcs above threshold (focused analysis)
+- Color gradient based on utilization
+- Displays utilization % and slack capacity
+- Color bar for scale reference
+- Statistics (count, average utilization)
+
+### Customization Options
+
+**Example:** Customize appearance and layout.
+
+```python
+# Custom layout and styling
+fig = visualize_network(
+    problem,
+    layout="kamada_kawai",      # Better for structured networks
+    figsize=(16, 12),            # Larger figure
+    node_size=1500,              # Bigger nodes
+    font_size=12,                # Larger text
+    show_arc_labels=True,        # Show costs/capacities
+    title="Distribution Network", # Custom title
+)
+fig.savefig("network_custom.png", dpi=300)  # High DPI for publication
+```
+
+**Available layouts:**
+- `"spring"`: Force-directed (good default)
+- `"circular"`: Nodes arranged in circle
+- `"kamada_kawai"`: Structured layout (good for hierarchical networks)
+- `"planar"`: Planar embedding (for planar graphs)
+
+### Multiple Visualizations
+
+**Example:** Create comparison visualizations.
+
+```python
+import matplotlib.pyplot as plt
+
+# Create problem
+problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+# 1. Network structure
+fig1 = visualize_network(problem, title="Problem Structure")
+fig1.savefig("1_structure.png")
+
+# 2. Solve and visualize flows
+result = solve_min_cost_flow(problem)
+fig2 = visualize_flows(problem, result, title="Optimal Flows")
+fig2.savefig("2_flows.png")
+
+# 3. Bottleneck analysis
+fig3 = visualize_bottlenecks(problem, result, threshold=0.8, title="Bottlenecks (≥80%)")
+fig3.savefig("3_bottlenecks.png")
+
+# Close figures to free memory
+plt.close("all")
+
+print("Generated 3 visualizations:")
+print("  1_structure.png - Network topology")
+print("  2_flows.png - Optimal flow solution")
+print("  3_bottlenecks.png - Capacity constraints")
+```
+
+### When to Use Visualization
+
+**Best for:**
+- Understanding problem structure (nodes, arcs, relationships)
+- Analyzing flow patterns (routing decisions, utilization)
+- Identifying bottlenecks (capacity constraints, critical arcs)
+- Communicating results (reports, presentations, papers)
+- Debugging problems (unexpected routing, infeasibility)
+- Teaching and learning (intuitive visual understanding)
+
+**Tips:**
+- Use `visualize_network()` to understand problem before solving
+- Use `visualize_flows()` to see optimal routing and identify issues
+- Use `visualize_bottlenecks()` for focused capacity analysis
+- Set `show_zero_flows=False` for cleaner flow visualizations
+- Adjust `bottleneck_threshold` to focus on tightest constraints
+- Use `layout="kamada_kawai"` for hierarchical networks (supply chains)
+- Save with high DPI (`fig.savefig("output.png", dpi=300)`) for publications
+
+**See Also:**
+- `examples/visualization_example.py` - Complete demonstration with 6 examples
+- [API: Visualization](api.md#visualization) - Full API documentation
+- [Tutorial: Visualization](../tutorials/network_flow_tutorial.ipynb) - Interactive examples
 
 ## Structured Logging for Monitoring
 
