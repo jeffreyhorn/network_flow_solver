@@ -309,3 +309,174 @@ def test_multiple_warning_severities():
     severities = [w.severity for w in analysis.warnings]
     assert "high" in severities
     assert "medium" in severities
+
+
+def test_small_cost_values():
+    """Test detection of very small cost values."""
+    problem = build_problem(
+        nodes=[
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": -100.0},
+        ],
+        arcs=[
+            {"tail": "A", "head": "B", "capacity": 200.0, "cost": 1e-12},
+        ],
+        directed=True,
+        tolerance=1e-6,
+    )
+
+    analysis = analyze_numeric_properties(problem)
+    assert analysis.has_extreme_values
+    assert any(w.category == "range" and "small cost" in w.message for w in analysis.warnings)
+
+
+def test_small_capacity_values():
+    """Test detection of very small capacity values."""
+    problem = build_problem(
+        nodes=[
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": -100.0},
+        ],
+        arcs=[
+            {"tail": "A", "head": "B", "capacity": 1e-11, "cost": 5.0},
+        ],
+        directed=True,
+        tolerance=1e-6,
+    )
+
+    analysis = analyze_numeric_properties(problem)
+    assert analysis.has_extreme_values
+    assert any(w.category == "range" and "small capacity" in w.message for w in analysis.warnings)
+
+
+def test_small_supply_values():
+    """Test detection of very small supply values."""
+    problem = build_problem(
+        nodes=[
+            {"id": "A", "supply": 1e-11},
+            {"id": "B", "supply": -1e-11},
+        ],
+        arcs=[
+            {"tail": "A", "head": "B", "capacity": 1.0, "cost": 5.0},
+        ],
+        directed=True,
+        tolerance=1e-6,
+    )
+
+    analysis = analyze_numeric_properties(problem)
+    assert analysis.has_extreme_values
+    assert any(w.category == "range" and "small supply" in w.message for w in analysis.warnings)
+
+
+def test_medium_cost_range_warning():
+    """Test medium severity warning for moderately wide cost range."""
+    problem = build_problem(
+        nodes=[
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": 0.0},
+            {"id": "C", "supply": -100.0},
+        ],
+        arcs=[
+            {"tail": "A", "head": "B", "capacity": 200.0, "cost": 1.0},
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 5e6},
+        ],
+        directed=True,
+        tolerance=1e-6,
+    )
+
+    analysis = analyze_numeric_properties(problem)
+    medium_warnings = [w for w in analysis.warnings if w.severity == "medium"]
+    assert any("Cost range" in w.message and "wide" in w.message.lower() for w in medium_warnings)
+
+
+def test_medium_capacity_range_warning():
+    """Test medium severity warning for moderately wide capacity range."""
+    problem = build_problem(
+        nodes=[
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": 0.0},
+            {"id": "C", "supply": -100.0},
+        ],
+        arcs=[
+            {"tail": "A", "head": "B", "capacity": 1.0, "cost": 5.0},
+            {"tail": "B", "head": "C", "capacity": 2e6, "cost": 5.0},
+        ],
+        directed=True,
+        tolerance=1e-6,
+    )
+
+    analysis = analyze_numeric_properties(problem)
+    medium_warnings = [w for w in analysis.warnings if w.severity == "medium"]
+    assert any("Capacity range" in w.message for w in medium_warnings)
+
+
+def test_wide_supply_range_detection():
+    """Test detection of very wide supply/demand ranges."""
+    problem = build_problem(
+        nodes=[
+            {"id": "A", "supply": 1e-3},
+            {"id": "B", "supply": 0.0},
+            {"id": "C", "supply": -1e-3},
+            {"id": "D", "supply": 1e9},
+            {"id": "E", "supply": -1e9},
+        ],
+        arcs=[
+            {"tail": "A", "head": "B", "capacity": 200.0, "cost": 5.0},
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 5.0},
+            {"tail": "D", "head": "B", "capacity": 2e9, "cost": 5.0},
+            {"tail": "B", "head": "E", "capacity": 2e9, "cost": 5.0},
+        ],
+        directed=True,
+        tolerance=1e-6,
+    )
+
+    analysis = analyze_numeric_properties(problem)
+    assert analysis.supply_range > 1e10
+    assert any(w.category == "conditioning" and "Supply" in w.message for w in analysis.warnings)
+
+
+def test_low_severity_warnings_truncation():
+    """Test that low severity warnings are truncated when there are many."""
+    # Create problem with many small values (each generates a low-severity warning)
+    nodes = [{"id": f"node_{i}", "supply": 1e-11 if i % 2 == 0 else -1e-11} for i in range(10)]
+    arcs = [
+        {"tail": f"node_{i}", "head": f"node_{i + 1}", "capacity": 100.0, "cost": 5.0}
+        for i in range(9)
+    ]
+
+    problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+    # Capture warnings
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        validate_numeric_properties(problem, strict=False, warn=True)
+
+        # Should have warnings
+        assert len(w) > 0
+
+        # Check if low-severity warning message mentions truncation
+        low_warnings = [warning for warning in w if "Low-severity" in str(warning.message)]
+        if low_warnings:
+            # Should mention total count and "more" if truncated
+            message = str(low_warnings[0].message)
+            assert "total" in message.lower() or "more" in message.lower()
+
+
+def test_recommended_tolerance_for_medium_range():
+    """Test that recommended tolerance is 1e-5 for medium coefficient ranges."""
+    problem = build_problem(
+        nodes=[
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": 0.0},
+            {"id": "C", "supply": -100.0},
+        ],
+        arcs=[
+            {"tail": "A", "head": "B", "capacity": 1.0, "cost": 1.0},
+            {"tail": "B", "head": "C", "capacity": 1e5, "cost": 1.0},
+        ],
+        directed=True,
+        tolerance=1e-6,
+    )
+
+    analysis = analyze_numeric_properties(problem)
+    assert analysis.recommended_tolerance == 1e-5

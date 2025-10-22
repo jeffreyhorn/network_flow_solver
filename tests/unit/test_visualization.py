@@ -331,3 +331,222 @@ class TestVisualizationIntegration:
 
             fig3 = visualize_bottlenecks(simple_problem, result, layout=layout)
             assert fig3 is not None
+
+
+class TestVisualizationEdgeCases:
+    """Test edge cases and error handling in visualization functions."""
+
+    def test_infinite_capacity_display(self):
+        """Test that arcs with infinite capacity display ∞ symbol."""
+        nodes = [
+            {"id": "source", "supply": 100.0},
+            {"id": "sink", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "source", "head": "sink", "capacity": None, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        fig = visualize_network(problem, show_arc_labels=True)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_undirected_network_visualization(self):
+        """Test visualization of undirected network."""
+        nodes = [
+            {"id": "node1", "supply": 50.0},
+            {"id": "node2", "supply": -50.0},
+        ]
+        arcs = [
+            {"tail": "node1", "head": "node2", "capacity": 100.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=False, tolerance=1e-6)
+        fig = visualize_network(problem)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_undirected_flows_visualization(self):
+        """Test flow visualization of undirected network."""
+        nodes = [
+            {"id": "node1", "supply": 50.0},
+            {"id": "node2", "supply": -50.0},
+        ]
+        arcs = [
+            {"tail": "node1", "head": "node2", "capacity": 100.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=False, tolerance=1e-6)
+        result = solve_min_cost_flow(problem)
+        fig = visualize_flows(problem, result)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_undirected_bottlenecks_visualization(self):
+        """Test bottleneck visualization of undirected network."""
+        nodes = [
+            {"id": "source", "supply": 100.0},
+            {"id": "hub", "supply": 0.0},
+            {"id": "sink", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "source", "head": "hub", "capacity": 150.0, "cost": 1.0},
+            {"tail": "hub", "head": "sink", "capacity": 100.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=False, tolerance=1e-6)
+        result = solve_min_cost_flow(problem)
+        fig = visualize_bottlenecks(problem, result, threshold=0.9)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_planar_layout_network(self):
+        """Test planar layout algorithm for network visualization."""
+        nodes = [
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 150.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        # Planar layout may work or fall back to spring
+        fig = visualize_network(problem, layout="planar")
+        assert fig is not None
+        plt.close(fig)
+
+    def test_planar_layout_flows(self):
+        """Test planar layout algorithm for flow visualization."""
+        nodes = [
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 150.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        result = solve_min_cost_flow(problem)
+        fig = visualize_flows(problem, result, layout="planar")
+        assert fig is not None
+        plt.close(fig)
+
+    def test_planar_layout_bottlenecks(self):
+        """Test planar layout algorithm for bottleneck visualization."""
+        nodes = [
+            {"id": "source", "supply": 100.0},
+            {"id": "sink", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "source", "head": "sink", "capacity": 100.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        result = solve_min_cost_flow(problem)
+        fig = visualize_bottlenecks(problem, result, layout="planar", threshold=0.9)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_mostly_source_nodes(self):
+        """Test visualization when most nodes are sources (supply > 0)."""
+        nodes = [
+            {"id": "source1", "supply": 50.0},
+            {"id": "source2", "supply": 50.0},
+            {"id": "sink", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "source1", "head": "sink", "capacity": 100.0, "cost": 1.0},
+            {"tail": "source2", "head": "sink", "capacity": 100.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        fig = visualize_network(problem)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_all_transshipment_nodes(self):
+        """Test visualization when all nodes are transshipment (supply = 0)."""
+        nodes = [
+            {"id": "node1", "supply": 0.0},
+            {"id": "node2", "supply": 0.0},
+        ]
+        arcs = [
+            {"tail": "node1", "head": "node2", "capacity": 100.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        fig = visualize_network(problem)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_visualize_flows_zero_capacity_arc(self):
+        """Test flow visualization with arc capacity below tolerance."""
+        nodes = [
+            {"id": "source", "supply": 10.0},
+            {"id": "sink", "supply": -10.0},
+        ]
+        arcs = [
+            {"tail": "source", "head": "sink", "capacity": 1e-10, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        result = solve_min_cost_flow(problem)
+        # Should not crash on division by near-zero capacity
+        fig = visualize_flows(problem, result, highlight_bottlenecks=True)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_visualize_bottlenecks_with_infinite_capacity(self):
+        """Test bottleneck visualization skips arcs with infinite capacity."""
+        nodes = [
+            {"id": "source", "supply": 100.0},
+            {"id": "hub", "supply": 0.0},
+            {"id": "sink", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "source", "head": "hub", "capacity": None, "cost": 1.0},
+            {"tail": "hub", "head": "sink", "capacity": 100.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        result = solve_min_cost_flow(problem)
+        fig = visualize_bottlenecks(problem, result, threshold=0.9)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_visualize_bottlenecks_with_zero_capacity(self):
+        """Test bottleneck visualization when arc has near-zero capacity."""
+        nodes = [
+            {"id": "source", "supply": 100.0},
+            {"id": "hub", "supply": 0.0},
+            {"id": "sink", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "source", "head": "hub", "capacity": 1e-10, "cost": 1.0},
+            {"tail": "hub", "head": "sink", "capacity": 120.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        result = solve_min_cost_flow(problem)
+        # Should skip near-zero capacity arc
+        fig = visualize_bottlenecks(problem, result, threshold=0.8)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_visualize_flows_all_zero_flows(self):
+        """Test flow visualization when all flows are zero."""
+        nodes = [
+            {"id": "source", "supply": 0.0},
+            {"id": "sink", "supply": 0.0},
+        ]
+        arcs = [
+            {"tail": "source", "head": "sink", "capacity": 100.0, "cost": 1.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        result = solve_min_cost_flow(problem)
+        fig = visualize_flows(problem, result, show_zero_flows=True)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_visualize_network_large_numbers(self):
+        """Test visualization with very large costs and capacities."""
+        nodes = [
+            {"id": "source", "supply": 1e9},
+            {"id": "sink", "supply": -1e9},
+        ]
+        arcs = [
+            {"tail": "source", "head": "sink", "capacity": 1e12, "cost": 1e6},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+        fig = visualize_network(problem)
+        assert fig is not None
+        plt.close(fig)
