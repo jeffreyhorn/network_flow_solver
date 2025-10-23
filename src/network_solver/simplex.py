@@ -693,7 +693,7 @@ class NetworkSimplex:
     def pricing_block(self) -> int:
         """Get current pricing block position (for block-based pricing strategies)."""
         if hasattr(self.pricing_strategy, "pricing_block"):
-            return self.pricing_strategy.pricing_block
+            return int(self.pricing_strategy.pricing_block)
         return 0
 
     @pricing_block.setter
