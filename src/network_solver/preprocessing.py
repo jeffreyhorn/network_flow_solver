@@ -564,7 +564,7 @@ def translate_result(
 
         if preprocessed_arc_key is None:
             # Arc was removed - no flow
-            translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + 0.0
+            translated_flows.setdefault(arc_key, 0.0)
         else:
             # Get flow from preprocessed arc
             preprocessed_flow = flow_result.flows.get(preprocessed_arc_key, 0.0)
@@ -611,7 +611,7 @@ def translate_result(
                             )
                         else:
                             # Finite capacity arcs get no flow when infinite capacity arcs exist
-                            translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + 0.0
+                            translated_flows.setdefault(arc_key, 0.0)
                     else:
                         # All arcs have finite capacity - distribute proportionally
                         total_capacity = sum(capacities)
