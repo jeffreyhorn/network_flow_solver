@@ -585,8 +585,6 @@ class TestResultTranslation:
 
     def test_translate_result_with_redundant_arcs(self):
         """Result translation should distribute flow for redundant arcs."""
-        from network_solver import solve_min_cost_flow
-
         nodes = [
             {"id": "A", "supply": 100.0},
             {"id": "B", "supply": -100.0},
@@ -611,8 +609,6 @@ class TestResultTranslation:
 
     def test_translate_result_with_series_arcs(self):
         """Result translation should handle series arc merging."""
-        from network_solver import solve_min_cost_flow
-
         nodes = [
             {"id": "A", "supply": 100.0},
             {"id": "B", "supply": 0.0},
@@ -694,8 +690,6 @@ class TestResultTranslation:
 
     def test_removed_nodes_have_computed_duals(self):
         """Removed nodes should have duals computed from adjacent nodes."""
-        from network_solver import solve_min_cost_flow
-
         nodes = [
             {"id": "A", "supply": 100.0},
             {"id": "B", "supply": 0.0},  # Will be removed (series node)

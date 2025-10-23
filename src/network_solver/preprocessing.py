@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from .data import NetworkProblem
+    from .data import FlowResult, NetworkProblem
 
 logger = logging.getLogger(__name__)
 
@@ -246,7 +246,7 @@ def _remove_redundant_arcs(
 
             # All redundant arcs map to the same merged arc
             if arc_mapping is not None:
-                for idx in indices:
+                for _idx in indices:
                     arc_mapping[(tail, head)] = (tail, head)
 
             # Mark others as redundant
@@ -516,10 +516,10 @@ def _remove_zero_supply_nodes(
 
 
 def translate_result(
-    flow_result: Any,
+    flow_result: FlowResult,
     preproc_result: PreprocessingResult,
     original_problem: NetworkProblem,
-) -> Any:
+) -> FlowResult:
     """Translate solution from preprocessed problem back to original problem.
 
     Takes a solution on the preprocessed problem and maps it back to the original
@@ -669,7 +669,7 @@ def translate_result(
 
 def preprocess_and_solve(
     problem: NetworkProblem, **solve_kwargs: Any
-) -> tuple[PreprocessingResult, Any]:
+) -> tuple[PreprocessingResult, FlowResult]:
     """Convenience function to preprocess and solve in one call.
 
     Args:
