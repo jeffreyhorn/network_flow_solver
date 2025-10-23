@@ -1351,13 +1351,32 @@ class NetworkSimplex:
             },
         )
 
-        status = "optimal" if total_iterations < max_iterations else "iteration_limit"
-
-        if status == "iteration_limit":
-            self.logger.warning(
-                "Iteration limit reached before optimality",
-                extra={"iterations": total_iterations, "max_iterations": max_iterations},
-            )
+        # Determine final status
+        # If we hit the iteration limit, check if the solution is actually optimal
+        if total_iterations >= max_iterations:
+            # Check for optimality: are there any negative reduced cost arcs?
+            entering = self._find_entering_arc(allow_zero=False)
+            if entering is None:
+                # No improving arc found - solution is optimal despite hitting limit
+                status = "optimal"
+                self.logger.info(
+                    "Optimal solution found at iteration limit",
+                    extra={
+                        "iterations": total_iterations,
+                        "max_iterations": max_iterations,
+                    },
+                )
+            else:
+                status = "iteration_limit"
+                self.logger.warning(
+                    "Iteration limit reached before optimality",
+                    extra={
+                        "iterations": total_iterations,
+                        "max_iterations": max_iterations,
+                    },
+                )
+        else:
+            status = "optimal"
 
         flows: dict[tuple[str, str], float] = {}
         objective = 0.0

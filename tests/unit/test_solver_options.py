@@ -227,6 +227,44 @@ def test_max_iterations_parameter_overrides_options():
     assert result.iterations <= 1
 
 
+def test_optimal_at_exact_iteration_limit():
+    """Test that solver reports 'optimal' when optimum is found at exact iteration limit.
+
+    Regression test for issue where solver incorrectly reported 'iteration_limit'
+    when the last allowed pivot produced the optimal solution.
+    """
+    nodes = [
+        {"id": "s", "supply": 10.0},
+        {"id": "a", "supply": 0.0},
+        {"id": "b", "supply": 0.0},
+        {"id": "t", "supply": -10.0},
+    ]
+    arcs = [
+        {"tail": "s", "head": "a", "capacity": 10.0, "cost": 2.0},
+        {"tail": "s", "head": "b", "capacity": 10.0, "cost": 3.0},
+        {"tail": "a", "head": "t", "capacity": 10.0, "cost": 1.0},
+        {"tail": "b", "head": "t", "capacity": 10.0, "cost": 1.0},
+    ]
+
+    problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
+
+    # First solve without limit to determine required iterations
+    result_unlimited = solve_min_cost_flow(problem)
+    assert result_unlimited.status == "optimal"
+    required_iterations = result_unlimited.iterations
+
+    # Now solve with exact iteration budget - should still report optimal
+    result_exact = solve_min_cost_flow(problem, max_iterations=required_iterations)
+    assert result_exact.status == "optimal"
+    assert result_exact.iterations == required_iterations
+    assert result_exact.objective == pytest.approx(30.0)
+
+    # Verify one less iteration is insufficient
+    result_insufficient = solve_min_cost_flow(problem, max_iterations=required_iterations - 1)
+    assert result_insufficient.status == "iteration_limit"
+    assert result_insufficient.iterations == required_iterations - 1
+
+
 def test_options_with_none_values():
     """Test that None values in options fall back to defaults."""
     nodes = [
