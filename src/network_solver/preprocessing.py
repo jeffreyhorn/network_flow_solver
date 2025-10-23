@@ -506,7 +506,7 @@ def preprocess_and_solve(
             "Dropping warm_start_basis: preprocessing made structural changes "
             f"(removed {preproc_result.removed_arcs} arcs, "
             f"{preproc_result.removed_nodes} nodes, "
-            f"merged {preproc_result.merged_arcs} series). "
+            f"merged {preproc_result.merged_arcs} arc series). "
             "Basis from original problem is incompatible with preprocessed problem."
         )
         solve_kwargs = {k: v for k, v in solve_kwargs.items() if k != "warm_start_basis"}
