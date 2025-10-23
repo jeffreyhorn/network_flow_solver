@@ -212,6 +212,11 @@ class NetworkSimplex:
         """Current block size for pricing (delegated to adaptive_tuner)."""
         return self.adaptive_tuner.block_size
 
+    @block_size.setter
+    def block_size(self, value: int) -> None:
+        """Set block size for pricing (delegated to adaptive_tuner)."""
+        self.adaptive_tuner.block_size = value
+
     @property
     def auto_tune_block_size(self) -> bool:
         """Whether block size auto-tuning is enabled (delegated to adaptive_tuner)."""
