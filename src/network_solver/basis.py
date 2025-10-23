@@ -286,8 +286,8 @@ class TreeBasis:
                 self.arc_to_pos.pop(leaving_idx, None)
                 self.arc_to_pos[entering_idx] = pos
                 self.tree_arc_indices[pos] = entering_idx
-                # Clear dense inverse if it exists (out of sync after FT update)
-                if self.basis_inverse is not None:
+                # Clear dense inverse if in dense mode (out of sync after FT update)
+                if self.use_dense_inverse:
                     self.basis_inverse = None
                 self.lu_factors = None
                 return True
