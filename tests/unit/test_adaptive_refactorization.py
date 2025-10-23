@@ -186,7 +186,7 @@ class TestAdaptiveRefactorizationBehavior:
         solver = NetworkSimplex(problem, options)
 
         # Initial ft_limit should match configured value
-        assert solver.current_ft_limit == 64
+        assert solver.adaptive_tuner.current_ft_limit == 64
 
         result = solver.solve()
         assert result.status == "optimal"

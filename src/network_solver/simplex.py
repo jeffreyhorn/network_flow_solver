@@ -24,6 +24,7 @@ from .scaling import (
     should_scale_problem,
     unscale_solution,
 )
+from .simplex_adaptive import AdaptiveTuner
 from .simplex_pricing import DantzigPricing, DevexPricing, PricingStrategy
 
 DEVEX_WEIGHT_MIN = 1e-12  # Prevent division by zero or runaway weights in Devex pricing.
@@ -114,7 +115,6 @@ class NetworkSimplex:
         self.ft_updates_since_rebuild = 0
 
         # Adaptive refactorization tracking
-        self.current_ft_limit = self.options.ft_update_limit
         self.condition_number_history: list[float] = []
         self.adaptive_rebuild_count = 0
 
@@ -154,23 +154,24 @@ class NetworkSimplex:
         self.basis = TreeBasis(self.node_count, self.root, self.tolerance)
         self.tree_adj: list[list[int]] = [[] for _ in range(self.node_count)]
 
-        # Block size configuration and auto-tuning
-        self.auto_tune_block_size = False
-        if self.options.block_size is None or self.options.block_size == "auto":
-            self.auto_tune_block_size = True
-            self.block_size = self._compute_initial_block_size()
-        elif isinstance(self.options.block_size, str):
-            # This should be caught by validation, but just in case
-            self.auto_tune_block_size = True
-            self.block_size = self._compute_initial_block_size()
+        # Initialize adaptive tuner for runtime parameter adjustment
+        auto_tune = (
+            self.options.block_size is None
+            or self.options.block_size == "auto"
+            or isinstance(self.options.block_size, str)
+        )
+        if auto_tune:
+            initial_block_size = AdaptiveTuner.compute_initial_block_size(len(self.arcs))
         else:
-            self.block_size = self.options.block_size
+            initial_block_size = self.options.block_size  # type: ignore[assignment]
 
-        # Auto-tuning state
-        self.degenerate_pivot_count = 0
-        self.total_pivot_count = 0
-        self.last_adaptation_iteration = 0
-        self.adaptation_interval = 50  # Adapt every 50 iterations
+        self.adaptive_tuner = AdaptiveTuner(
+            actual_arc_count=len(self.arcs),
+            initial_block_size=initial_block_size,
+            auto_tune=auto_tune,
+            options=self.options,
+            logger=self.logger,
+        )
 
         # Initialize devex_weights that may be shared with pricing strategy
         self.devex_weights: list[float] = [1.0] * len(self.arcs)
@@ -179,7 +180,7 @@ class NetworkSimplex:
         if self.options.pricing_strategy == "devex":
             # Pass devex_weights to share state between NetworkSimplex and DevexPricing
             self.pricing_strategy: PricingStrategy = DevexPricing(
-                len(self.arcs), self.block_size, self.devex_weights
+                len(self.arcs), self.adaptive_tuner.block_size, self.devex_weights
             )
         elif self.options.pricing_strategy == "dantzig":
             self.pricing_strategy = DantzigPricing()
@@ -205,78 +206,25 @@ class NetworkSimplex:
                 f"Using specialized pivot strategy for {self.network_structure.network_type.value}"
             )
 
-    def _compute_initial_block_size(self) -> int:
-        """Compute initial block size based on problem size (static heuristic).
+    # Backward compatibility properties for adaptive tuning state
+    @property
+    def block_size(self) -> int:
+        """Current block size for pricing (delegated to adaptive_tuner)."""
+        return self.adaptive_tuner.block_size
 
-        Strategy:
-        - Very small (<100 arcs): num_arcs // 4 (but at least 1)
-        - Small (100-1000): num_arcs // 4
-        - Medium (1000-10000): num_arcs // 8
-        - Large (>10000): num_arcs // 16
+    @property
+    def auto_tune_block_size(self) -> bool:
+        """Whether block size auto-tuning is enabled (delegated to adaptive_tuner)."""
+        return self.adaptive_tuner.auto_tune_block_size
 
-        Note: We avoid full scans (block_size == num_arcs) due to potential
-        issues with pricing logic edge cases.
+    @property
+    def current_ft_limit(self) -> int:
+        """Current Forrest-Tomlin update limit (delegated to adaptive_tuner)."""
+        return self.adaptive_tuner.current_ft_limit
 
-        Returns:
-            Initial block size (at least 1).
-        """
-        n = self.actual_arc_count
-        if n < 100:
-            return max(1, n // 4)  # Very small
-        elif n < 1000:
-            return max(1, n // 4)  # Small
-        elif n < 10000:
-            return max(1, n // 8)  # Medium
-        else:
-            return max(1, n // 16)  # Large
-
-    def _adapt_block_size(self, iteration: int) -> None:
-        """Adapt block size based on runtime performance metrics.
-
-        Called periodically during solve to adjust block size:
-        - Increase if high degenerate ratio (>30%) - stuck in local area
-        - Decrease if low degenerate ratio (<10%) - maximize exploration
-
-        Args:
-            iteration: Current iteration number.
-        """
-        if not self.auto_tune_block_size:
-            return
-
-        # Only adapt every N iterations
-        if iteration - self.last_adaptation_iteration < self.adaptation_interval:
-            return
-
-        # Need sufficient samples to make a decision
-        if self.total_pivot_count < 10:
-            return
-
-        degenerate_ratio = self.degenerate_pivot_count / self.total_pivot_count
-        old_block_size = self.block_size
-
-        # High degenerate ratio: increase block size (explore wider)
-        if degenerate_ratio > 0.30:
-            self.block_size = min(self.actual_arc_count, int(self.block_size * 1.5))
-        # Low degenerate ratio: decrease block size (more focused search)
-        elif degenerate_ratio < 0.10:
-            self.block_size = max(10, int(self.block_size * 0.75))
-
-        if self.block_size != old_block_size:
-            self.logger.debug(
-                f"Adapted block_size: {old_block_size} → {self.block_size} "
-                f"(degenerate_ratio={degenerate_ratio:.2%})",
-                extra={
-                    "old_block_size": old_block_size,
-                    "new_block_size": self.block_size,
-                    "degenerate_ratio": degenerate_ratio,
-                    "iteration": iteration,
-                },
-            )
-
-        # Reset counters for next adaptation window
-        self.degenerate_pivot_count = 0
-        self.total_pivot_count = 0
-        self.last_adaptation_iteration = iteration
+    # ============================================================================
+    # Problem Setup and Initialization
+    # ============================================================================
 
     def _initial_supplies(self) -> list[float]:
         supplies = [0.0] * len(self.node_ids)
@@ -432,6 +380,10 @@ class NetworkSimplex:
         if isinstance(self.pricing_strategy, DevexPricing):
             self.pricing_strategy.weights = np.array(self.devex_weights, dtype=float)
             self.pricing_strategy._weights_list = self.devex_weights
+
+    # ============================================================================
+    # Basis Management and Warm-Start
+    # ============================================================================
 
     def _rebuild_tree_structure(self) -> None:
         """Recompute parent pointers and potentials based on active tree arcs."""
@@ -733,6 +685,10 @@ class NetworkSimplex:
 
         return Basis(tree_arcs=tree_arcs, arc_flows=arc_flows)
 
+    # ============================================================================
+    # Pricing Strategy Integration
+    # ============================================================================
+
     @property
     def pricing_block(self) -> int:
         """Get current pricing block position (for DevexPricing compatibility)."""
@@ -763,6 +719,10 @@ class NetworkSimplex:
             self.tolerance,
         )
 
+    # ============================================================================
+    # Simplex Iterations and Phase Management
+    # ============================================================================
+
     def _update_tree_sets(self) -> None:
         self.tree_adj = [[] for _ in range(self.node_count)]
         for idx, arc in enumerate(self.arcs):
@@ -791,7 +751,10 @@ class NetworkSimplex:
             iterations += 1
 
             # Adapt block size if auto-tuning is enabled
-            self._adapt_block_size(total_iterations_offset + iterations)
+            self.adaptive_tuner.adapt_block_size(total_iterations_offset + iterations)
+            # Sync block size to pricing strategy if it changed
+            if isinstance(self.pricing_strategy, DevexPricing):
+                self.pricing_strategy.block_size = self.adaptive_tuner.block_size
 
             # Call progress callback at specified interval
             if progress_callback is not None and iterations % progress_interval == 0:
@@ -823,6 +786,10 @@ class NetworkSimplex:
                 arc.cost = self.perturbed_costs[idx]
         else:
             raise SolverConfigurationError(f"Invalid phase {phase}. Phase must be 1 or 2.")
+
+    # ============================================================================
+    # Pivot Operations
+    # ============================================================================
 
     def _pivot(self, arc_idx: int, direction: int) -> None:
         entering = self.arcs[arc_idx]
@@ -937,10 +904,8 @@ class NetworkSimplex:
         self.devex_weights[arc_idx] = max(DEVEX_WEIGHT_MIN, entering_weight)
 
         # Track pivot for auto-tuning
-        self.total_pivot_count += 1
         is_degenerate = (leaving_idx == arc_idx) or (abs(theta) < self.tolerance)
-        if is_degenerate:
-            self.degenerate_pivot_count += 1
+        self.adaptive_tuner.record_pivot(is_degenerate)
 
         if leaving_idx == arc_idx:
             entering.in_tree = False
@@ -983,7 +948,7 @@ class NetworkSimplex:
                     self.adaptive_rebuild_count += 1
 
         # Also check fixed update limit
-        if self.ft_updates_since_rebuild >= self.current_ft_limit:
+        if self.ft_updates_since_rebuild >= self.adaptive_tuner.current_ft_limit:
             force_rebuild = True
             if not rebuild_reason:
                 rebuild_reason = "ft_update_limit"
@@ -1016,7 +981,7 @@ class NetworkSimplex:
                 self.options.adaptive_refactorization
                 and rebuild_reason == "condition_number_threshold"
             ):
-                self._adjust_ft_limit(condition_number)
+                self.adaptive_tuner.adjust_ft_limit(condition_number)
         elif not basis_updated:
             # FT update failed: refresh the numeric basis and reset Devex heuristics.
             self.logger.warning(
@@ -1036,6 +1001,10 @@ class NetworkSimplex:
             self.basis.rebuild(self.tree_adj, self.arcs, build_numeric=False)
             self.ft_updates_since_rebuild += 1
 
+    # ============================================================================
+    # Cost Perturbation and Degeneracy Handling
+    # ============================================================================
+
     def _apply_cost_perturbation(self) -> None:
         base_eps = PERTURB_EPS_BASE
         factor = 1.0
@@ -1046,6 +1015,10 @@ class NetworkSimplex:
             factor *= PERTURB_GROWTH
         for idx in range(self.actual_arc_count, len(self.arcs)):
             self.perturbed_costs[idx] = self.original_costs[idx]
+
+    # ============================================================================
+    # Main Solve Method
+    # ============================================================================
 
     def solve(
         self,
@@ -1353,45 +1326,16 @@ class NetworkSimplex:
             basis=basis,
         )
 
+    # ============================================================================
+    # Utility Methods
+    # ============================================================================
+
     def _reset_devex_weights(self) -> None:
         """Reset Devex weights to 1.0 for both NetworkSimplex and pricing strategy."""
         for idx in range(len(self.devex_weights)):
             self.devex_weights[idx] = 1.0
         # Also reset pricing strategy state
         self.pricing_strategy.reset()
-
-    def _adjust_ft_limit(self, condition_number: float | None) -> None:
-        """Adaptively adjust ft_update_limit based on numerical behavior.
-
-        Strategy:
-        - If condition number triggered rebuild early, decrease limit (be more conservative)
-        - Use problem characteristics to determine appropriate limit
-        - Keep within configured min/max bounds
-        """
-        if condition_number is None:
-            return
-
-        # If condition number is very high, be more aggressive with rebuilds
-        if condition_number > self.options.condition_number_threshold * 10:
-            # Very ill-conditioned: reduce limit significantly
-            new_limit = max(self.options.adaptive_ft_min, int(self.current_ft_limit * 0.5))
-        elif condition_number > self.options.condition_number_threshold:
-            # Moderately ill-conditioned: reduce limit gradually
-            new_limit = max(self.options.adaptive_ft_min, int(self.current_ft_limit * 0.8))
-        else:
-            # Condition number is good, can potentially increase limit
-            new_limit = min(self.options.adaptive_ft_max, int(self.current_ft_limit * 1.1))
-
-        if new_limit != self.current_ft_limit:
-            self.logger.debug(
-                f"Adjusted ft_update_limit: {self.current_ft_limit} → {new_limit}",
-                extra={
-                    "old_limit": self.current_ft_limit,
-                    "new_limit": new_limit,
-                    "condition_number": f"{condition_number:.2e}",
-                },
-            )
-            self.current_ft_limit = new_limit
 
     def _compute_objective_estimate(self) -> float:
         """Compute current objective value estimate based on current flows and costs."""
