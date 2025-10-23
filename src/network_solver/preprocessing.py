@@ -255,11 +255,7 @@ def _remove_redundant_arcs(
         else:
             # Keep single arc as-is
             merged_arcs.append(problem.arcs[indices[0]])
-
-            # Identity mapping for unchanged arc (by index)
-            if arc_mapping is not None:
-                tail, head = key[0], key[1]
-                arc_mapping[indices[0]] = (tail, head)
+            # Note: Identity mapping already initialized in preprocess_problem()
 
     # Update problem arcs
     problem.arcs = merged_arcs
