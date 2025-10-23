@@ -568,6 +568,15 @@ Configuration options for the solver.
 - `adaptive_ft_max` (int): Maximum adaptive ft_update_limit (default: 200)
   - Prevents limit from becoming too large
   - Only used when adaptive_refactorization=True
+- `use_dense_inverse` (bool | None): Compute and maintain dense basis inverse (default: None = auto)
+  - `None` (default): Auto-detect based on scipy availability
+    - If scipy installed: `False` (use sparse LU for better scalability)
+    - If scipy not installed: `True` (fall back to dense inverse)
+  - `False`: Force sparse LU only (requires scipy, raises error if unavailable)
+  - `True`: Always compute dense inverse with np.linalg.inv (O(n³) time, O(n²) memory)
+  - Dense inverse enables Sherman-Morrison rank-1 updates but requires O(n²) memory
+  - For problems with >1000 nodes, sparse LU (scipy) is strongly recommended
+  - Dense mode is useful for testing, very dense networks, or small problems without scipy
 
 **Validation:**
 
@@ -594,6 +603,10 @@ options = SolverOptions(
     adaptive_ft_min=10,
     adaptive_ft_max=50,
 )
+
+# Enable dense inverse for small problems or testing
+# (Not recommended for large problems due to O(n²) memory usage)
+options = SolverOptions(use_dense_inverse=True)
 
 # Disable adaptive features for predictable behavior
 options = SolverOptions(

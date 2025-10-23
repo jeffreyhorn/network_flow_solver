@@ -60,7 +60,11 @@ def _run_basis_checks():
         {"tail": "a", "head": "b", "capacity": 10.0, "cost": 1.0},
     ]
     problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
-    solver = NetworkSimplex(problem)
+    # Enable dense inverse for this test since we're checking it specifically
+    from network_solver.data import SolverOptions
+
+    options = SolverOptions(use_dense_inverse=True)
+    solver = NetworkSimplex(problem, options=options)
     basis = solver.basis
     assert basis.basis_matrix is not None
     assert basis.basis_inverse is not None
@@ -215,6 +219,7 @@ def test_replace_arc_updates_mapping_for_identical_column():
 
 def test_replace_arc_applies_sherman_morrison_update():
     # Distinct incoming columns should update the basis mappings accordingly.
+    # This test specifically checks Sherman-Morrison updates, so enable dense inverse.
     problem = build_problem(
         nodes=[
             {"id": "a", "supply": 0.0},
@@ -231,7 +236,10 @@ def test_replace_arc_applies_sherman_morrison_update():
         directed=True,
         tolerance=1e-6,
     )
-    solver = NetworkSimplex(problem)
+    from network_solver.data import SolverOptions
+
+    options = SolverOptions(use_dense_inverse=True)
+    solver = NetworkSimplex(problem, options=options)
     basis = solver.basis
     entering_idx = next(
         idx for idx, arc in enumerate(solver.arcs[: solver.actual_arc_count]) if not arc.in_tree
@@ -302,6 +310,8 @@ def test_replace_arc_rebuilds_lu_when_only_sparse_available(monkeypatch):
 
 def test_replace_arc_handles_forrest_tomlin_failures(monkeypatch):
     # If FT raises or returns False, replace_arc should surface the failure gracefully.
+    # Pytest's monkeypatch fixture automatically provides test isolation.
+
     problem = build_problem(
         nodes=[
             {"id": "a", "supply": 1.0},
@@ -318,6 +328,9 @@ def test_replace_arc_handles_forrest_tomlin_failures(monkeypatch):
     )
     solver = NetworkSimplex(problem)
     basis = solver.basis
+
+    # Verify basis is properly initialized with LU factors
+    assert basis.lu_factors is not None, "LU factors should be available for fallback"
     entering_idx = next(
         idx for idx, arc in enumerate(solver.arcs[: solver.actual_arc_count]) if not arc.in_tree
     )

@@ -214,6 +214,31 @@ By default (`block_size=None` or `"auto"`), the solver automatically selects and
 
 See `examples/solver_options_example.py` for a comprehensive demonstration. For performance benchmarks and optimization guidance, see the [Performance Guide](docs/benchmarks.md).
 
+**Sparse vs Dense Basis Mode:**
+
+The solver supports two modes for basis matrix operations:
+- **Sparse mode** (default with scipy): Uses sparse LU factorization only, avoiding O(n³) dense inverse computation
+- **Dense mode** (fallback): Computes full dense inverse matrix for Sherman-Morrison updates
+
+```python
+# Default: Auto-detect (sparse if scipy available, dense otherwise)
+result = solve_min_cost_flow(problem)
+
+# Force sparse mode (requires scipy)
+options = SolverOptions(use_dense_inverse=False)
+
+# Force dense mode (works without scipy, but less scalable)
+options = SolverOptions(use_dense_inverse=True)
+```
+
+**Performance impact:**
+- Small problems (<100 nodes): Dense mode may be slightly faster due to Sherman-Morrison updates
+- Large problems (>1000 nodes): Sparse mode dramatically faster and uses less memory
+  - Avoids O(n²) memory for dense inverse matrix
+  - For n=10,000: saves ~800MB of memory
+
+See `examples/sparse_vs_dense_example.py` for benchmark comparisons on different problem sizes.
+
 ### Automatic Problem Scaling
 
 The solver automatically detects and scales problems with extreme value ranges to improve numerical stability. This is particularly useful when costs, capacities, or supplies span many orders of magnitude.
@@ -844,6 +869,7 @@ python examples/warm_start_example.py  # Warm-starting for sequential solves
 python examples/progress_logging_example.py  # Progress monitoring
 python examples/solver_options_example.py  # Solver configuration and tuning
 python examples/adaptive_refactorization_example.py  # Adaptive basis refactorization
+python examples/sparse_vs_dense_example.py  # Sparse vs dense basis performance comparison
 python examples/utils_example.py  # Flow analysis utilities
 python examples/undirected_graph_example.py  # Undirected graph handling
 ```

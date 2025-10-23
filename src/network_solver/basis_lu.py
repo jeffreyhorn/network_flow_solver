@@ -36,6 +36,15 @@ def build_lu(matrix: np.ndarray) -> LUFactors:
     return LUFactors(dense_matrix=dense_matrix, sparse_matrix=sparse_mat, lu=lu)
 
 
+def has_sparse_lu() -> bool:
+    """Check if sparse LU factorization is available (requires scipy).
+
+    Returns:
+        True if scipy.sparse.linalg.splu is available, False otherwise.
+    """
+    return splu is not None
+
+
 def solve_lu(factors: LUFactors, rhs: np.ndarray) -> np.ndarray | None:
     vec = np.asarray(rhs, dtype=float).reshape(-1)
     if vec.shape[0] != factors.dense_matrix.shape[0]:
