@@ -139,6 +139,7 @@ class DevexPricing(PricingStrategy):
             weights: Optional pre-existing weights list to keep in sync.
                      If None, creates a new array initialized to 1.0.
         """
+        self._weights_list: list[float] | None
         if weights is not None:
             # Keep reference to source list for sync and create numpy view
             self._weights_list = weights
@@ -222,7 +223,7 @@ class DevexPricing(PricingStrategy):
         The weight approximates the squared norm of the basis representation
         of the arc's column, providing a normalization factor for reduced costs.
         """
-        weight = max(self.weights[arc_idx], DEVEX_WEIGHT_MIN)
+        weight: float = float(max(self.weights[arc_idx], DEVEX_WEIGHT_MIN))
         projection = basis.project_column(arc)
 
         if projection is not None:
