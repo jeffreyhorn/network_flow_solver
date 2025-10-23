@@ -511,6 +511,7 @@ def preprocess_and_solve(
             f"merged {preproc_result.merged_arcs} arc series). "
             "Basis from original problem is incompatible with preprocessed problem."
         )
+        # Intentionally create a new dictionary to avoid mutating the caller's solve_kwargs.
         solve_kwargs = {k: v for k, v in solve_kwargs.items() if k != "warm_start_basis"}
 
     flow_result = solve_min_cost_flow(preproc_result.problem, **solve_kwargs)
