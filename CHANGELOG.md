@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Prevents solver from returning invalid "optimal" solutions
   - Returns "infeasible" status when conservation violations are detected
 
+- **Warm-start with identical problem** (`simplex.py:420-445`)
+  - Removed outdated TODO comment and docstring about warm-start failing on identical problems
+  - This issue was inadvertently resolved by the pivot bug fix (flow conservation is now maintained)
+  - Verified: warm-starting with a basis from an identical problem now works correctly
+
+- **Warm-start with minimal basis creating disconnected components** (`test_warm_start.py:652-691`)
+  - Fixed `test_warm_start_single_arc_basis_creates_components` which was previously xfailed
+  - The test was failing due to the pivot bug, not due to minimal basis handling
+  - Corrected expected objective value from 30.0 to 45.0 (optimal path: a→b→c→d at 3.0/unit)
+  - All 22 warm-start tests now pass with no xfails
+
 ### Added
 - **Jupyter notebook tutorial for visualization utilities** (`tutorials/visualization_tutorial.ipynb`)
   - Comprehensive tutorial demonstrating all visualization features

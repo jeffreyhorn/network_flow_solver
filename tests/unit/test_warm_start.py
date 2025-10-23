@@ -650,11 +650,14 @@ class TestWarmStartMultiComponent:
         # Should find the simple direct-path solution
         assert result.objective == pytest.approx(23.0)  # 10*1 + 8*1 + 5*1
 
-    @pytest.mark.xfail(
-        reason="Minimal warm-start basis can lead to incomplete Phase 1 - needs investigation"
-    )
     def test_warm_start_single_arc_basis_creates_components(self):
-        """Test warm-start with minimal basis (single arc) creates multiple components."""
+        """Test warm-start with minimal basis (single arc) creates multiple components.
+
+        Historical note: This test was previously xfailed with the reason
+        "Minimal warm-start basis can lead to incomplete Phase 1". The issue
+        was resolved by fixing the pivot bug where theta computation incorrectly
+        skipped the entering arc's capacity constraint.
+        """
         problem = build_problem(
             nodes=[
                 {"id": "a", "supply": 15.0},
@@ -679,8 +682,8 @@ class TestWarmStartMultiComponent:
 
         # Should succeed despite minimal basis
         assert result.status == "optimal"
-        # With the given capacity constraints, optimal solution has cost 30
-        assert result.objective == pytest.approx(30.0)
+        # Optimal: send 15 units via a→b→c→d at cost 3.0/unit = 45.0
+        assert result.objective == pytest.approx(45.0)
 
 
 class TestWarmStartLogging:
