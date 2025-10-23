@@ -112,7 +112,7 @@ class AdaptiveTuner:
         if iteration - self.last_adaptation_iteration < self.adaptation_interval:
             return
 
-        # Need sufficient samples to make a decision
+        # Need sufficient samples to make a decision (and avoid division by zero)
         if self.total_pivot_count < 10:
             return
 
