@@ -387,6 +387,12 @@ class SolverOptions:
                         Prevents limit from becoming too small.
         adaptive_ft_max: Maximum value for adaptive ft_update_limit (default: 200).
                         Prevents limit from becoming too large.
+        use_dense_inverse: Compute and maintain dense basis inverse (default: False).
+                          - False (default): Use sparse LU factorization only (better scalability)
+                          - True: Compute dense inverse with np.linalg.inv (O(n³) memory and time)
+                          Dense inverse enables Sherman-Morrison rank-1 updates but is memory-intensive.
+                          For large problems (>1000 nodes), sparse LU is recommended.
+                          Dense mode is useful for testing, dense networks, or when memory is not a constraint.
 
     Examples:
         >>> # Default options (auto-tuning enabled)
@@ -427,6 +433,7 @@ class SolverOptions:
     condition_number_threshold: float = 1e12
     adaptive_ft_min: int = 20
     adaptive_ft_max: int = 200
+    use_dense_inverse: bool = False
 
     def __post_init__(self) -> None:
         if self.tolerance <= 0:

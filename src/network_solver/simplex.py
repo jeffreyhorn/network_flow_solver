@@ -155,7 +155,12 @@ class NetworkSimplex:
         self.penalty_cost = max_cost * (len(self.node_ids) + 1)
 
         self.node_count = len(self.node_ids)
-        self.basis = TreeBasis(self.node_count, self.root, self.tolerance)
+        self.basis = TreeBasis(
+            self.node_count,
+            self.root,
+            self.tolerance,
+            use_dense_inverse=self.options.use_dense_inverse,
+        )
         self.tree_adj: list[list[int]] = [[] for _ in range(self.node_count)]
 
         # Initialize adaptive tuner for runtime parameter adjustment

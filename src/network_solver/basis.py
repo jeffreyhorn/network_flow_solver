@@ -18,10 +18,13 @@ if TYPE_CHECKING:
 class TreeBasis:
     """Encapsulates parent/potential bookkeeping for the spanning-tree basis."""
 
-    def __init__(self, node_count: int, root: int, tolerance: float) -> None:
+    def __init__(
+        self, node_count: int, root: int, tolerance: float, use_dense_inverse: bool = False
+    ) -> None:
         self.node_count = node_count
         self.root = root
         self.tolerance = tolerance
+        self.use_dense_inverse = use_dense_inverse
         self.parent: list[int | None] = [None] * node_count
         self.parent_arc: list[int | None] = [None] * node_count
         self.parent_dir: list[int] = [0] * node_count
@@ -154,10 +157,16 @@ class TreeBasis:
                 matrix[node_to_row[arc.head], col] = -1.0
 
         self.basis_matrix = matrix
-        try:
-            self.basis_inverse = np.linalg.inv(matrix)
-        except np.linalg.LinAlgError:
+
+        # Only compute dense inverse if explicitly requested (expensive O(n³) operation)
+        if self.use_dense_inverse:
+            try:
+                self.basis_inverse = np.linalg.inv(matrix)
+            except np.linalg.LinAlgError:
+                self.basis_inverse = None
+        else:
             self.basis_inverse = None
+
         self.ft_engine = ForrestTomlin(
             matrix,
             tolerance=self.tolerance,
@@ -203,16 +212,52 @@ class TreeBasis:
         Note:
             This is an approximation using matrix norms. For exact condition number,
             use np.linalg.cond, but that's much more expensive (requires SVD).
+
+            When dense inverse is not available, estimates A^-1 norm by solving
+            with several random vectors and taking the maximum ratio.
         """
-        if self.basis_matrix is None or self.basis_inverse is None:
+        if self.basis_matrix is None:
             return None
 
-        # Compute 1-norm (max column sum) of basis matrix and its inverse
+        # Compute 1-norm of basis matrix
         norm_a = np.linalg.norm(self.basis_matrix, ord=1)
-        norm_ainv = np.linalg.norm(self.basis_inverse, ord=1)
 
-        # Condition number estimate
-        return float(norm_a * norm_ainv)
+        # If we have dense inverse, use it directly
+        if self.basis_inverse is not None:
+            norm_ainv = np.linalg.norm(self.basis_inverse, ord=1)
+            return float(norm_a * norm_ainv)
+
+        # Otherwise, estimate inverse norm using sparse solves
+        # This is cheaper than computing the full dense inverse
+        if self.lu_factors is None and self.ft_engine is None:
+            return None
+
+        # Estimate ||A^-1||_1 by solving A*x = e_i for canonical basis vectors
+        n = self.basis_matrix.shape[0]
+        max_col_sum = 0.0
+
+        # Sample a few columns to estimate (not all n, for performance)
+        num_samples = min(10, n)
+        for i in range(0, n, max(1, n // num_samples)):
+            e_i = np.zeros(n)
+            e_i[i] = 1.0
+
+            # Solve using available method
+            x = None
+            if self.ft_engine is not None:
+                x = self.ft_engine.solve(e_i)
+            if x is None and self.lu_factors is not None:
+                x = solve_lu(self.lu_factors, e_i)
+
+            if x is not None:
+                col_sum = np.sum(np.abs(x))
+                max_col_sum = max(max_col_sum, col_sum)
+
+        if max_col_sum == 0.0:
+            return None
+
+        # This is an underestimate of the true 1-norm, but sufficient for monitoring
+        return float(norm_a * max_col_sum)
 
     def replace_arc(
         self, leaving_idx: int, entering_idx: int, arcs: Sequence[ArcState], tol: float
@@ -238,11 +283,12 @@ class TreeBasis:
                 self.arc_to_pos.pop(leaving_idx, None)
                 self.arc_to_pos[entering_idx] = pos
                 self.tree_arc_indices[pos] = entering_idx
-                self.basis_inverse = None
+                # Clear dense inverse if it exists (out of sync after FT update)
+                if self.use_dense_inverse:
+                    self.basis_inverse = None
                 self.lu_factors = None
                 return True
-            if ft_exception or (self.basis_inverse is None and self.lu_factors is None):
-                return False
+            # If FT failed, fall through to other methods (Sherman-Morrison or LU)
 
         old_col = self.basis_matrix[:, pos]
         u = new_col - old_col
