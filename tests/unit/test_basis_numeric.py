@@ -310,14 +310,7 @@ def test_replace_arc_rebuilds_lu_when_only_sparse_available(monkeypatch):
 
 def test_replace_arc_handles_forrest_tomlin_failures(monkeypatch):
     # If FT raises or returns False, replace_arc should surface the failure gracefully.
-    # Ensure clean module state (in case previous tests left monkeypatches)
-    import importlib
-
-    import network_solver.basis
-    import network_solver.basis_lu
-
-    importlib.reload(network_solver.basis_lu)
-    importlib.reload(network_solver.basis)
+    # Pytest's monkeypatch fixture automatically provides test isolation.
 
     problem = build_problem(
         nodes=[
