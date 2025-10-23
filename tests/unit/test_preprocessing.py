@@ -536,9 +536,11 @@ class TestResultTranslation:
 
         result = preprocess_problem(problem)
 
-        # All redundant arcs should map to the same arc
-        assert ("A", "B") in result.arc_mapping
-        assert result.arc_mapping[("A", "B")] == ("A", "B")
+        # Both original arcs (indices 0 and 1) should map to the same arc
+        assert 0 in result.arc_mapping
+        assert 1 in result.arc_mapping
+        assert result.arc_mapping[0] == ("A", "B")
+        assert result.arc_mapping[1] == ("A", "B")
 
     def test_arc_mapping_for_series_arcs(self):
         """Arc mapping should track series arc merging."""
@@ -555,9 +557,9 @@ class TestResultTranslation:
 
         result = preprocess_problem(problem)
 
-        # Both arcs should map to the merged arc
-        assert result.arc_mapping[("A", "B")] == ("A", "C")
-        assert result.arc_mapping[("B", "C")] == ("A", "C")
+        # Both original arcs (indices 0 and 1) should map to the merged arc
+        assert result.arc_mapping[0] == ("A", "C")
+        assert result.arc_mapping[1] == ("A", "C")
 
         # Removed node should map to None
         assert result.node_mapping["B"] is None
@@ -577,8 +579,8 @@ class TestResultTranslation:
 
         result = preprocess_problem(problem)
 
-        # Removed arc should map to None
-        assert result.arc_mapping[("A", "B")] is None
+        # Removed arc (index 0) should map to None
+        assert result.arc_mapping[0] is None
 
         # Removed node should map to None
         assert result.node_mapping["A"] is None

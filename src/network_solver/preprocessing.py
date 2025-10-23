@@ -37,8 +37,9 @@ class PreprocessingResult:
         disconnected_components: Number of disconnected components detected
         preprocessing_time_ms: Time spent preprocessing in milliseconds
         optimizations: Dictionary mapping optimization names to counts
-        arc_mapping: Maps original arc keys (tail, head) to preprocessed arc keys.
-                     If an arc was merged or removed, it may map to None or a different arc.
+        arc_mapping: Maps original arc indices to preprocessed arc keys (tail, head).
+                     Keys are integer indices into original_problem.arcs list.
+                     Values are (tail, head) tuples for the preprocessed arc, or None if removed.
         node_mapping: Maps original node IDs to preprocessed node IDs.
                       If a node was removed, it maps to None.
     """
@@ -51,7 +52,7 @@ class PreprocessingResult:
     disconnected_components: int = 0
     preprocessing_time_ms: float = 0.0
     optimizations: dict[str, int] = field(default_factory=dict)
-    arc_mapping: dict[tuple[str, str], tuple[str, str] | None] = field(default_factory=dict)
+    arc_mapping: dict[int, tuple[str, str] | None] = field(default_factory=dict)
     node_mapping: dict[str, str | None] = field(default_factory=dict)
 
 
@@ -143,8 +144,8 @@ def preprocess_problem(
     # Initialize identity mappings for all original nodes and arcs
     for node_id in problem.nodes:
         result.node_mapping[node_id] = node_id
-    for arc in problem.arcs:
-        result.arc_mapping[(arc.tail, arc.head)] = (arc.tail, arc.head)
+    for idx, arc in enumerate(problem.arcs):
+        result.arc_mapping[idx] = (arc.tail, arc.head)
 
     # Apply optimizations in order
     if remove_redundant:
@@ -196,7 +197,7 @@ def preprocess_problem(
 
 def _remove_redundant_arcs(
     problem: NetworkProblem,
-    arc_mapping: dict[tuple[str, str], tuple[str, str] | None] | None = None,
+    arc_mapping: dict[int, tuple[str, str] | None] | None = None,
 ) -> int:
     """Remove redundant parallel arcs with identical costs.
 
@@ -244,10 +245,10 @@ def _remove_redundant_arcs(
                 Arc(tail=tail, head=head, capacity=total_capacity, cost=cost, lower=lower)
             )
 
-            # All redundant arcs map to the same merged arc
+            # All redundant arcs (by index) map to the same merged arc
             if arc_mapping is not None:
-                for _idx in indices:
-                    arc_mapping[(tail, head)] = (tail, head)
+                for idx in indices:
+                    arc_mapping[idx] = (tail, head)
 
             # Mark others as redundant
             redundant_indices.update(indices[1:])
@@ -255,10 +256,10 @@ def _remove_redundant_arcs(
             # Keep single arc as-is
             merged_arcs.append(problem.arcs[indices[0]])
 
-            # Identity mapping for unchanged arcs
+            # Identity mapping for unchanged arc (by index)
             if arc_mapping is not None:
                 tail, head = key[0], key[1]
-                arc_mapping[(tail, head)] = (tail, head)
+                arc_mapping[indices[0]] = (tail, head)
 
     # Update problem arcs
     problem.arcs = merged_arcs
@@ -315,7 +316,7 @@ def _detect_disconnected_components(problem: NetworkProblem) -> int:
 
 def _simplify_series_arcs(
     problem: NetworkProblem,
-    arc_mapping: dict[tuple[str, str], tuple[str, str] | None] | None = None,
+    arc_mapping: dict[int, tuple[str, str] | None] | None = None,
     node_mapping: dict[str, str | None] | None = None,
 ) -> tuple[int, int]:
     """Simplify series arcs by merging consecutive arcs through zero-supply nodes.
@@ -409,10 +410,16 @@ def _simplify_series_arcs(
                 )
             )
 
-            # Track mappings: both original arcs map to the merged arc
+            # Track mappings: update all original arcs that map to the arcs being merged
             if arc_mapping is not None:
-                arc_mapping[(in_arc.tail, in_arc.head)] = (in_arc.tail, out_arc.head)
-                arc_mapping[(out_arc.tail, out_arc.head)] = (in_arc.tail, out_arc.head)
+                # Find all original arc indices that currently map to the arcs being merged
+                merged_arc_key = (in_arc.tail, out_arc.head)
+                for orig_idx, current_arc_key in list(arc_mapping.items()):
+                    if current_arc_key in (
+                        (in_arc.tail, in_arc.head),
+                        (out_arc.tail, out_arc.head),
+                    ):
+                        arc_mapping[orig_idx] = merged_arc_key
 
             # Track node removal
             if node_mapping is not None:
@@ -455,7 +462,7 @@ def _simplify_series_arcs(
 
 def _remove_zero_supply_nodes(
     problem: NetworkProblem,
-    arc_mapping: dict[tuple[str, str], tuple[str, str] | None] | None = None,
+    arc_mapping: dict[int, tuple[str, str] | None] | None = None,
     node_mapping: dict[str, str | None] | None = None,
 ) -> int:
     """Remove zero-supply nodes with exactly one incident arc.
@@ -501,9 +508,13 @@ def _remove_zero_supply_nodes(
             node_mapping[node_id] = None
 
     if arc_mapping is not None:
+        # Update all original arcs that map to the arcs being removed
         for idx in arcs_to_remove:
             arc = problem.arcs[idx]
-            arc_mapping[(arc.tail, arc.head)] = None
+            arc_key_to_remove = (arc.tail, arc.head)
+            for orig_idx, current_arc_key in list(arc_mapping.items()):
+                if current_arc_key == arc_key_to_remove:
+                    arc_mapping[orig_idx] = None
 
     # Remove nodes
     for node_id in nodes_to_remove:
@@ -542,17 +553,17 @@ def translate_result(
     """
     from .data import FlowResult
 
-    # Create reverse mapping: preprocessed arc -> list of original arcs
-    reverse_arc_mapping: dict[tuple[str, str] | None, list[tuple[str, str]]] = defaultdict(list)
-    for orig_arc_key, preprocessed_arc in preproc_result.arc_mapping.items():
-        reverse_arc_mapping[preprocessed_arc].append(orig_arc_key)
+    # Create reverse mapping: preprocessed arc -> list of original arc indices
+    reverse_arc_mapping: dict[tuple[str, str] | None, list[int]] = defaultdict(list)
+    for orig_arc_idx, preprocessed_arc in preproc_result.arc_mapping.items():
+        reverse_arc_mapping[preprocessed_arc].append(orig_arc_idx)
 
     # Translate flows: map from preprocessed arcs to original arcs
     translated_flows: dict[tuple[str, str], float] = {}
 
-    for orig_arc in original_problem.arcs:
+    for orig_arc_idx, orig_arc in enumerate(original_problem.arcs):
         arc_key = (orig_arc.tail, orig_arc.head)
-        preprocessed_arc_key = preproc_result.arc_mapping.get(arc_key)
+        preprocessed_arc_key = preproc_result.arc_mapping.get(orig_arc_idx)
 
         if preprocessed_arc_key is None:
             # Arc was removed - no flow
@@ -575,17 +586,11 @@ def translate_result(
                 # Multiple REDUNDANT arcs merged - distribute flow proportionally by capacity
                 # Get capacities of all arcs that map to this preprocessed arc
                 capacities = []
-                for oa in original_arcs_sharing_flow:
-                    orig_arc_obj = next(
-                        (a for a in original_problem.arcs if (a.tail, a.head) == oa),
-                        None,
+                for oa_idx in original_arcs_sharing_flow:
+                    orig_arc_obj = original_problem.arcs[oa_idx]
+                    capacities.append(
+                        orig_arc_obj.capacity if orig_arc_obj.capacity is not None else float("inf")
                     )
-                    if orig_arc_obj:
-                        capacities.append(
-                            orig_arc_obj.capacity
-                            if orig_arc_obj.capacity is not None
-                            else float("inf")
-                        )
 
                 # If all have infinite capacity, distribute equally
                 if all(c == float("inf") for c in capacities):
@@ -595,7 +600,7 @@ def translate_result(
                     finite_capacities = [c if c != float("inf") else 0 for c in capacities]
                     total_capacity = sum(finite_capacities)
                     if total_capacity > 0:
-                        my_capacity = capacities[original_arcs_sharing_flow.index(arc_key)]
+                        my_capacity = capacities[original_arcs_sharing_flow.index(orig_arc_idx)]
                         if my_capacity == float("inf"):
                             my_capacity = 0
                         translated_flows[arc_key] = preprocessed_flow * (
