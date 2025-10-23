@@ -31,7 +31,7 @@ def format_bytes(bytes_val: float) -> str:
 def format_time(seconds: float) -> str:
     """Format time in appropriate units."""
     if seconds < 0.001:
-        return f"{seconds * 1000000:.0f} μs"
+        return f"{seconds * 1000000:.0f} us"
     elif seconds < 1.0:
         return f"{seconds * 1000:.2f} ms"
     else:
