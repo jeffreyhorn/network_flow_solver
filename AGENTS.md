@@ -90,7 +90,7 @@ pytest -m "not slow"
 
 ```bash
 # Format code
-make fmt
+make format
 
 # Run linter
 make lint
@@ -99,7 +99,10 @@ make lint
 make typecheck
 
 # All quality checks before commit
-make lint && make typecheck && make test
+make check
+
+# All checks + tests
+make all
 ```
 
 ### Adding Features
@@ -115,7 +118,7 @@ make lint && make typecheck && make test
    - Update docstrings with examples where helpful
 
 3. **Verify quality**
-   - Run `make lint` (no ruff or mypy errors)
+   - Run `make check` (lint + format-check + typecheck)
    - Run `make test` (all tests pass)
    - Check coverage: `make coverage` (aim for ≥90%)
 
