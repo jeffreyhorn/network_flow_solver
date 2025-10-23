@@ -583,6 +583,9 @@ def translate_result(
 
             if len(original_arcs_sharing_flow) > 1 and is_redundant_merge:
                 # Multiple REDUNDANT arcs merged - distribute flow proportionally by capacity
+                # Build a mapping from arc index to position for O(1) lookup
+                arc_idx_to_position = {idx: i for i, idx in enumerate(original_arcs_sharing_flow)}
+
                 # Get capacities of all arcs that map to this preprocessed arc
                 capacities = []
                 for oa_idx in original_arcs_sharing_flow:
@@ -600,7 +603,8 @@ def translate_result(
                     infinite_indices = [i for i, c in enumerate(capacities) if c == float("inf")]
                     if infinite_indices:
                         # Flow goes to infinite capacity arcs only
-                        if original_arcs_sharing_flow.index(orig_arc_idx) in infinite_indices:
+                        my_position = arc_idx_to_position[orig_arc_idx]
+                        if my_position in infinite_indices:
                             arc_flow = preprocessed_flow / len(infinite_indices)
                             translated_flows[arc_key] = (
                                 translated_flows.get(arc_key, 0.0) + arc_flow
@@ -612,7 +616,8 @@ def translate_result(
                         # All arcs have finite capacity - distribute proportionally
                         total_capacity = sum(capacities)
                         if total_capacity > 0:
-                            my_capacity = capacities[original_arcs_sharing_flow.index(orig_arc_idx)]
+                            my_position = arc_idx_to_position[orig_arc_idx]
+                            my_capacity = capacities[my_position]
                             arc_flow = preprocessed_flow * (my_capacity / total_capacity)
                             translated_flows[arc_key] = (
                                 translated_flows.get(arc_key, 0.0) + arc_flow
