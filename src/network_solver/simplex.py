@@ -227,6 +227,26 @@ class NetworkSimplex:
         """Current Forrest-Tomlin update limit (delegated to adaptive_tuner)."""
         return self.adaptive_tuner.current_ft_limit
 
+    @property
+    def degenerate_pivot_count(self) -> int:
+        """Number of degenerate pivots performed (delegated to adaptive_tuner)."""
+        return self.adaptive_tuner.degenerate_pivot_count
+
+    @property
+    def total_pivot_count(self) -> int:
+        """Total number of pivots performed (delegated to adaptive_tuner)."""
+        return self.adaptive_tuner.total_pivot_count
+
+    @property
+    def adaptation_interval(self) -> int:
+        """Iteration interval between adaptation checks (delegated to adaptive_tuner)."""
+        return self.adaptive_tuner.adaptation_interval
+
+    @property
+    def last_adaptation_iteration(self) -> int:
+        """Last iteration when adaptation occurred (delegated to adaptive_tuner)."""
+        return self.adaptive_tuner.last_adaptation_iteration
+
     # ============================================================================
     # Problem Setup and Initialization
     # ============================================================================
