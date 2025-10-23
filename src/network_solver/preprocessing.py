@@ -555,6 +555,7 @@ def translate_result(
         reverse_arc_mapping[preprocessed_arc].append(orig_arc_idx)
 
     # Translate flows: map from preprocessed arcs to original arcs
+    # Note: Multiple arcs may have the same (tail, head) key, so we accumulate flows
     translated_flows: dict[tuple[str, str], float] = {}
 
     for orig_arc_idx, orig_arc in enumerate(original_problem.arcs):
@@ -563,7 +564,7 @@ def translate_result(
 
         if preprocessed_arc_key is None:
             # Arc was removed - no flow
-            translated_flows[arc_key] = 0.0
+            translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + 0.0
         else:
             # Get flow from preprocessed arc
             preprocessed_flow = flow_result.flows.get(preprocessed_arc_key, 0.0)
@@ -575,7 +576,9 @@ def translate_result(
             # Check if these are redundant parallel arcs (same tail and head as preprocessed arc)
             # vs series arcs that were merged into a different arc
             is_redundant_merge = all(
-                oa == preprocessed_arc_key for oa in original_arcs_sharing_flow
+                (original_problem.arcs[oa_idx].tail, original_problem.arcs[oa_idx].head)
+                == preprocessed_arc_key
+                for oa_idx in original_arcs_sharing_flow
             )
 
             if len(original_arcs_sharing_flow) > 1 and is_redundant_merge:
@@ -590,7 +593,8 @@ def translate_result(
 
                 # If all have infinite capacity, distribute equally
                 if all(c == float("inf") for c in capacities):
-                    translated_flows[arc_key] = preprocessed_flow / len(original_arcs_sharing_flow)
+                    arc_flow = preprocessed_flow / len(original_arcs_sharing_flow)
+                    translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + arc_flow
                 else:
                     # Distribute proportionally by capacity (excluding infinite)
                     finite_capacities = [c if c != float("inf") else 0 for c in capacities]
@@ -599,15 +603,14 @@ def translate_result(
                         my_capacity = capacities[original_arcs_sharing_flow.index(orig_arc_idx)]
                         if my_capacity == float("inf"):
                             my_capacity = 0
-                        translated_flows[arc_key] = preprocessed_flow * (
-                            my_capacity / total_capacity
-                        )
+                        arc_flow = preprocessed_flow * (my_capacity / total_capacity)
+                        translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + arc_flow
                     else:
-                        translated_flows[arc_key] = 0.0
+                        translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + 0.0
             else:
                 # Single arc OR series arc merged - use the same flow
                 # For series arcs, all arcs in the series carry the same flow
-                translated_flows[arc_key] = preprocessed_flow
+                translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + preprocessed_flow
 
     # Translate duals: include preserved nodes and compute duals for removed nodes
     translated_duals: dict[str, float] = {}
