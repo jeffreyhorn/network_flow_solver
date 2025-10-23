@@ -536,8 +536,8 @@ def translate_result(
 
     Note:
         - Removed arcs will have flow = 0
-        - Merged arcs will share the flow from the merged arc
-        - Removed nodes will not appear in the duals dictionary
+        - Merged arcs will share the flow from the merged arc (distributed by capacity for redundant arcs)
+        - Removed nodes will have duals computed from adjacent preserved nodes using dual feasibility
         - The basis cannot be translated back and will be set to None
     """
     from .data import FlowResult
@@ -608,15 +608,52 @@ def translate_result(
                 # For series arcs, all arcs in the series carry the same flow
                 translated_flows[arc_key] = preprocessed_flow
 
-    # Translate duals: only include nodes that weren't removed
+    # Translate duals: include preserved nodes and compute duals for removed nodes
     translated_duals: dict[str, float] = {}
+
+    # First, populate duals for preserved nodes
     for node_id in original_problem.nodes:
         preprocessed_node_id = preproc_result.node_mapping.get(node_id)
 
         if preprocessed_node_id is not None:
             # Node was preserved - use its dual
             translated_duals[node_id] = flow_result.duals.get(preprocessed_node_id, 0.0)
-        # If node was removed, we omit it from duals (can't reliably compute it)
+
+    # Second, compute duals for removed nodes based on adjacent preserved nodes
+    # Using dual feasibility: dual_j - dual_i <= c_ij (for arc i->j)
+    for node_id in original_problem.nodes:
+        preprocessed_node_id = preproc_result.node_mapping.get(node_id)
+
+        if preprocessed_node_id is None:
+            # Node was removed - compute its dual from adjacent nodes
+            # Find all arcs incident to this node in the original problem
+            incoming_arcs = [a for a in original_problem.arcs if a.head == node_id]
+            outgoing_arcs = [a for a in original_problem.arcs if a.tail == node_id]
+
+            # Collect constraints from adjacent preserved nodes
+            dual_constraints = []
+
+            for arc in incoming_arcs:
+                if arc.tail in translated_duals:
+                    # For arc tail->node_id with cost c:
+                    # dual[node_id] - dual[tail] <= c
+                    # Therefore: dual[node_id] <= dual[tail] + c
+                    dual_constraints.append(translated_duals[arc.tail] + arc.cost)
+
+            for arc in outgoing_arcs:
+                if arc.head in translated_duals:
+                    # For arc node_id->head with cost c:
+                    # dual[head] - dual[node_id] <= c
+                    # Therefore: dual[node_id] >= dual[head] - c
+                    dual_constraints.append(translated_duals[arc.head] - arc.cost)
+
+            # If we have constraints, use the average to satisfy them approximately
+            # This is a heuristic that tries to be "centered" among the constraints
+            if dual_constraints:
+                translated_duals[node_id] = sum(dual_constraints) / len(dual_constraints)
+            else:
+                # No adjacent preserved nodes - default to 0
+                translated_duals[node_id] = 0.0
 
     # Create translated result
     # Note: basis cannot be translated back, so we set it to None

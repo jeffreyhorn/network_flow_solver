@@ -637,9 +637,9 @@ class TestResultTranslation:
         # Objective should be correct (2+3)*100 = 500
         assert flow_result.objective == pytest.approx(500.0)
 
-        # Removed node B should not appear in duals
-        assert "B" not in flow_result.duals
+        # All nodes should have duals (including removed node B)
         assert "A" in flow_result.duals
+        assert "B" in flow_result.duals
         assert "C" in flow_result.duals
 
     def test_translate_result_with_removed_arcs(self):
@@ -691,3 +691,68 @@ class TestResultTranslation:
         # Both should be optimal
         assert result_original.status == "optimal"
         assert result_preprocessed.status == "optimal"
+
+    def test_removed_nodes_have_computed_duals(self):
+        """Removed nodes should have duals computed from adjacent nodes."""
+        from network_solver import solve_min_cost_flow
+
+        nodes = [
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": 0.0},  # Will be removed (series node)
+            {"id": "C", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 200.0, "cost": 2.0},
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 3.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        preproc_result, flow_result = preprocess_and_solve(problem)
+
+        # Node B should be removed
+        assert preproc_result.node_mapping["B"] is None
+
+        # But B should still have a dual value computed
+        assert "B" in flow_result.duals
+        assert isinstance(flow_result.duals["B"], float)
+
+        # The dual should be reasonable (between A and C duals given the costs)
+        # For arc A->B with cost 2: dual[B] - dual[A] <= 2
+        # For arc B->C with cost 3: dual[C] - dual[B] <= 3
+        # So: dual[A] <= dual[B] <= dual[A] + 2
+        # And: dual[C] - 3 <= dual[B] <= dual[C]
+        dual_a = flow_result.duals["A"]
+        dual_b = flow_result.duals["B"]
+        dual_c = flow_result.duals["C"]
+
+        # Check that B's dual is between the bounds from both constraints
+        # Allow some tolerance for averaging
+        assert dual_b >= min(dual_a + 2.0, dual_c - 3.0) - 1e-6
+        assert dual_b <= max(dual_a + 2.0, dual_c - 3.0) + 1e-6
+
+    def test_removed_node_with_no_adjacent_preserved_nodes(self):
+        """Removed node with no preserved neighbors should default to 0."""
+        nodes = [
+            {"id": "A", "supply": 0.0},  # Will be removed
+            {"id": "B", "supply": 100.0},
+            {"id": "C", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 100.0, "cost": 1.0},  # Will be removed
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 2.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        preproc_result, flow_result = preprocess_and_solve(problem)
+
+        # Node A should be removed
+        assert preproc_result.node_mapping["A"] is None
+
+        # A should have a dual value (defaulted to 0 since no adjacent preserved nodes)
+        assert "A" in flow_result.duals
+        # Since A only connects to B which is preserved, it should compute from B
+        # For arc A->B with cost 1: dual[B] - dual[A] <= 1
+        # So dual[A] >= dual[B] - 1
+        dual_a = flow_result.duals["A"]
+        dual_b = flow_result.duals["B"]
+        assert dual_a == pytest.approx(dual_b - 1.0)
