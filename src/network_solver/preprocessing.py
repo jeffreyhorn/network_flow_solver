@@ -544,8 +544,8 @@ def translate_result(
 
     # Create reverse mapping: preprocessed arc -> list of original arcs
     reverse_arc_mapping: dict[tuple[str, str] | None, list[tuple[str, str]]] = defaultdict(list)
-    for orig_arc, preprocessed_arc in preproc_result.arc_mapping.items():
-        reverse_arc_mapping[preprocessed_arc].append(orig_arc)
+    for orig_arc_key, preprocessed_arc in preproc_result.arc_mapping.items():
+        reverse_arc_mapping[preprocessed_arc].append(orig_arc_key)
 
     # Translate flows: map from preprocessed arcs to original arcs
     translated_flows: dict[tuple[str, str], float] = {}
