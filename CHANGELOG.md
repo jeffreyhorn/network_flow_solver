@@ -40,6 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Corrected expected objective value from 30.0 to 45.0 (optimal path: a→b→c→d at 3.0/unit)
   - All 22 warm-start tests now pass with no xfails
 
+- **Iteration limit status misreported when optimal solution found at exact budget** (`simplex.py:1353-1378`)
+  - **Root cause**: Status computation only checked if `total_iterations >= max_iterations` without verifying optimality
+  - **Impact**: Solver incorrectly reported `status="iteration_limit"` with a warning when the last allowed pivot found the optimal solution
+  - **Fix**: After hitting iteration limit, check for negative reduced cost arcs via `_find_entering_arc()`. If none exist, solution is optimal
+  - **Result**: Solver now correctly reports `status="optimal"` when optimum is found at exact iteration budget
+  - **Test added**: `test_optimal_at_exact_iteration_limit` regression test in `test_solver_options.py`
+
 ### Added
 - **Jupyter notebook tutorial for visualization utilities** (`tutorials/visualization_tutorial.ipynb`)
   - Comprehensive tutorial demonstrating all visualization features
