@@ -691,15 +691,15 @@ class NetworkSimplex:
 
     @property
     def pricing_block(self) -> int:
-        """Get current pricing block position (for DevexPricing compatibility)."""
-        if isinstance(self.pricing_strategy, DevexPricing):
+        """Get current pricing block position (for block-based pricing strategies)."""
+        if hasattr(self.pricing_strategy, "pricing_block"):
             return self.pricing_strategy.pricing_block
         return 0
 
     @pricing_block.setter
     def pricing_block(self, value: int) -> None:
-        """Set pricing block position (for DevexPricing compatibility)."""
-        if isinstance(self.pricing_strategy, DevexPricing):
+        """Set pricing block position (for block-based pricing strategies)."""
+        if hasattr(self.pricing_strategy, "pricing_block"):
             self.pricing_strategy.pricing_block = value
 
     def _find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
@@ -752,8 +752,8 @@ class NetworkSimplex:
 
             # Adapt block size if auto-tuning is enabled
             self.adaptive_tuner.adapt_block_size(total_iterations_offset + iterations)
-            # Sync block size to pricing strategy if it changed
-            if isinstance(self.pricing_strategy, DevexPricing):
+            # Sync block size to pricing strategy if it has a block_size attribute
+            if hasattr(self.pricing_strategy, "block_size"):
                 self.pricing_strategy.block_size = self.adaptive_tuner.block_size
 
             # Call progress callback at specified interval
