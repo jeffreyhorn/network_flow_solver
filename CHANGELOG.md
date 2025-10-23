@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Preprocessing result translation to original problem structure** (`preprocessing.py`)
+  - **Feature**: Solutions from preprocessed problems are automatically translated back to original problem structure
+  - **Functionality**:
+    - `preprocess_and_solve()` now returns flows and duals for the **original** problem
+    - All original arcs have flow values (including removed/merged arcs)
+    - All original nodes have dual values (including removed nodes)
+  - **Translation logic**:
+    - Removed arcs → assigned zero flow
+    - Redundant arcs (merged) → flows distributed proportionally by capacity
+    - Series arcs (merged) → all arcs in series carry the same flow
+    - Removed nodes → duals computed from adjacent preserved arcs
+    - Preserved arcs/nodes → flows/duals copied directly from preprocessed solution
+  - **Benefits**:
+    - Transparent preprocessing - solution always corresponds to original problem
+    - No need to manually track arc/node mappings
+    - Can use preprocessing without changing downstream code
+    - Enables sensitivity analysis on removed nodes
+  - **Performance**: O(n) translation overhead, negligible compared to solve time
+  - **API**: `translate_result()` function available for manual translation if needed
+  - **Documentation**: Updated README.md, docs/api.md, docs/examples.md, and preprocessing_example.py
+  - **Tests**: 33 preprocessing tests including result translation validation
+
 ### Changed
 - **Refactor: Extracted adaptive tuning into separate module** (`simplex_adaptive.py`)
   - **Motivation**: Continue improving maintainability of NetworkSimplex class by extracting runtime parameter adaptation logic

@@ -186,7 +186,7 @@ def preprocess_and_solve(
 ) -> tuple[PreprocessingResult, FlowResult]
 ```
 
-Convenience function to preprocess and solve in one call.
+Convenience function to preprocess, solve, and **automatically translate the solution back** to the original problem structure.
 
 **Parameters:**
 
@@ -196,18 +196,39 @@ Convenience function to preprocess and solve in one call.
 **Returns:**
 
 - `tuple[PreprocessingResult, FlowResult]`: Preprocessing statistics and flow solution
+  - The `FlowResult` contains flows and duals for the **original problem** (not the preprocessed one)
+  - All original arcs have flow values (including removed/merged arcs)
+  - All original nodes have dual values (including removed nodes)
 
 **Example:**
 
 ```python
 from network_solver import preprocess_and_solve
 
-# Preprocess and solve in one call
+# Preprocess, solve, and automatically translate solution back
 preproc_result, flow_result = preprocess_and_solve(problem)
 
 print(f"Removed {preproc_result.removed_arcs} arcs")
 print(f"Optimal cost: ${flow_result.objective:.2f}")
+
+# Access flows for original arcs (even if they were removed/merged)
+print(f"Flow on original arc: {flow_result.flows[('factory', 'hub1')]}")
+
+# Access duals for original nodes (even if they were removed)
+print(f"Dual for removed node: {flow_result.duals['hub1']}")
 ```
+
+**Result Translation:**
+
+Solutions are automatically translated back to the original problem:
+
+- **Removed arcs** → assigned zero flow
+- **Redundant arcs** (merged) → flows distributed proportionally by capacity
+- **Series arcs** (merged) → all arcs in series carry the same flow
+- **Removed nodes** → duals computed from adjacent preserved arcs
+- **Preserved arcs/nodes** → flows/duals copied directly
+
+This ensures the solution always corresponds to your original problem structure.
 
 **With Solver Options:**
 

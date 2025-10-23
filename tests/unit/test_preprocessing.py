@@ -517,3 +517,238 @@ class TestPreprocessingIntegration:
         # Should have removed some arcs and nodes
         assert result.removed_arcs > 0
         assert len(result.problem.arcs) < len(arcs)
+
+
+class TestResultTranslation:
+    """Test translation of results from preprocessed problem to original problem."""
+
+    def test_arc_mapping_for_redundant_arcs(self):
+        """Arc mapping should track redundant arc merging."""
+        nodes = [
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 50.0, "cost": 2.0},
+            {"tail": "A", "head": "B", "capacity": 50.0, "cost": 2.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        result = preprocess_problem(problem)
+
+        # Both original arcs (indices 0 and 1) should map to the same arc
+        assert 0 in result.arc_mapping
+        assert 1 in result.arc_mapping
+        assert result.arc_mapping[0] == ("A", "B")
+        assert result.arc_mapping[1] == ("A", "B")
+
+    def test_arc_mapping_for_series_arcs(self):
+        """Arc mapping should track series arc merging."""
+        nodes = [
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": 0.0},  # Will be removed
+            {"id": "C", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 200.0, "cost": 2.0},
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 3.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        result = preprocess_problem(problem)
+
+        # Both original arcs (indices 0 and 1) should map to the merged arc
+        assert result.arc_mapping[0] == ("A", "C")
+        assert result.arc_mapping[1] == ("A", "C")
+
+        # Removed node should map to None
+        assert result.node_mapping["B"] is None
+
+    def test_arc_mapping_for_removed_arcs(self):
+        """Arc mapping should track removed arcs."""
+        nodes = [
+            {"id": "A", "supply": 0.0},  # Zero supply with single arc
+            {"id": "B", "supply": 100.0},
+            {"id": "C", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 100.0, "cost": 1.0},  # Will be removed
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 2.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        result = preprocess_problem(problem)
+
+        # Removed arc (index 0) should map to None
+        assert result.arc_mapping[0] is None
+
+        # Removed node should map to None
+        assert result.node_mapping["A"] is None
+
+    def test_translate_result_with_redundant_arcs(self):
+        """Result translation should distribute flow for redundant arcs."""
+        nodes = [
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 50.0, "cost": 2.0},
+            {"tail": "A", "head": "B", "capacity": 50.0, "cost": 2.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        preproc_result, flow_result = preprocess_and_solve(problem)
+
+        # Should have flows for both original arcs
+        assert ("A", "B") in flow_result.flows
+
+        # Total flow should be 100 (sum of all parallel arcs)
+        total_flow = flow_result.flows[("A", "B")]
+        assert total_flow == pytest.approx(100.0)
+
+        # Objective should be correct
+        assert flow_result.objective == pytest.approx(200.0)
+
+    def test_translate_result_with_series_arcs(self):
+        """Result translation should handle series arc merging."""
+        nodes = [
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": 0.0},
+            {"id": "C", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 200.0, "cost": 2.0},
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 3.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        preproc_result, flow_result = preprocess_and_solve(problem)
+
+        # Should have flows for both original arcs (even though B was removed)
+        assert ("A", "B") in flow_result.flows
+        assert ("B", "C") in flow_result.flows
+
+        # Both should have the same flow
+        assert flow_result.flows[("A", "B")] == pytest.approx(100.0)
+        assert flow_result.flows[("B", "C")] == pytest.approx(100.0)
+
+        # Objective should be correct (2+3)*100 = 500
+        assert flow_result.objective == pytest.approx(500.0)
+
+        # All nodes should have duals (including removed node B)
+        assert "A" in flow_result.duals
+        assert "B" in flow_result.duals
+        assert "C" in flow_result.duals
+
+    def test_translate_result_with_removed_arcs(self):
+        """Result translation should set zero flow for removed arcs."""
+        nodes = [
+            {"id": "A", "supply": 0.0},
+            {"id": "B", "supply": 100.0},
+            {"id": "C", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 100.0, "cost": 1.0},
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 2.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        preproc_result, flow_result = preprocess_and_solve(problem)
+
+        # Removed arc should have zero flow
+        assert ("A", "B") in flow_result.flows
+        assert flow_result.flows[("A", "B")] == pytest.approx(0.0)
+
+    def test_preprocess_and_solve_matches_original_objective(self):
+        """Preprocessing + translation should preserve optimal objective."""
+        from network_solver import solve_min_cost_flow
+
+        nodes = [
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": 0.0},
+            {"id": "C", "supply": 0.0},
+            {"id": "D", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 50.0, "cost": 2.0},
+            {"tail": "A", "head": "B", "capacity": 50.0, "cost": 2.0},  # Redundant
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 1.0},
+            {"tail": "C", "head": "D", "capacity": 200.0, "cost": 3.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        # Solve original
+        result_original = solve_min_cost_flow(problem)
+
+        # Solve with preprocessing
+        preproc_result, result_preprocessed = preprocess_and_solve(problem)
+
+        # Objectives should match
+        assert result_preprocessed.objective == pytest.approx(result_original.objective)
+
+        # Both should be optimal
+        assert result_original.status == "optimal"
+        assert result_preprocessed.status == "optimal"
+
+    def test_removed_nodes_have_computed_duals(self):
+        """Removed nodes should have duals computed from adjacent nodes."""
+        nodes = [
+            {"id": "A", "supply": 100.0},
+            {"id": "B", "supply": 0.0},  # Will be removed (series node)
+            {"id": "C", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 200.0, "cost": 2.0},
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 3.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        preproc_result, flow_result = preprocess_and_solve(problem)
+
+        # Node B should be removed
+        assert preproc_result.node_mapping["B"] is None
+
+        # But B should still have a dual value computed
+        assert "B" in flow_result.duals
+        assert isinstance(flow_result.duals["B"], float)
+
+        # The dual should be reasonable (between A and C duals given the costs)
+        # For arc A->B with cost 2: dual[B] - dual[A] <= 2
+        # For arc B->C with cost 3: dual[C] - dual[B] <= 3
+        # So: dual[A] <= dual[B] <= dual[A] + 2
+        # And: dual[C] - 3 <= dual[B] <= dual[C]
+        dual_a = flow_result.duals["A"]
+        dual_b = flow_result.duals["B"]
+        dual_c = flow_result.duals["C"]
+
+        # Check that B's dual is between the bounds from both constraints
+        # Allow some tolerance for averaging
+        assert dual_b >= min(dual_a + 2.0, dual_c - 3.0) - 1e-6
+        assert dual_b <= max(dual_a + 2.0, dual_c - 3.0) + 1e-6
+
+    def test_removed_node_with_no_adjacent_preserved_nodes(self):
+        """Removed node with no preserved neighbors should default to 0."""
+        nodes = [
+            {"id": "A", "supply": 0.0},  # Will be removed
+            {"id": "B", "supply": 100.0},
+            {"id": "C", "supply": -100.0},
+        ]
+        arcs = [
+            {"tail": "A", "head": "B", "capacity": 100.0, "cost": 1.0},  # Will be removed
+            {"tail": "B", "head": "C", "capacity": 200.0, "cost": 2.0},
+        ]
+        problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
+
+        preproc_result, flow_result = preprocess_and_solve(problem)
+
+        # Node A should be removed
+        assert preproc_result.node_mapping["A"] is None
+
+        # A should have a dual value (defaulted to 0 since no adjacent preserved nodes)
+        assert "A" in flow_result.duals
+        # Since A only connects to B which is preserved, it should compute from B
+        # For arc A->B with cost 1: dual[B] - dual[A] <= 1
+        # So dual[A] >= dual[B] - 1
+        dual_a = flow_result.duals["A"]
+        dual_b = flow_result.duals["B"]
+        assert dual_a == pytest.approx(dual_b - 1.0)

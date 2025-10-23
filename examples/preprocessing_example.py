@@ -287,6 +287,21 @@ def example5_performance_comparison():
     print(f"Speedup: {speedup:.2f}x")
     print(f"Objectives match: {abs(result_no_preproc.objective - result_preproc.objective) < 1e-4}")
     print()
+
+    # Show that solutions are equivalent (flows translated back to original problem)
+    print("Solution details:")
+    print("  Original problem flow on supplier_0 → hub_0: ", end="")
+    flow_sum = sum(
+        result_no_preproc.flows.get(("supplier_0", "hub_0"), 0.0)
+        for _ in range(1)  # Just accessing once since dict aggregates
+    )
+    print(f"{flow_sum:.1f}")
+    print("  Preprocessed solution (translated back):      ", end="")
+    flow_translated = result_preproc.flows.get(("supplier_0", "hub_0"), 0.0)
+    print(f"{flow_translated:.1f}")
+    print(f"  Flows match: {abs(flow_sum - flow_translated) < 1e-4}")
+    print()
+
     if speedup > 1.1:
         print("✓ Preprocessing provided significant speedup!")
     else:
@@ -367,13 +382,13 @@ def main():
     print("✗ SKIP preprocessing when:")
     print("  • Very small problems (< 10 nodes, < 20 arcs)")
     print("  • Problem already optimized/minimal")
-    print("  • Need exact arc-level correspondence in solution")
     print()
     print("BENEFITS:")
     print("  • Fewer nodes/arcs → faster simplex pivots")
     print("  • Smaller basis matrix → faster refactorization")
     print("  • Typical speedup: 2-10x for problems with redundancy")
     print("  • Preserves optimal solution (safe transformation)")
+    print("  • Solutions automatically translated back to original problem structure")
     print()
     print("USAGE:")
     print("  from network_solver import preprocess_problem, preprocess_and_solve")
@@ -382,8 +397,17 @@ def main():
     print("  result = preprocess_problem(problem)")
     print("  flow_result = solve_min_cost_flow(result.problem)")
     print()
-    print("  # Or use convenience function")
+    print("  # Or use convenience function (automatically translates solution)")
     print("  preproc_result, flow_result = preprocess_and_solve(problem)")
+    print("  # flow_result contains flows/duals for ORIGINAL problem arcs/nodes")
+    print()
+    print("RESULT TRANSLATION:")
+    print("  • preprocess_and_solve() automatically translates solutions")
+    print("  • Flow values mapped back to original arcs (including removed arcs)")
+    print("  • Dual values computed for removed nodes based on adjacent arcs")
+    print("  • Redundant arcs: flows distributed proportionally by capacity")
+    print("  • Series arcs: all arcs in series carry same flow")
+    print("  • Removed arcs: assigned zero flow")
     print()
 
 

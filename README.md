@@ -295,7 +295,7 @@ See `examples/automatic_scaling_example.py` for a comprehensive demonstration wi
 
 ### Problem Preprocessing
 
-The solver includes **problem preprocessing** to simplify network flow problems before solving, reducing problem size and improving performance while preserving optimal solutions.
+The solver includes **problem preprocessing** to simplify network flow problems before solving, reducing problem size and improving performance while preserving optimal solutions. **Solutions are automatically translated back** to the original problem structure.
 
 **Four Optimization Techniques:**
 
@@ -317,14 +317,20 @@ print(f"Preprocessing time: {result.preprocessing_time_ms:.2f}ms")
 flow_result = solve_min_cost_flow(result.problem)
 ```
 
-**Convenience Function:**
+**Convenience Function (Recommended):**
 ```python
 from network_solver import preprocess_and_solve
 
-# Preprocess and solve in one call
+# Preprocess, solve, and automatically translate solution back to original problem
 preproc_result, flow_result = preprocess_and_solve(problem)
 print(f"Removed {preproc_result.removed_arcs} arcs")
 print(f"Optimal cost: ${flow_result.objective:.2f}")
+
+# flow_result contains flows and duals for the ORIGINAL problem
+# - All original arcs have flow values (including removed/merged arcs)
+# - All original nodes have dual values (including removed nodes)
+print(f"Flow on original arc: {flow_result.flows[('factory', 'hub1')]}")
+print(f"Dual for removed node: {flow_result.duals['hub1']}")
 ```
 
 **Selective Preprocessing:**
@@ -376,6 +382,18 @@ print(f"Preprocessing time: {result.preprocessing_time_ms:.2f}ms")
 print(f"Optimizations: {result.optimizations}")
 ```
 
+**Result Translation:**
+
+When using `preprocess_and_solve()`, solutions are automatically translated back to the original problem:
+
+- **Removed arcs** → assigned zero flow
+- **Redundant arcs** (merged) → flows distributed proportionally by capacity
+- **Series arcs** (merged) → all arcs in the series carry the same flow
+- **Removed nodes** → duals computed from adjacent preserved arcs
+- **Preserved arcs/nodes** → flows/duals copied directly from preprocessed solution
+
+This means you can use preprocessing transparently—the solution always corresponds to your original problem structure.
+
 **When Preprocessing Helps:**
 - **Redundant network design** with parallel routes having same cost
 - **Complex supply chains** with many transshipment nodes
@@ -391,13 +409,14 @@ print(f"Optimizations: {result.optimizations}")
 **Benefits:**
 - **Automatic optimization** - No manual problem simplification needed
 - **Faster solving** - Smaller problems converge more quickly
+- **Transparent translation** - Solutions automatically mapped back to original structure
 - **Early detection** - Warns about disconnected components
 - **Safe transformations** - Preserves problem structure and optimal solutions
 - **Detailed statistics** - Track exactly what was simplified
 
 **Note:** Preprocessing is independent and can be combined with automatic scaling, adaptive refactorization, and all other solver features.
 
-See `examples/preprocessing_example.py` for comprehensive demonstrations including performance comparisons.
+See `examples/preprocessing_example.py` for comprehensive demonstrations including performance comparisons and result translation.
 
 ### Adaptive Basis Refactorization
 
