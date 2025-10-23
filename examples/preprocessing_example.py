@@ -290,13 +290,13 @@ def example5_performance_comparison():
 
     # Show that solutions are equivalent (flows translated back to original problem)
     print("Solution details:")
-    print(f"  Original problem flow on supplier_0 → hub_0: ", end="")
+    print("  Original problem flow on supplier_0 → hub_0: ", end="")
     flow_sum = sum(
         result_no_preproc.flows.get(("supplier_0", "hub_0"), 0.0)
         for _ in range(1)  # Just accessing once since dict aggregates
     )
     print(f"{flow_sum:.1f}")
-    print(f"  Preprocessed solution (translated back):      ", end="")
+    print("  Preprocessed solution (translated back):      ", end="")
     flow_translated = result_preproc.flows.get(("supplier_0", "hub_0"), 0.0)
     print(f"{flow_translated:.1f}")
     print(f"  Flows match: {abs(flow_sum - flow_translated) < 1e-4}")
