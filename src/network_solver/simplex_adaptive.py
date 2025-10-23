@@ -95,7 +95,7 @@ class AdaptiveTuner:
         else:
             return max(1, arc_count // 16)  # Large
 
-    def adapt_block_size(self, iteration: int) -> None:
+    def adapt_block_size(self, iteration: int) -> bool:
         """Adapt block size based on runtime performance metrics.
 
         Called periodically during solve to adjust block size:
@@ -104,17 +104,20 @@ class AdaptiveTuner:
 
         Args:
             iteration: Current iteration number.
+
+        Returns:
+            True if block size changed, False otherwise.
         """
         if not self.auto_tune_block_size:
-            return
+            return False
 
         # Only adapt every N iterations
         if iteration - self.last_adaptation_iteration < self.adaptation_interval:
-            return
+            return False
 
         # Need sufficient samples to make a decision (and avoid division by zero)
         if self.total_pivot_count < 10:
-            return
+            return False
 
         degenerate_ratio = self.degenerate_pivot_count / self.total_pivot_count
         old_block_size = self.block_size
@@ -126,7 +129,9 @@ class AdaptiveTuner:
         elif degenerate_ratio < 0.10:
             self.block_size = max(10, int(self.block_size * 0.75))
 
-        if self.block_size != old_block_size:
+        block_size_changed = self.block_size != old_block_size
+
+        if block_size_changed:
             self.logger.debug(
                 f"Adapted block_size: {old_block_size} → {self.block_size} "
                 f"(degenerate_ratio={degenerate_ratio:.2%})",
@@ -142,6 +147,8 @@ class AdaptiveTuner:
         self.degenerate_pivot_count = 0
         self.total_pivot_count = 0
         self.last_adaptation_iteration = iteration
+
+        return block_size_changed
 
     def adjust_ft_limit(self, condition_number: float | None) -> None:
         """Adaptively adjust ft_update_limit based on numerical behavior.

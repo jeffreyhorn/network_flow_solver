@@ -776,9 +776,11 @@ class NetworkSimplex:
             iterations += 1
 
             # Adapt block size if auto-tuning is enabled
-            self.adaptive_tuner.adapt_block_size(total_iterations_offset + iterations)
-            # Sync block size to pricing strategy if it has a block_size attribute
-            if hasattr(self.pricing_strategy, "block_size"):
+            block_size_changed = self.adaptive_tuner.adapt_block_size(
+                total_iterations_offset + iterations
+            )
+            # Sync block size to pricing strategy only if it changed
+            if block_size_changed and hasattr(self.pricing_strategy, "block_size"):
                 self.pricing_strategy.block_size = self.adaptive_tuner.block_size
 
             # Call progress callback at specified interval
