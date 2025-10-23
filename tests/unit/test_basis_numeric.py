@@ -312,6 +312,7 @@ def test_replace_arc_handles_forrest_tomlin_failures(monkeypatch):
     # If FT raises or returns False, replace_arc should surface the failure gracefully.
     # Ensure clean module state (in case previous tests left monkeypatches)
     import importlib
+
     import network_solver.basis
     import network_solver.basis_lu
 

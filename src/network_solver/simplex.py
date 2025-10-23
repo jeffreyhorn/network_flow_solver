@@ -155,6 +155,8 @@ class NetworkSimplex:
         self.penalty_cost = max_cost * (len(self.node_ids) + 1)
 
         self.node_count = len(self.node_ids)
+        # use_dense_inverse is resolved to bool in SolverOptions.__post_init__
+        assert self.options.use_dense_inverse is not None
         self.basis = TreeBasis(
             self.node_count,
             self.root,

@@ -182,7 +182,7 @@ def run_comparison(num_sources: int, num_sinks: int, verbose: bool = False):
     # Verify solutions match
     obj_diff = abs(sparse_stats["objective"] - dense_stats["objective"])
     if obj_diff < 1e-6:
-        print(f"\n✓ Both modes found identical optimal solutions")
+        print("\n✓ Both modes found identical optimal solutions")
     else:
         print(f"\n⚠ Warning: Objectives differ by {obj_diff:.2e}")
 
@@ -272,8 +272,8 @@ def main():
             speedup = r["dense"]["solve_time"] / r["sparse"]["solve_time"]
             print(f"{size_str:<20} {sparse_time:>15} {dense_time:>15} {f'{speedup:.2f}x':>15}")
 
-        print(f"\n✓ Sparse mode consistently faster and uses less memory")
-        print(f"✓ Benefits increase with problem size")
+        print("\n✓ Sparse mode consistently faster and uses less memory")
+        print("✓ Benefits increase with problem size")
 
     print(f"\n{'=' * 80}")
     print("RECOMMENDATION".center(80))

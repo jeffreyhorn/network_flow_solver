@@ -271,13 +271,11 @@ class TreeBasis:
 
         new_col = self._column_vector(arcs[entering_idx])
         if self.ft_engine is not None:
-            ft_exception = False
             try:
                 # Attempt a rank-one FT update before falling back to rebuild paths.
                 updated = self.ft_engine.update(pos, new_col)
             except ValueError:
                 updated = False
-                ft_exception = True
             if updated:
                 self.basis_matrix[:, pos] = new_col
                 self.arc_to_pos.pop(leaving_idx, None)
