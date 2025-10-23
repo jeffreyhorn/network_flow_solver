@@ -62,12 +62,24 @@ After installation with `pip install -e .`, the package is available as `network
 A `Makefile` is provided for common workflows (run from the repository root):
 
 ```bash
-make lint          # ruff check
-make unit          # unit test suite
-make integration   # integration & CLI tests
-make test          # full pytest run
-make fmt           # ruff format + lint (see docs/ for details)
-make coverage      # pytest with coverage report (requires pytest-cov)
+# Code Quality
+make lint          # Run ruff linting checks
+make format        # Auto-format code with ruff
+make format-check  # Check if code needs formatting (CI-friendly)
+make typecheck     # Run mypy type checking
+make check         # Run all checks (lint + format-check + typecheck)
+
+# Testing
+make test          # Run all tests
+make unit          # Run unit tests only
+make integration   # Run integration tests only
+make coverage      # Run tests with coverage report
+
+# Development
+make install       # Install package in development mode
+make dev-install   # Install package with dev dependencies
+make clean         # Remove build artifacts and caches
+make help          # Show all available targets
 ```
 
 Property-based tests live alongside the unit suite and will execute automatically once Hypothesis is installed. Slow integration tests are marked with `@pytest.mark.slow`; to skip them use `pytest -m "not slow"`.
@@ -1053,7 +1065,8 @@ Run everything with `make test` or invoke your preferred pytest subsets directly
 
 ## Contributing
 
-- Format/lint with `make lint`
+- Format code with `make format`
+- Check code quality with `make check` (runs lint, format-check, and typecheck)
 - Run `make test` before submitting changes
 - Keep new examples in `examples/` and note structural changes in `AGENTS.md`
 

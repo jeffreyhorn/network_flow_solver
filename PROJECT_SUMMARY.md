@@ -257,18 +257,22 @@ pip install -e ".[dev,umfpack]"
 ### Commands
 ```bash
 make lint          # Code linting
+make format        # Format code
+make format-check  # Check formatting (CI)
 make typecheck     # Type checking
+make check         # All quality checks
 make test          # Run all tests
 make coverage      # Coverage report
-make fmt           # Format code
+make help          # Show all targets
 ```
 
 ### Workflow
 ```bash
 git checkout -b feature-name
 # Make changes
-pytest
-make lint
+make format        # Format code
+make check         # Run all checks
+make test          # Run tests
 git commit -m "Add feature"
 git push -u origin feature-name
 # Create PR on GitHub
