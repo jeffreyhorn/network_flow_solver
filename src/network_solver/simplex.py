@@ -25,10 +25,14 @@ from .scaling import (
     unscale_solution,
 )
 from .simplex_adaptive import AdaptiveTuner
-from .simplex_pricing import DantzigPricing, DevexPricing, PricingStrategy
+from .simplex_pricing import (
+    DEVEX_WEIGHT_MAX,
+    DEVEX_WEIGHT_MIN,
+    DantzigPricing,
+    DevexPricing,
+    PricingStrategy,
+)
 
-DEVEX_WEIGHT_MIN = 1e-12  # Prevent division by zero or runaway weights in Devex pricing.
-DEVEX_WEIGHT_MAX = 1e12  # Cap the Devex weight to avoid catastrophic scaling.
 PERTURB_EPS_BASE = 1e-10  # Base epsilon for lexicographic cost perturbation.
 PERTURB_GROWTH = 1.00001  # Slight growth per arc to break ties deterministically.
 
