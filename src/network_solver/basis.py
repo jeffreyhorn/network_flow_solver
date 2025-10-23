@@ -19,8 +19,13 @@ class TreeBasis:
     """Encapsulates parent/potential bookkeeping for the spanning-tree basis."""
 
     def __init__(
-        self, node_count: int, root: int, tolerance: float, use_dense_inverse: bool = False
+        self, node_count: int, root: int, tolerance: float, use_dense_inverse: bool | None = None
     ) -> None:
+        # Auto-detect if not specified: use sparse if available, else dense
+        if use_dense_inverse is None:
+            from .basis_lu import has_sparse_lu
+
+            use_dense_inverse = not has_sparse_lu()
         self.node_count = node_count
         self.root = root
         self.tolerance = tolerance
