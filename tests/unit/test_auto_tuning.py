@@ -46,8 +46,8 @@ def test_block_size_adaptation_with_high_degeneracy():
 
     # Verify counters were being tracked
     # (They get reset after adaptations, so we can't check exact values)
-    assert hasattr(solver, "degenerate_pivot_count")
-    assert hasattr(solver, "total_pivot_count")
+    assert hasattr(solver.adaptive_tuner, "degenerate_pivot_count")
+    assert hasattr(solver.adaptive_tuner, "total_pivot_count")
 
 
 def test_block_size_adaptation_early_return_insufficient_pivots():
@@ -144,8 +144,8 @@ def test_block_size_adaptation_interval_timing():
     solver = NetworkSimplex(problem, options=options)
 
     # Verify adaptation interval is set
-    assert solver.adaptation_interval == 50
-    assert solver.last_adaptation_iteration == 0
+    assert solver.adaptive_tuner.adaptation_interval == 50
+    assert solver.adaptive_tuner.last_adaptation_iteration == 0
 
     result = solver.solve()
     assert result.status == "optimal"
@@ -211,24 +211,24 @@ def test_auto_tuning_block_size_clamping():
 
     # Manually trigger adaptation with very low degeneracy
     # (to test the clamping to min=10)
-    solver.total_pivot_count = 100
-    solver.degenerate_pivot_count = 5  # 5% degeneracy (< 10%)
-    solver.last_adaptation_iteration = 0
-    solver.block_size = 15  # Start with small block size
+    solver.adaptive_tuner.total_pivot_count = 100
+    solver.adaptive_tuner.degenerate_pivot_count = 5  # 5% degeneracy (< 10%)
+    solver.adaptive_tuner.last_adaptation_iteration = 0
+    solver.adaptive_tuner.block_size = 15  # Start with small block size
 
     # Manually call adaptation
-    solver._adapt_block_size(51)  # iteration > 50, should trigger
+    solver.adaptive_tuner.adapt_block_size(51)  # iteration > 50, should trigger
 
     # Block size should decrease but not go below 10
     assert solver.block_size >= 10
 
     # Also test upper bound (shouldn't exceed num_arcs)
-    solver.total_pivot_count = 100
-    solver.degenerate_pivot_count = 50  # 50% degeneracy (> 30%)
-    solver.last_adaptation_iteration = 0
-    solver.block_size = solver.actual_arc_count - 2
+    solver.adaptive_tuner.total_pivot_count = 100
+    solver.adaptive_tuner.degenerate_pivot_count = 50  # 50% degeneracy (> 30%)
+    solver.adaptive_tuner.last_adaptation_iteration = 0
+    solver.adaptive_tuner.block_size = solver.actual_arc_count - 2
 
-    solver._adapt_block_size(101)
+    solver.adaptive_tuner.adapt_block_size(101)
 
     # Block size should increase but not exceed num_arcs
     assert solver.block_size <= solver.actual_arc_count
@@ -286,8 +286,8 @@ def test_degenerate_pivot_tracking():
     solver = NetworkSimplex(problem, options=options)
 
     # Initially counters should be zero
-    assert solver.degenerate_pivot_count == 0
-    assert solver.total_pivot_count == 0
+    assert solver.adaptive_tuner.degenerate_pivot_count == 0
+    assert solver.adaptive_tuner.total_pivot_count == 0
 
     result = solver.solve()
 
@@ -296,5 +296,5 @@ def test_degenerate_pivot_tracking():
     assert result.status == "optimal"
     # Counters may have been reset if adaptation occurred
     # But we can verify the tracking attributes exist and are non-negative
-    assert solver.degenerate_pivot_count >= 0
-    assert solver.total_pivot_count >= 0
+    assert solver.adaptive_tuner.degenerate_pivot_count >= 0
+    assert solver.adaptive_tuner.total_pivot_count >= 0

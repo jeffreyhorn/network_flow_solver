@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Refactor: Extracted adaptive tuning into separate module** (`simplex_adaptive.py`)
+  - **Motivation**: Continue improving maintainability of NetworkSimplex class by extracting runtime parameter adaptation logic
+  - **Changes**:
+    - Created `simplex_adaptive.py` with `AdaptiveTuner` class
+    - Moved block size computation and adaptation logic (degeneracy-based)
+    - Moved Forrest-Tomlin update limit adjustment (condition-number-based)
+    - Moved pivot statistics tracking (degenerate vs non-degenerate pivots)
+    - Added backward compatibility properties to NetworkSimplex (`block_size`, `auto_tune_block_size`, `current_ft_limit`)
+    - Removed ~105 lines of adaptive tuning code from NetworkSimplex
+    - Added section headers to simplex.py for improved code organization:
+      - Problem Setup and Initialization
+      - Basis Management and Warm-Start
+      - Pricing Strategy Integration
+      - Simplex Iterations and Phase Management
+      - Pivot Operations
+      - Cost Perturbation and Degeneracy Handling
+      - Main Solve Method
+      - Utility Methods
+  - **Benefits**:
+    - Clearer separation: Adaptive tuning logic isolated in dedicated module
+    - Easier testing: Can unit test tuning heuristics independently
+    - Better organization: Section headers make NetworkSimplex easier to navigate
+  - **API Compatibility**: Fully backward compatible via property delegation - all 444+ unit tests pass
+  - **Status**: Completed Option A-Lite approach - stopping modularization here and focusing on internal organization
+
 - **Refactor: Extracted pricing strategies into separate module** (`simplex_pricing.py`)
   - **Motivation**: Improve maintainability and extensibility of the 1490-line NetworkSimplex class
   - **Changes**:
