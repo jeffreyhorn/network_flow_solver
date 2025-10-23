@@ -137,7 +137,11 @@ class AdaptiveTuner:
                     "iteration": iteration,
                 },
             )
-            self.last_adaptation_iteration = iteration
+
+        # Reset counters for next adaptation window
+        self.degenerate_pivot_count = 0
+        self.total_pivot_count = 0
+        self.last_adaptation_iteration = iteration
 
     def adjust_ft_limit(self, condition_number: float | None) -> None:
         """Adaptively adjust ft_update_limit based on numerical behavior.
