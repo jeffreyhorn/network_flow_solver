@@ -356,28 +356,80 @@ if result.disconnected_components > 1:
 
 **Use case:** Early detection of infeasibility when disconnected components have imbalanced supply/demand.
 
-### Convenience Function
+### Convenience Function with Result Translation
 
-**Example:** Preprocess and solve in one call.
+**Example:** Preprocess, solve, and automatically translate solution back to original problem.
 
 ```python
 from network_solver import build_problem, preprocess_and_solve
 
-# Build problem
+# Build problem with redundant arcs and series nodes
+nodes = [
+    {"id": "factory", "supply": 100.0},
+    {"id": "hub", "supply": 0.0},  # Transshipment node (will be removed)
+    {"id": "customer", "supply": -100.0},
+]
+arcs = [
+    {"tail": "factory", "head": "hub", "capacity": 150.0, "cost": 2.0},
+    {"tail": "factory", "head": "hub", "capacity": 150.0, "cost": 2.0},  # Redundant
+    {"tail": "hub", "head": "customer", "capacity": 200.0, "cost": 3.0},
+]
+
 problem = build_problem(nodes, arcs, directed=True, tolerance=1e-6)
 
-# Preprocess and solve together
+# Preprocess and solve together - solution is automatically translated back
 preproc_result, flow_result = preprocess_and_solve(problem)
 
 print(f"Preprocessing:")
 print(f"  Removed {preproc_result.removed_arcs} arcs")
 print(f"  Removed {preproc_result.removed_nodes} nodes")
 print(f"  Time: {preproc_result.preprocessing_time_ms:.2f}ms")
-print(f"\nSolution:")
+
+print(f"\nSolution (for ORIGINAL problem):")
 print(f"  Status: {flow_result.status}")
 print(f"  Objective: ${flow_result.objective:.2f}")
 print(f"  Iterations: {flow_result.iterations}")
+
+# Access flows for original arcs (including removed ones)
+print(f"\nFlows on original arcs:")
+for arc in problem.arcs:
+    flow = flow_result.flows.get((arc.tail, arc.head), 0.0)
+    print(f"  {arc.tail} → {arc.head}: {flow} units")
+
+# Access duals for original nodes (including removed ones)
+print(f"\nDuals for original nodes:")
+for node in problem.nodes:
+    dual = flow_result.duals.get(node.id, 0.0)
+    print(f"  {node.id}: {dual:.6f}")
+
+# Output:
+# Preprocessing:
+#   Removed 1 arcs
+#   Removed 1 nodes
+#   Time: 0.45ms
+#
+# Solution (for ORIGINAL problem):
+#   Status: optimal
+#   Objective: $500.00
+#   Iterations: 0
+#
+# Flows on original arcs:
+#   factory → hub: 50.0 units  (redundant arc 1 - proportional distribution)
+#   factory → hub: 50.0 units  (redundant arc 2 - proportional distribution)
+#   hub → customer: 100.0 units  (series arc)
+#
+# Duals for original nodes:
+#   factory: -5.000000
+#   hub: -3.000000  (computed from adjacent arcs)
+#   customer: 0.000000
 ```
+
+**Result Translation Details:**
+
+- **Redundant arcs**: Flow distributed proportionally by capacity (equal here)
+- **Series arcs**: All arcs in series carry the same flow
+- **Removed nodes**: Duals computed from adjacent preserved arcs
+- **Solution always corresponds to original problem structure**
 
 ### Selective Preprocessing
 
