@@ -24,6 +24,7 @@ from .scaling import (
     should_scale_problem,
     unscale_solution,
 )
+from .simplex_pricing import DantzigPricing, DevexPricing, PricingStrategy
 
 DEVEX_WEIGHT_MIN = 1e-12  # Prevent division by zero or runaway weights in Devex pricing.
 DEVEX_WEIGHT_MAX = 1e12  # Cap the Devex weight to avoid catastrophic scaling.
@@ -152,7 +153,6 @@ class NetworkSimplex:
         self.node_count = len(self.node_ids)
         self.basis = TreeBasis(self.node_count, self.root, self.tolerance)
         self.tree_adj: list[list[int]] = [[] for _ in range(self.node_count)]
-        self.pricing_block = 0
 
         # Block size configuration and auto-tuning
         self.auto_tune_block_size = False
@@ -172,7 +172,22 @@ class NetworkSimplex:
         self.last_adaptation_iteration = 0
         self.adaptation_interval = 50  # Adapt every 50 iterations
 
+        # Initialize devex_weights that may be shared with pricing strategy
         self.devex_weights: list[float] = [1.0] * len(self.arcs)
+
+        # Initialize pricing strategy based on solver options
+        if self.options.pricing_strategy == "devex":
+            # Pass devex_weights to share state between NetworkSimplex and DevexPricing
+            self.pricing_strategy: PricingStrategy = DevexPricing(
+                len(self.arcs), self.block_size, self.devex_weights
+            )
+        elif self.options.pricing_strategy == "dantzig":
+            self.pricing_strategy = DantzigPricing()
+        else:
+            raise SolverConfigurationError(
+                f"Unknown pricing strategy '{self.options.pricing_strategy}'. "
+                f"Valid options: 'devex', 'dantzig'."
+            )
         self.original_costs = [arc.cost for arc in self.arcs]
         self.perturbed_costs = [arc.cost for arc in self.arcs]
         self._apply_cost_perturbation()
@@ -412,6 +427,11 @@ class NetworkSimplex:
                 self.devex_weights.append(1.0)
                 self.tree_adj[self.root].append(arc_idx)
                 self.tree_adj[node_idx].append(arc_idx)
+
+        # Sync pricing strategy weights with new arc count
+        if isinstance(self.pricing_strategy, DevexPricing):
+            self.pricing_strategy.weights = np.array(self.devex_weights, dtype=float)
+            self.pricing_strategy._weights_list = self.devex_weights
 
     def _rebuild_tree_structure(self) -> None:
         """Recompute parent pointers and potentials based on active tree arcs."""
@@ -713,6 +733,19 @@ class NetworkSimplex:
 
         return Basis(tree_arcs=tree_arcs, arc_flows=arc_flows)
 
+    @property
+    def pricing_block(self) -> int:
+        """Get current pricing block position (for DevexPricing compatibility)."""
+        if isinstance(self.pricing_strategy, DevexPricing):
+            return self.pricing_strategy.pricing_block
+        return 0
+
+    @pricing_block.setter
+    def pricing_block(self, value: int) -> None:
+        """Set pricing block position (for DevexPricing compatibility)."""
+        if isinstance(self.pricing_strategy, DevexPricing):
+            self.pricing_strategy.pricing_block = value
+
     def _find_entering_arc(self, allow_zero: bool) -> tuple[int, int] | None:
         """Return (arc_idx, direction) for entering arc, where direction is +1 or -1."""
         # Try specialized pivot strategy first if available
@@ -721,135 +754,14 @@ class NetworkSimplex:
             if result is not None:
                 return result
 
-        # Fall back to standard pricing strategies
-        if self.options.pricing_strategy == "devex":
-            return self._find_entering_arc_devex(allow_zero)
-        elif self.options.pricing_strategy == "dantzig":
-            return self._find_entering_arc_dantzig(allow_zero)
-        else:
-            raise SolverConfigurationError(
-                f"Unknown pricing strategy '{self.options.pricing_strategy}'. "
-                f"Valid options: 'devex', 'dantzig'."
-            )
-
-    def _update_devex_weight(self, arc_idx: int, arc: ArcState) -> float:
-        """Update and return the Devex weight for the given arc."""
-        weight = max(self.devex_weights[arc_idx], DEVEX_WEIGHT_MIN)
-        projection = self.basis.project_column(arc)
-        if projection is not None:
-            # Recompute Devex weight using the latest basis solve to stabilise pricing.
-            weight = float(np.dot(projection, projection))
-            if not math.isfinite(weight) or weight <= DEVEX_WEIGHT_MIN:
-                weight = DEVEX_WEIGHT_MIN
-            elif weight > DEVEX_WEIGHT_MAX:
-                weight = DEVEX_WEIGHT_MAX
-            self.devex_weights[arc_idx] = weight
-        return weight
-
-    def _is_better_candidate(
-        self, merit: float, idx: int, best_merit: float, best: tuple[int, int] | None
-    ) -> bool:
-        """Check if current candidate is better than the best found so far."""
-        better = merit > best_merit + self.tolerance
-        tie = not better and abs(merit - best_merit) <= self.tolerance
-        return better or (tie and (best is None or idx < best[0]))
-
-    def _find_entering_arc_devex(self, allow_zero: bool) -> tuple[int, int] | None:
-        """Devex pricing: block-based search with normalized reduced costs."""
-        zero_candidates: list[tuple[int, int]] = []
-        best: tuple[int, int] | None = None
-        best_merit = -math.inf
-        block_count = max(1, (self.actual_arc_count + self.block_size - 1) // self.block_size)
-
-        for _ in range(block_count):
-            start = self.pricing_block * self.block_size
-            if start >= self.actual_arc_count:
-                self.pricing_block = 0
-                start = 0
-            end = min(start + self.block_size, self.actual_arc_count)
-            best_merit = -math.inf
-            best = None
-            zero_candidates = []
-
-            for idx in range(start, end):
-                arc = self.arcs[idx]
-                if arc.in_tree or arc.artificial:
-                    continue
-                rc = arc.cost + self.basis.potential[arc.tail] - self.basis.potential[arc.head]
-                forward_res = arc.forward_residual()
-                backward_res = arc.backward_residual()
-
-                # Check forward direction
-                if forward_res > self.tolerance and rc < -self.tolerance:
-                    weight = self._update_devex_weight(idx, arc)
-                    merit = (rc * rc) / weight
-                    if self._is_better_candidate(merit, idx, best_merit, best):
-                        best_merit = merit
-                        best = (idx, 1)
-                    continue
-
-                # Check backward direction
-                if backward_res > self.tolerance and rc > self.tolerance:
-                    weight = self._update_devex_weight(idx, arc)
-                    merit = (rc * rc) / weight
-                    if self._is_better_candidate(merit, idx, best_merit, best):
-                        best_merit = merit
-                        best = (idx, -1)
-                    continue
-
-                # Collect zero-reduced-cost candidates if allowed
-                if allow_zero and forward_res > self.tolerance and abs(rc) <= self.tolerance:
-                    zero_candidates.append((idx, 1))
-                elif allow_zero and backward_res > self.tolerance and abs(rc) <= self.tolerance:
-                    zero_candidates.append((idx, -1))
-
-            if best is not None:
-                return best
-            if allow_zero and zero_candidates:
-                self.pricing_block = (self.pricing_block + 1) % block_count
-                return zero_candidates[0]
-
-            self.pricing_block = (self.pricing_block + 1) % block_count
-
-        return None
-
-    def _find_entering_arc_dantzig(self, allow_zero: bool) -> tuple[int, int] | None:
-        """Dantzig pricing: simple first-eligible arc with most negative reduced cost."""
-        best: tuple[int, int] | None = None
-        best_rc = 0.0
-
-        for idx in range(self.actual_arc_count):
-            arc = self.arcs[idx]
-            if arc.in_tree or arc.artificial:
-                continue
-            rc = arc.cost + self.basis.potential[arc.tail] - self.basis.potential[arc.head]
-            forward_res = arc.forward_residual()
-            backward_res = arc.backward_residual()
-
-            if forward_res > self.tolerance and rc < -self.tolerance:
-                if best is None or rc < best_rc:
-                    best = (idx, 1)
-                    best_rc = rc
-            elif backward_res > self.tolerance and rc > self.tolerance:
-                if best is None or -rc < best_rc:
-                    best = (idx, -1)
-                    best_rc = -rc
-            elif (
-                allow_zero
-                and forward_res > self.tolerance
-                and abs(rc) <= self.tolerance
-                and best is None
-            ):
-                best = (idx, 1)
-            elif (
-                allow_zero
-                and backward_res > self.tolerance
-                and abs(rc) <= self.tolerance
-                and best is None
-            ):
-                best = (idx, -1)
-
-        return best
+        # Delegate to pricing strategy
+        return self.pricing_strategy.select_entering_arc(
+            self.arcs,
+            self.basis,
+            self.actual_arc_count,
+            allow_zero,
+            self.tolerance,
+        )
 
     def _update_tree_sets(self) -> None:
         self.tree_adj = [[] for _ in range(self.node_count)]
@@ -1442,8 +1354,11 @@ class NetworkSimplex:
         )
 
     def _reset_devex_weights(self) -> None:
+        """Reset Devex weights to 1.0 for both NetworkSimplex and pricing strategy."""
         for idx in range(len(self.devex_weights)):
             self.devex_weights[idx] = 1.0
+        # Also reset pricing strategy state
+        self.pricing_strategy.reset()
 
     def _adjust_ft_limit(self, condition_number: float | None) -> None:
         """Adaptively adjust ft_update_limit based on numerical behavior.

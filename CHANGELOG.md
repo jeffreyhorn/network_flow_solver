@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Refactor: Extracted pricing strategies into separate module** (`simplex_pricing.py`)
+  - **Motivation**: Improve maintainability and extensibility of the 1490-line NetworkSimplex class
+  - **Changes**:
+    - Created `simplex_pricing.py` with `PricingStrategy` abstract base class
+    - Implemented `DantzigPricing` (most negative reduced cost)
+    - Implemented `DevexPricing` (steepest edge approximation with block search)
+    - NetworkSimplex now uses composition pattern with pricing strategy delegation
+    - Removed ~120 lines of pricing code from NetworkSimplex
+  - **Benefits**:
+    - Single Responsibility: Each pricing strategy is self-contained
+    - Open/Closed: Easy to add new pricing strategies without modifying NetworkSimplex
+    - Testability: Pricing strategies can be unit tested independently
+    - Readability: Clearer separation of concerns
+  - **API Compatibility**: Fully backward compatible - all 444 unit tests pass without modification
+  - **Future Work**: Continue modularization with basis management, pivot operations, and adaptive tuning
+
 ### Fixed
 - **CRITICAL: Pivot theta computation bug causing flow conservation violations** (`simplex.py:951-995`)
   - **Root cause**: The theta computation loop was incorrectly skipping the entering arc's capacity constraint
