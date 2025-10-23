@@ -37,6 +37,10 @@ class PreprocessingResult:
         disconnected_components: Number of disconnected components detected
         preprocessing_time_ms: Time spent preprocessing in milliseconds
         optimizations: Dictionary mapping optimization names to counts
+        arc_mapping: Maps original arc keys (tail, head) to preprocessed arc keys.
+                     If an arc was merged or removed, it may map to None or a different arc.
+        node_mapping: Maps original node IDs to preprocessed node IDs.
+                      If a node was removed, it maps to None.
     """
 
     problem: NetworkProblem
@@ -47,6 +51,8 @@ class PreprocessingResult:
     disconnected_components: int = 0
     preprocessing_time_ms: float = 0.0
     optimizations: dict[str, int] = field(default_factory=dict)
+    arc_mapping: dict[tuple[str, str], tuple[str, str] | None] = field(default_factory=dict)
+    node_mapping: dict[str, str | None] = field(default_factory=dict)
 
 
 def preprocess_problem(
@@ -468,6 +474,12 @@ def preprocess_and_solve(
     Returns:
         Tuple of (preprocessing_result, flow_result)
 
+    Warning:
+        If preprocessing modifies the problem structure (removes/merges arcs or nodes),
+        warm_start_basis from the original problem will be incompatible with the
+        preprocessed problem. This function will automatically drop warm_start_basis
+        if preprocessing made structural changes.
+
     Example:
         >>> from network_solver import build_problem, preprocess_and_solve
         >>>
@@ -480,6 +492,25 @@ def preprocess_and_solve(
     from .solver import solve_min_cost_flow
 
     preproc_result = preprocess_problem(problem)
+
+    # Check if preprocessing made structural changes
+    structural_changes = (
+        preproc_result.removed_arcs > 0
+        or preproc_result.removed_nodes > 0
+        or preproc_result.merged_arcs > 0
+    )
+
+    # Guard against incompatible warm_start_basis
+    if structural_changes and "warm_start_basis" in solve_kwargs:
+        logger.warning(
+            "Dropping warm_start_basis: preprocessing made structural changes "
+            f"(removed {preproc_result.removed_arcs} arcs, "
+            f"{preproc_result.removed_nodes} nodes, "
+            f"merged {preproc_result.merged_arcs} series). "
+            "Basis from original problem is incompatible with preprocessed problem."
+        )
+        solve_kwargs = {k: v for k, v in solve_kwargs.items() if k != "warm_start_basis"}
+
     flow_result = solve_min_cost_flow(preproc_result.problem, **solve_kwargs)
 
     return preproc_result, flow_result
