@@ -197,22 +197,22 @@ def main():
     parser.add_argument(
         "--small",
         action="store_true",
-        help="Run small problem (50×50, fast)",
+        help="Run small problem (25×25, fast)",
     )
     parser.add_argument(
         "--medium",
         action="store_true",
-        help="Run medium problem (100×100)",
+        help="Run medium problem (50×50)",
     )
     parser.add_argument(
         "--large",
         action="store_true",
-        help="Run large problem (200×200, slower)",
+        help="Run large problem (100×100, slower)",
     )
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Run all problem sizes",
+        help="Run all problem sizes (25×25, 50×50, 75×75, 100×100)",
     )
     parser.add_argument(
         "-v",
