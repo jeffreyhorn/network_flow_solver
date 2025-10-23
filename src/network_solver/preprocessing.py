@@ -596,17 +596,33 @@ def translate_result(
                     arc_flow = preprocessed_flow / len(original_arcs_sharing_flow)
                     translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + arc_flow
                 else:
-                    # Distribute proportionally by capacity (excluding infinite)
-                    finite_capacities = [c if c != float("inf") else 0 for c in capacities]
-                    total_capacity = sum(finite_capacities)
-                    if total_capacity > 0:
-                        my_capacity = capacities[original_arcs_sharing_flow.index(orig_arc_idx)]
-                        if my_capacity == float("inf"):
-                            my_capacity = 0
-                        arc_flow = preprocessed_flow * (my_capacity / total_capacity)
-                        translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + arc_flow
+                    # If any arcs have infinite capacity, distribute flow only among those
+                    infinite_indices = [i for i, c in enumerate(capacities) if c == float("inf")]
+                    if infinite_indices:
+                        # Flow goes to infinite capacity arcs only
+                        if original_arcs_sharing_flow.index(orig_arc_idx) in infinite_indices:
+                            arc_flow = preprocessed_flow / len(infinite_indices)
+                            translated_flows[arc_key] = (
+                                translated_flows.get(arc_key, 0.0) + arc_flow
+                            )
+                        else:
+                            # Finite capacity arcs get no flow when infinite capacity arcs exist
+                            translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + 0.0
                     else:
-                        translated_flows[arc_key] = translated_flows.get(arc_key, 0.0) + 0.0
+                        # All arcs have finite capacity - distribute proportionally
+                        total_capacity = sum(capacities)
+                        if total_capacity > 0:
+                            my_capacity = capacities[original_arcs_sharing_flow.index(orig_arc_idx)]
+                            arc_flow = preprocessed_flow * (my_capacity / total_capacity)
+                            translated_flows[arc_key] = (
+                                translated_flows.get(arc_key, 0.0) + arc_flow
+                            )
+                        else:
+                            # All capacities are 0 - distribute equally (degenerate case)
+                            arc_flow = preprocessed_flow / len(original_arcs_sharing_flow)
+                            translated_flows[arc_key] = (
+                                translated_flows.get(arc_key, 0.0) + arc_flow
+                            )
             else:
                 # Single arc OR series arc merged - use the same flow
                 # For series arcs, all arcs in the series carry the same flow
