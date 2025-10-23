@@ -156,7 +156,11 @@ class NetworkSimplex:
 
         self.node_count = len(self.node_ids)
         # use_dense_inverse is resolved to bool in SolverOptions.__post_init__
-        assert self.options.use_dense_inverse is not None
+        if self.options.use_dense_inverse is None:
+            raise SolverConfigurationError(
+                "SolverOptions.use_dense_inverse must be resolved to a boolean value. "
+                "This should be handled automatically by SolverOptions.__post_init__."
+            )
         self.basis = TreeBasis(
             self.node_count,
             self.root,
