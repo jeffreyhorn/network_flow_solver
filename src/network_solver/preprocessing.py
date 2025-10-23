@@ -39,8 +39,10 @@ class PreprocessingResult:
         optimizations: Dictionary mapping optimization names to counts
         arc_mapping: Maps original arc keys (tail, head) to preprocessed arc keys.
                      If an arc was merged or removed, it may map to None or a different arc.
+                     TODO: Currently unpopulated - placeholder for future implementation.
         node_mapping: Maps original node IDs to preprocessed node IDs.
                       If a node was removed, it maps to None.
+                      TODO: Currently unpopulated - placeholder for future implementation.
     """
 
     problem: NetworkProblem
