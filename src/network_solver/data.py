@@ -387,12 +387,14 @@ class SolverOptions:
                         Prevents limit from becoming too small.
         adaptive_ft_max: Maximum value for adaptive ft_update_limit (default: 200).
                         Prevents limit from becoming too large.
-        use_dense_inverse: Compute and maintain dense basis inverse (default: False).
-                          - False (default): Use sparse LU factorization only (better scalability)
-                          - True: Compute dense inverse with np.linalg.inv (O(n³) memory and time)
+        use_dense_inverse: Compute and maintain dense basis inverse (default: None = auto).
+                          - None (default): Auto-detect based on sparse LU availability
+                            - If scipy available: False (use sparse LU only)
+                            - If scipy unavailable: True (fall back to dense inverse)
+                          - False: Force sparse LU only (requires scipy, raises error if unavailable)
+                          - True: Always compute dense inverse with np.linalg.inv (O(n³) memory and time)
                           Dense inverse enables Sherman-Morrison rank-1 updates but is memory-intensive.
-                          For large problems (>1000 nodes), sparse LU is recommended.
-                          Dense mode is useful for testing, dense networks, or when memory is not a constraint.
+                          For large problems (>1000 nodes), sparse LU is recommended when available.
 
     Examples:
         >>> # Default options (auto-tuning enabled)
@@ -433,7 +435,7 @@ class SolverOptions:
     condition_number_threshold: float = 1e12
     adaptive_ft_min: int = 20
     adaptive_ft_max: int = 200
-    use_dense_inverse: bool = False
+    use_dense_inverse: bool | None = None
 
     def __post_init__(self) -> None:
         if self.tolerance <= 0:
@@ -470,6 +472,22 @@ class SolverOptions:
             raise InvalidProblemError(
                 f"Adaptive FT min must be positive and <= max, got min={self.adaptive_ft_min}, max={self.adaptive_ft_max}."
             )
+
+        # Resolve use_dense_inverse default based on sparse LU availability
+        if self.use_dense_inverse is None:
+            from .basis_lu import has_sparse_lu
+
+            # Auto-detect: use sparse LU if available, otherwise fall back to dense
+            object.__setattr__(self, "use_dense_inverse", not has_sparse_lu())
+        elif self.use_dense_inverse is False:
+            # Validate that sparse LU is actually available
+            from .basis_lu import has_sparse_lu
+
+            if not has_sparse_lu():
+                raise InvalidProblemError(
+                    "use_dense_inverse=False requires scipy for sparse LU factorization. "
+                    "Either install scipy or set use_dense_inverse=True to use dense inverse."
+                )
 
 
 def build_problem(
