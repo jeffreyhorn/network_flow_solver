@@ -915,9 +915,16 @@ options5 = SolverOptions(ft_update_limit=20)
 result5 = solve_min_cost_flow(problem, options=options5)
 print(f"   Iterations: {result5.iterations}")
 
+# Configuration 6: Disable projection cache (for very small problems)
+print("\n6. Cache disabled (for tiny problems):")
+options6 = SolverOptions(projection_cache_size=0)
+result6 = solve_min_cost_flow(problem, options=options6)
+print(f"   Iterations: {result6.iterations}")
+print(f"   (Cache disabled may be faster for problems < 50 nodes)")
+
 # All should give same objective (within tolerance)
 print(f"\nAll objectives equal: {all(abs(r.objective - result1.objective) < 1e-4 
-                                      for r in [result2, result3, result4, result5])}")
+                                      for r in [result2, result3, result4, result5, result6])}")
 ```
 
 ## Adaptive Basis Refactorization
