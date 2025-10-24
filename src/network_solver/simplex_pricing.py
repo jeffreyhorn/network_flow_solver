@@ -26,6 +26,8 @@ class NetworkSimplexProtocol(Protocol):
     arc_artificial: np.ndarray
     arcs: list[ArcState]
     basis: TreeBasis
+    forward_residuals: np.ndarray
+    backward_residuals: np.ndarray
 
     def _select_entering_arc_vectorized(
         self,
