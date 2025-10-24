@@ -150,11 +150,15 @@ class NetworkSimplex:
         self.arcs: list[ArcState] = []
         self._build_arcs()
         self.actual_arc_count = len(self.arcs)
+
         max_cost = max((abs(arc.cost) for arc in self.arcs), default=1.0)
         # Artificial arcs receive a large penalty so Phase 1 prefers genuine problem arcs.
         self.penalty_cost = max_cost * (len(self.node_ids) + 1)
 
         self.node_count = len(self.node_ids)
+
+        # Vectorized arrays for pricing optimization (Project 2)
+        self._build_vectorized_arrays()
         # use_dense_inverse is resolved to bool in SolverOptions.__post_init__
         if self.options.use_dense_inverse is None:
             raise SolverConfigurationError(
@@ -322,6 +326,152 @@ class NetworkSimplex:
         # Update supplies after lower bound adjustments
         self.node_supply = node_supply_adjusted
 
+    def _build_vectorized_arrays(self) -> None:
+        """Build NumPy arrays for vectorized pricing operations.
+
+        These arrays mirror the ArcState list but enable fast vectorized
+        computation of reduced costs and candidate selection.
+        """
+        n = len(self.arcs)
+        self.arc_costs = np.array([arc.cost for arc in self.arcs], dtype=np.float64)
+        self.arc_tails = np.array([arc.tail for arc in self.arcs], dtype=np.int32)
+        self.arc_heads = np.array([arc.head for arc in self.arcs], dtype=np.int32)
+        self.arc_uppers = np.array([arc.upper for arc in self.arcs], dtype=np.float64)
+        self.arc_lowers = np.array([arc.lower for arc in self.arcs], dtype=np.float64)
+        self.arc_flows = np.array([arc.flow for arc in self.arcs], dtype=np.float64)
+        self.arc_in_tree = np.array([arc.in_tree for arc in self.arcs], dtype=np.bool_)
+        self.arc_artificial = np.array([arc.artificial for arc in self.arcs], dtype=np.bool_)
+
+        # Potentials array will be updated from basis.potential each iteration
+        self.node_potentials = np.zeros(self.node_count, dtype=np.float64)
+
+    def _sync_vectorized_arrays(self) -> None:
+        """Sync vectorized arrays with current ArcState list.
+
+        Call this after operations that modify arcs (e.g., adding artificial arcs,
+        updating flows/tree status). Only syncs fields that can change.
+        """
+        n = len(self.arcs)
+
+        # Resize arrays if arc count changed (e.g., artificial arcs added)
+        if len(self.arc_flows) != n:
+            self._build_vectorized_arrays()
+            return
+
+        # Update mutable fields
+        for i in range(n):
+            self.arc_flows[i] = self.arcs[i].flow
+            self.arc_in_tree[i] = self.arcs[i].in_tree
+            self.arc_artificial[i] = self.arcs[i].artificial
+
+        # Update node potentials from basis
+        self.node_potentials[:] = self.basis.potential
+
+    def _compute_reduced_costs_vectorized(self) -> np.ndarray:
+        """Compute reduced costs for all arcs using vectorized operations.
+
+        Returns:
+            Array of reduced costs: rc[i] = cost[i] + potential[tail[i]] - potential[head[i]]
+        """
+        # Update node potentials from current basis
+        self.node_potentials[:] = self.basis.potential
+
+        # Vectorized reduced cost computation
+        return (
+            self.arc_costs
+            + self.node_potentials[self.arc_tails]
+            - self.node_potentials[self.arc_heads]
+        )
+
+    def _compute_residuals_vectorized(self) -> tuple[np.ndarray, np.ndarray]:
+        """Compute forward and backward residuals for all arcs.
+
+        Returns:
+            Tuple of (forward_residuals, backward_residuals) arrays
+        """
+        # Forward residual: upper - flow (handle infinity)
+        forward_res = np.where(np.isinf(self.arc_uppers), np.inf, self.arc_uppers - self.arc_flows)
+
+        # Backward residual: flow - lower
+        backward_res = self.arc_flows - self.arc_lowers
+
+        return forward_res, backward_res
+
+    def _select_entering_arc_vectorized(
+        self,
+        start: int,
+        end: int,
+        weights: np.ndarray,
+        allow_zero: bool,
+        tolerance: float,
+    ) -> tuple[int, int, float] | None:
+        """Vectorized arc selection for a block of arcs.
+
+        Args:
+            start: Start index of block
+            end: End index of block (exclusive)
+            weights: Devex weights array
+            allow_zero: Whether to allow zero reduced cost arcs
+            tolerance: Numerical tolerance
+
+        Returns:
+            Tuple of (arc_index, direction, merit) or None if no candidate found
+        """
+        # Compute reduced costs and residuals for the block
+        rc = self._compute_reduced_costs_vectorized()[start:end]
+        forward_res, backward_res = self._compute_residuals_vectorized()
+        forward_res = forward_res[start:end]
+        backward_res = backward_res[start:end]
+
+        # Get block slices
+        in_tree_block = self.arc_in_tree[start:end]
+        artificial_block = self.arc_artificial[start:end]
+        weights_block = weights[start:end]
+
+        # Mask for eligible arcs (not in tree, not artificial)
+        eligible = ~in_tree_block & ~artificial_block
+
+        # Forward direction candidates: forward_res > tol and rc < -tol
+        forward_viable = eligible & (forward_res > tolerance) & (rc < -tolerance)
+
+        # Backward direction candidates: backward_res > tol and rc > tol
+        backward_viable = eligible & (backward_res > tolerance) & (rc > tolerance)
+
+        # Compute merits for viable candidates
+        # Merit = (rc * rc) / weight
+        forward_merit = np.where(forward_viable, (rc * rc) / weights_block, -np.inf)
+        backward_merit = np.where(backward_viable, (rc * rc) / weights_block, -np.inf)
+
+        # Find best forward and backward candidates
+        best_forward_idx = np.argmax(forward_merit)
+        best_backward_idx = np.argmax(backward_merit)
+        best_forward_merit = forward_merit[best_forward_idx]
+        best_backward_merit = backward_merit[best_backward_idx]
+
+        # Select overall best
+        if best_forward_merit > best_backward_merit:
+            if best_forward_merit > -np.inf:
+                return (start + best_forward_idx, 1, best_forward_merit)
+        else:
+            if best_backward_merit > -np.inf:
+                return (start + best_backward_idx, -1, best_backward_merit)
+
+        # No improving candidate found, check for zero reduced cost if allowed
+        if allow_zero:
+            # Forward zero candidates: forward_res > tol and |rc| <= tol
+            forward_zero = eligible & (forward_res > tolerance) & (np.abs(rc) <= tolerance)
+            if np.any(forward_zero):
+                idx = start + np.argmax(forward_zero)
+                return (idx, 1, 0.0)
+
+            # Backward zero candidates: backward_res > tol and |rc| <= tol
+            backward_zero = eligible & (backward_res > tolerance) & (np.abs(rc) <= tolerance)
+            if np.any(backward_zero):
+                idx = start + np.argmax(backward_zero)
+                return (idx, -1, 0.0)
+
+        return None
+
     def _initialize_tree(self) -> None:
         """Create an initial spanning tree solution using artificial root arcs.
 
@@ -421,6 +571,9 @@ class NetworkSimplex:
         if isinstance(self.pricing_strategy, DevexPricing):
             self.pricing_strategy.weights = np.array(self.devex_weights, dtype=float)
             self.pricing_strategy._weights_list = self.devex_weights
+
+        # Sync vectorized arrays after adding artificial arcs
+        self._sync_vectorized_arrays()
 
     # ============================================================================
     # Basis Management and Warm-Start
@@ -751,13 +904,14 @@ class NetworkSimplex:
             if result is not None:
                 return result
 
-        # Delegate to pricing strategy
+        # Delegate to pricing strategy (pass self for vectorized operations)
         return self.pricing_strategy.select_entering_arc(
             self.arcs,
             self.basis,
             self.actual_arc_count,
             allow_zero,
             self.tolerance,
+            solver=self,
         )
 
     # ============================================================================

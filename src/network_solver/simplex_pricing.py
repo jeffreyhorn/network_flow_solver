@@ -38,6 +38,7 @@ class PricingStrategy(ABC):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
+        solver: object | None = None,
     ) -> tuple[int, int] | None:
         """Select an entering arc for the next pivot.
 
@@ -47,6 +48,7 @@ class PricingStrategy(ABC):
             actual_arc_count: Number of real (non-artificial) arcs.
             allow_zero: Whether to allow zero reduced cost arcs.
             tolerance: Numerical tolerance for comparisons.
+            solver: Optional NetworkSimplex solver instance for vectorized operations.
 
         Returns:
             Tuple of (arc_index, direction) where direction is +1 for forward
@@ -75,6 +77,7 @@ class DantzigPricing(PricingStrategy):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
+        solver: object | None = None,
     ) -> tuple[int, int] | None:
         """Find arc with most negative reduced cost."""
         best: tuple[int, int] | None = None
@@ -157,8 +160,16 @@ class DevexPricing(PricingStrategy):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
+        solver: object | None = None,
     ) -> tuple[int, int] | None:
         """Find entering arc using Devex pricing with block search."""
+        # Use vectorized implementation if solver is available and has the method
+        if solver is not None and hasattr(solver, "_select_entering_arc_vectorized"):
+            return self._select_entering_arc_vectorized(
+                solver, actual_arc_count, allow_zero, tolerance
+            )
+
+        # Fall back to original loop-based implementation
         zero_candidates: list[tuple[int, int]] = []
         best: tuple[int, int] | None = None
         best_merit = -math.inf
@@ -255,6 +266,49 @@ class DevexPricing(PricingStrategy):
         better = merit > best_merit + tolerance
         tie = not better and abs(merit - best_merit) <= tolerance
         return better or (tie and (best is None or idx < best[0]))
+
+    def _select_entering_arc_vectorized(
+        self,
+        solver: object,
+        actual_arc_count: int,
+        allow_zero: bool,
+        tolerance: float,
+    ) -> tuple[int, int] | None:
+        """Vectorized version of select_entering_arc using NumPy operations.
+
+        This method uses the solver's vectorized array infrastructure to
+        efficiently compute reduced costs and select candidates across blocks.
+        """
+        # Sync mutable arrays (flows, tree status) before pricing
+        solver.arc_flows[:] = [arc.flow for arc in solver.arcs]
+        solver.arc_in_tree[:] = [arc.in_tree for arc in solver.arcs]
+        solver.arc_artificial[:] = [arc.artificial for arc in solver.arcs]
+
+        block_count = max(1, (actual_arc_count + self.block_size - 1) // self.block_size)
+
+        for _ in range(block_count):
+            start = self.pricing_block * self.block_size
+            if start >= actual_arc_count:
+                self.pricing_block = 0
+                start = 0
+            end = min(start + self.block_size, actual_arc_count)
+
+            # Use solver's vectorized selection method
+            result = solver._select_entering_arc_vectorized(
+                start, end, self.weights, allow_zero, tolerance
+            )
+
+            if result is not None:
+                arc_idx, direction, merit = result
+                # Update weight for selected arc (only if improving move)
+                if merit > 0:
+                    arc = solver.arcs[arc_idx]
+                    self._update_weight(arc_idx, arc, solver.basis)
+                return (arc_idx, direction)
+
+            self.pricing_block = (self.pricing_block + 1) % block_count
+
+        return None
 
     def reset(self) -> None:
         """Reset Devex weights to 1.0 and pricing block to 0."""
