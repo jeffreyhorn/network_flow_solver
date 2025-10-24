@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import deque
+from collections import OrderedDict, deque
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
@@ -19,7 +19,12 @@ class TreeBasis:
     """Encapsulates parent/potential bookkeeping for the spanning-tree basis."""
 
     def __init__(
-        self, node_count: int, root: int, tolerance: float, use_dense_inverse: bool | None = None
+        self,
+        node_count: int,
+        root: int,
+        tolerance: float,
+        use_dense_inverse: bool | None = None,
+        projection_cache_size: int = 100,
     ) -> None:
         # Auto-detect if not specified: use sparse if available, else dense
         if use_dense_inverse is None:
@@ -38,6 +43,12 @@ class TreeBasis:
         self.tree_arc_indices: list[int] = []
         self.basis_matrix: np.ndarray | None = None
         self.basis_inverse: np.ndarray | None = None
+
+        # Projection cache (Week 2: Implementation)
+        self.projection_cache_size = projection_cache_size
+        self.projection_cache: OrderedDict[tuple[tuple[str, str], int], np.ndarray] = OrderedDict()
+        self.cache_hits = 0
+        self.cache_misses = 0
 
         # Instrumentation for projection pattern analysis (Week 1)
         self.projection_requests: dict[tuple[str, str], int] = {}  # arc_key -> request_count
@@ -199,20 +210,41 @@ class TreeBasis:
         self.projection_requests[arc_key] = self.projection_requests.get(arc_key, 0) + 1
         self.projection_history.append((self.basis_version, arc_key))
 
+        # Check cache (Week 2: LRU cache implementation)
+        cache_key = (arc_key, self.basis_version)
+        if cache_key in self.projection_cache:
+            # Cache hit: move to end (most recently used) and return cached result
+            self.cache_hits += 1
+            self.projection_cache.move_to_end(cache_key)
+            return self.projection_cache[cache_key].copy()
+
+        # Cache miss: compute projection
+        self.cache_misses += 1
         column = self._column_vector(arc)
+        result = None
+
         if self.ft_engine is not None:
             # Prefer Forrest–Tomlin solves so Devex stays in sync with incremental updates.
             solved = self.ft_engine.solve(column)
             if solved is not None:
-                return solved
-        if self.basis_inverse is not None:
-            result: np.ndarray = self.basis_inverse @ column
-            return result
-        if self.lu_factors is not None:
+                result = solved
+        if result is None and self.basis_inverse is not None:
+            result = self.basis_inverse @ column
+        if result is None and self.lu_factors is not None:
             solved = solve_lu(self.lu_factors, column)
             if solved is not None:
-                return solved
-        return None
+                result = solved
+
+        # Store in cache if computation succeeded
+        if result is not None and self.projection_cache_size > 0:
+            # Evict oldest entry if cache is full (LRU eviction)
+            if len(self.projection_cache) >= self.projection_cache_size:
+                self.projection_cache.popitem(last=False)  # Remove oldest (first) item
+
+            # Add new result to cache (at end = most recently used)
+            self.projection_cache[cache_key] = result.copy()
+
+        return result
 
     def estimate_condition_number(self) -> float | None:
         """Estimate the condition number of the basis matrix.

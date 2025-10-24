@@ -430,6 +430,7 @@ class SolverOptions:
     pricing_strategy: str = "devex"
     block_size: int | str | None = None
     ft_update_limit: int = 64
+    projection_cache_size: int = 100
     auto_scale: bool = True
     adaptive_refactorization: bool = True
     condition_number_threshold: float = 1e12
