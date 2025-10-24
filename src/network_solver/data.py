@@ -368,6 +368,11 @@ class SolverOptions:
         ft_update_limit: Maximum Forrest-Tomlin basis updates before full rebuild (default: 64).
                         Lower values (20-40) = more stable but slower.
                         Higher values (100-200) = faster but may lose numerical stability.
+        projection_cache_size: LRU cache size for basis projections (default: 0 = disabled).
+                              **WARNING:** Benchmarks show cache adds overhead that exceeds benefits.
+                              Cache makes solver 3-16% SLOWER on tested problems (Medium/Large networks).
+                              Only enable for experimental purposes or specific problem types.
+                              If enabled, recommended: 50-100 for small problems only.
         auto_scale: Enable automatic problem scaling for numerical stability (default: True).
                    - True: Automatically detect and scale problems with wide value ranges
                    - False: Use original problem values without scaling
@@ -430,6 +435,7 @@ class SolverOptions:
     pricing_strategy: str = "devex"
     block_size: int | str | None = None
     ft_update_limit: int = 64
+    projection_cache_size: int = 0  # Disabled by default (cache overhead > benefit)
     auto_scale: bool = True
     adaptive_refactorization: bool = True
     condition_number_threshold: float = 1e12

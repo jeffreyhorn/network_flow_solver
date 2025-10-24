@@ -8,7 +8,6 @@ This script runs the instrumented solver and analyzes:
 4. Temporal locality patterns
 """
 
-import sys
 from collections import Counter, defaultdict
 
 from network_solver import solve_min_cost_flow
@@ -105,7 +104,7 @@ def analyze_projection_patterns(problem: NetworkProblem, name: str):
     result = solver.solve()
     basis = solver.basis
 
-    print(f"\nProblem Statistics:")
+    print("\nProblem Statistics:")
     print(f"  Nodes: {len(problem.nodes)}")
     print(f"  Arcs: {len(list(problem.undirected_expansion()))}")
     print(f"  Iterations: {result.iterations}")
@@ -119,7 +118,7 @@ def analyze_projection_patterns(problem: NetworkProblem, name: str):
     total_requests = len(basis.projection_history)
     unique_arcs = len(basis.projection_requests)
 
-    print(f"\n1. Request Statistics:")
+    print("\n1. Request Statistics:")
     print(f"   Total projection requests: {total_requests:,}")
     print(f"   Unique arcs projected: {unique_arcs:,}")
     print(f"   Average requests per arc: {total_requests / unique_arcs:.1f}")
@@ -130,14 +129,14 @@ def analyze_projection_patterns(problem: NetworkProblem, name: str):
     repeated_arcs = sum(1 for count in basis.projection_requests.values() if count > 1)
     repeat_requests = sum(count for count in basis.projection_requests.values() if count > 1)
 
-    print(f"\n2. Repetition Analysis (Cache Hit Potential):")
+    print("\n2. Repetition Analysis (Cache Hit Potential):")
     print(f"   Arcs requested once: {request_counts.get(1, 0):,}")
     print(f"   Arcs requested multiple times: {repeated_arcs:,}")
     print(f"   Total repeated requests: {repeat_requests:,}")
     print(f"   Potential cache hit rate: {repeat_requests / total_requests * 100:.1f}%")
 
     # Most frequently requested arcs
-    print(f"\n3. Top 10 Most Frequently Requested Arcs:")
+    print("\n3. Top 10 Most Frequently Requested Arcs:")
     top_arcs = sorted(basis.projection_requests.items(), key=lambda x: x[1], reverse=True)[:10]
     for i, (arc_key, count) in enumerate(top_arcs, 1):
         print(f"   {i}. {arc_key}: {count:,} requests")
@@ -151,7 +150,7 @@ def analyze_projection_patterns(problem: NetworkProblem, name: str):
     avg_working_set = sum(working_set_sizes) / len(working_set_sizes) if working_set_sizes else 0
     max_working_set = max(working_set_sizes) if working_set_sizes else 0
 
-    print(f"\n4. Working Set Analysis:")
+    print("\n4. Working Set Analysis:")
     print(f"   Number of basis versions: {basis.basis_version}")
     print(f"   Average arcs per basis version: {avg_working_set:.1f}")
     print(f"   Maximum arcs per basis version: {max_working_set}")
@@ -164,12 +163,12 @@ def analyze_projection_patterns(problem: NetworkProblem, name: str):
         if basis.projection_history[i][1] == basis.projection_history[i - 1][1]:
             consecutive_same += 1
 
-    print(f"\n5. Temporal Locality:")
+    print("\n5. Temporal Locality:")
     print(f"   Consecutive identical requests: {consecutive_same:,}")
     print(f"   Temporal locality rate: {consecutive_same / total_requests * 100:.1f}%")
 
     # Cache size recommendations
-    print(f"\n6. Cache Size Recommendations:")
+    print("\n6. Cache Size Recommendations:")
 
     # For LRU cache, ideal size is working set size
     print(
@@ -182,7 +181,7 @@ def analyze_projection_patterns(problem: NetworkProblem, name: str):
 
     # Memory estimates (assume 8 bytes per float, ~100 floats per projection vector for typical problems)
     bytes_per_projection = 100 * 8  # rough estimate
-    print(f"\n   Estimated memory for different cache sizes:")
+    print("\n   Estimated memory for different cache sizes:")
     print(f"     50 arcs: ~{50 * bytes_per_projection / 1024:.1f} KB")
     print(f"     100 arcs: ~{100 * bytes_per_projection / 1024:.1f} KB")
     print(f"     200 arcs: ~{200 * bytes_per_projection / 1024:.1f} KB")
@@ -245,28 +244,28 @@ def main():
 
     print(f"Based on analysis of {len(results)} problems:\n")
     print(f"1. CACHE HIT POTENTIAL: {avg_hit_rate:.1f}% average")
-    print(f"   - Significant opportunity for caching")
-    print(f"   - Many arcs are projected multiple times")
+    print("   - Significant opportunity for caching")
+    print("   - Many arcs are projected multiple times")
 
-    print(f"\n2. CACHE STRATEGY: LRU Cache")
-    print(f"   - Working set varies by basis version")
-    print(f"   - LRU will naturally evict old projections")
-    print(f"   - Invalidate on basis change (increment version)")
+    print("\n2. CACHE STRATEGY: LRU Cache")
+    print("   - Working set varies by basis version")
+    print("   - LRU will naturally evict old projections")
+    print("   - Invalidate on basis change (increment version)")
 
-    print(f"\n3. CACHE SIZE: Start with 100-200 arcs")
-    print(f"   - Covers 90% of working sets")
-    print(f"   - Memory overhead: ~80-160 KB")
-    print(f"   - Configurable via SolverOptions")
+    print("\n3. CACHE SIZE: Start with 100-200 arcs")
+    print("   - Covers 90% of working sets")
+    print("   - Memory overhead: ~80-160 KB")
+    print("   - Configurable via SolverOptions")
 
-    print(f"\n4. CACHE KEY: (arc_key, basis_version)")
-    print(f"   - Ensures correct projection for current basis")
-    print(f"   - Simple invalidation on basis changes")
+    print("\n4. CACHE KEY: (arc_key, basis_version)")
+    print("   - Ensures correct projection for current basis")
+    print("   - Simple invalidation on basis changes")
 
-    print(f"\n5. NEXT STEPS (Week 2):")
-    print(f"   - Implement LRU cache in TreeBasis")
-    print(f"   - Add projection_cache_size to SolverOptions")
-    print(f"   - Measure actual hit rates and speedup")
-    print(f"   - Tune cache size based on performance")
+    print("\n5. NEXT STEPS (Week 2):")
+    print("   - Implement LRU cache in TreeBasis")
+    print("   - Add projection_cache_size to SolverOptions")
+    print("   - Measure actual hit rates and speedup")
+    print("   - Tune cache size based on performance")
 
 
 if __name__ == "__main__":
