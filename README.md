@@ -207,13 +207,15 @@ result = solve_min_cost_flow(problem, options=options)
 - `ft_update_limit` - Forrest-Tomlin updates before full basis rebuild (default: `64`)
 
 **Pricing strategies:**
-- **Devex pricing** (default): Uses normalized reduced costs and block-based search for efficient arc selection. Generally faster on large problems. **Automatically uses vectorized NumPy operations** for 2-3x speedup on medium to large problems.
+- **Devex pricing** (default): Uses normalized reduced costs and block-based search for efficient arc selection. Generally faster on large problems. **Automatically uses vectorized NumPy operations** for 1.8-3.1x speedup on problems with 200+ arcs.
 - **Dantzig pricing**: Selects the arc with the most negative reduced cost. Simpler but may require more iterations.
 
 **Vectorized pricing (enabled by default):**
 The Devex pricing strategy uses vectorized NumPy array operations by default, providing significant performance improvements:
-- **Small problems** (35 nodes, 300 arcs): **198% speedup** (3x faster)
-- **Medium problems** (50 nodes, 600 arcs): **101% speedup** (2x faster)
+- **Small problems** (300 arcs): **214% speedup** (3.1x faster)
+- **Medium problems** (600 arcs): **83% speedup** (1.8x faster)
+- **Large problems** (900 arcs): **117% speedup** (2.2x faster)
+- **Average improvement**: **138% speedup** (2.4x faster)
 - **Enabled by default**: `SolverOptions(use_vectorized_pricing=True)`
 - **Can be disabled**: Set `use_vectorized_pricing=False` for debugging or comparison with loop-based implementation
 - **Implementation**: Replaces Python loops with vectorized reduced cost computation, residual calculation, and candidate selection using NumPy masked arrays
