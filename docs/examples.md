@@ -2105,7 +2105,7 @@ Based on typical hardware (modern laptop/desktop):
 | Large | 1000-10000 | 5000-50000 | 100 ms - 2s |
 | Very Large | >10000 | >50000 | Several seconds |
 
-**Note:** These are rough guidelines. Actual performance depends on problem structure, density, and solver configuration. The cached residual optimization provides the most benefit on large problems with many arcs (>1000 arcs).
+**Note:** These are rough guidelines. Actual performance depends on problem structure, density, and solver configuration. The cached residual optimization provides the most benefit on large problems with many arcs (typically thousands or more).
 
 ## Comparison with NetworkX
 
