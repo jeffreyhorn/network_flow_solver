@@ -34,6 +34,7 @@ class NetworkSimplexProtocol(Protocol):
         weights: np.ndarray,
         allow_zero: bool,
         tolerance: float,
+        excluded_arcs: set[int] | None = None,
     ) -> tuple[int, int, float] | None: ...
 
 
@@ -172,6 +173,9 @@ class DevexPricing(PricingStrategy):
             self.weights = np.ones(arc_count, dtype=float)
         self.block_size = block_size
         self.pricing_block = 0
+        # Track arcs that caused recent degenerate pivots to prevent cycling
+        self.recent_degenerate_arcs: set[int] = set()
+        self.degenerate_penalty_duration = 3  # Skip for 3 iterations
 
     def select_entering_arc(
         self,
@@ -311,9 +315,14 @@ class DevexPricing(PricingStrategy):
                 start = 0
             end = min(start + self.block_size, actual_arc_count)
 
-            # Use solver's vectorized selection method
+            # Use solver's vectorized selection method with degenerate penalty
             result = solver._select_entering_arc_vectorized(
-                start, end, self.weights, allow_zero, tolerance
+                start,
+                end,
+                self.weights,
+                allow_zero,
+                tolerance,
+                excluded_arcs=self.recent_degenerate_arcs,
             )
 
             if result is not None:
@@ -328,7 +337,26 @@ class DevexPricing(PricingStrategy):
 
         return None
 
+    def record_degenerate_pivot(self, arc_idx: int) -> None:
+        """Record that an arc caused a degenerate pivot.
+
+        This arc will be temporarily excluded from selection to prevent cycling.
+
+        Args:
+            arc_idx: Index of the arc that caused a degenerate pivot
+        """
+        self.recent_degenerate_arcs.add(arc_idx)
+
+    def clear_degenerate_penalties(self) -> None:
+        """Clear the set of recently degenerate arcs.
+
+        Should be called periodically (e.g., every N iterations) to allow
+        previously degenerate arcs to be considered again.
+        """
+        self.recent_degenerate_arcs.clear()
+
     def reset(self) -> None:
         """Reset Devex weights to 1.0 and pricing block to 0."""
         self.weights.fill(1.0)
         self.pricing_block = 0
+        self.recent_degenerate_arcs.clear()

@@ -210,25 +210,25 @@ result = solve_min_cost_flow(problem, options=options)
 - **Devex pricing** (default): Uses normalized reduced costs and block-based search for efficient arc selection. Generally faster on large problems. **Automatically uses vectorized NumPy operations** for 2-3x speedup on medium to large problems.
 - **Dantzig pricing**: Selects the arc with the most negative reduced cost. Simpler but may require more iterations.
 
-**Vectorized pricing (experimental):**
-The Devex pricing strategy can optionally use vectorized NumPy array operations, providing significant performance improvements:
+**Vectorized pricing (enabled by default):**
+The Devex pricing strategy uses vectorized NumPy array operations by default, providing significant performance improvements:
 - **Small problems** (35 nodes, 300 arcs): **198% speedup** (3x faster)
 - **Medium problems** (50 nodes, 600 arcs): **101% speedup** (2x faster)
-- **Currently disabled by default** due to a known cycling bug in degenerate cases
-- **Can be enabled**: Set `use_vectorized_pricing=True` to try the experimental feature
+- **Enabled by default**: `SolverOptions(use_vectorized_pricing=True)`
+- **Can be disabled**: Set `use_vectorized_pricing=False` for debugging or comparison with loop-based implementation
 - **Implementation**: Replaces Python loops with vectorized reduced cost computation, residual calculation, and candidate selection using NumPy masked arrays
 
 ```python
-# Default: vectorization disabled (stable)
-options = SolverOptions(pricing_strategy="devex")  # use_vectorized_pricing=False
+# Default: vectorization enabled (recommended)
+options = SolverOptions(pricing_strategy="devex")  # use_vectorized_pricing=True
 
-# Enable experimental vectorization (faster but may cycle on degenerate problems)
-options = SolverOptions(pricing_strategy="devex", use_vectorized_pricing=True)
+# Disable vectorization (for debugging/comparison)
+options = SolverOptions(pricing_strategy="devex", use_vectorized_pricing=False)
 ```
 
-**Known issue:** The vectorized implementation may cause infinite cycling on problems with degenerate pivots (zero flow changes). The root cause is that vectorized pricing uses fixed Devex weights throughout arc selection, while the loop-based version dynamically updates weights for each candidate. Work is ongoing to resolve this architectural difference.
+**Cycling prevention:** The vectorized implementation includes a degenerate pivot detection mechanism to prevent infinite cycling. When an arc causes a degenerate pivot (zero flow change), it is temporarily excluded from selection for a few iterations, forcing the algorithm to explore alternative arcs. This ensures convergence even on highly degenerate problems while maintaining the performance benefits of vectorization.
 
-The vectorization works by maintaining parallel NumPy arrays that mirror the arc list, enabling batch operations for computing reduced costs, checking eligibility, and selecting the best entering arc. This optimization is particularly effective for problems with many arcs where pricing is a bottleneck, but should only be used when you can verify it doesn't cause cycling on your specific problem instances.
+The vectorization works by maintaining parallel NumPy arrays that mirror the arc list, enabling batch operations for computing reduced costs, checking eligibility, and selecting the best entering arc. This optimization is particularly effective for problems with many arcs where pricing is a bottleneck.
 
 **Performance tuning:**
 - Increase `tolerance` for faster (less precise) solutions

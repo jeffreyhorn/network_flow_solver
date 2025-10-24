@@ -1,22 +1,17 @@
 {
   "status": "optimal",
-  "objective": 15.0,
-  "iterations": 2,
+  "objective": 20.0,
+  "iterations": 3,
   "flows": [
     {
-      "tail": "a",
-      "head": "t",
-      "flow": 5.0
-    },
-    {
       "tail": "s",
-      "head": "a",
+      "head": "t",
       "flow": 5.0
     }
   ],
   "duals": {
-    "a": -17.9999999999,
-    "s": -20.0,
-    "t": -16.9999999998
+    "a": 18.9999999999,
+    "s": 16.9999999998,
+    "t": 20.0
   }
 }
