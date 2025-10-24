@@ -450,23 +450,23 @@ class NetworkSimplex:
         # Select overall best
         if best_forward_merit > best_backward_merit:
             if best_forward_merit > -np.inf:
-                return (start + best_forward_idx, 1, best_forward_merit)
+                return (int(start + best_forward_idx), 1, float(best_forward_merit))
         else:
             if best_backward_merit > -np.inf:
-                return (start + best_backward_idx, -1, best_backward_merit)
+                return (int(start + best_backward_idx), -1, float(best_backward_merit))
 
         # No improving candidate found, check for zero reduced cost if allowed
         if allow_zero:
             # Forward zero candidates: forward_res > tol and |rc| <= tol
             forward_zero = eligible & (forward_res > tolerance) & (np.abs(rc) <= tolerance)
             if np.any(forward_zero):
-                idx = start + np.argmax(forward_zero)
+                idx = int(start + np.argmax(forward_zero))
                 return (idx, 1, 0.0)
 
             # Backward zero candidates: backward_res > tol and |rc| <= tol
             backward_zero = eligible & (backward_res > tolerance) & (np.abs(rc) <= tolerance)
             if np.any(backward_zero):
-                idx = start + np.argmax(backward_zero)
+                idx = int(start + np.argmax(backward_zero))
                 return (idx, -1, 0.0)
 
         return None

@@ -9,13 +9,33 @@ from __future__ import annotations
 
 import math
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 import numpy as np
 
 if TYPE_CHECKING:
     from .basis import TreeBasis
     from .simplex import ArcState
+
+
+class NetworkSimplexProtocol(Protocol):
+    """Protocol for NetworkSimplex to avoid circular import."""
+
+    arc_flows: np.ndarray
+    arc_in_tree: np.ndarray
+    arc_artificial: np.ndarray
+    arcs: list[ArcState]
+    basis: TreeBasis
+
+    def _select_entering_arc_vectorized(
+        self,
+        start: int,
+        end: int,
+        weights: np.ndarray,
+        allow_zero: bool,
+        tolerance: float,
+    ) -> tuple[int, int, float] | None: ...
+
 
 # Constants for Devex weight bounds
 DEVEX_WEIGHT_MIN = 1e-12  # Prevent division by zero or runaway weights
@@ -38,7 +58,7 @@ class PricingStrategy(ABC):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
-        solver: object | None = None,
+        solver: NetworkSimplexProtocol | None = None,
     ) -> tuple[int, int] | None:
         """Select an entering arc for the next pivot.
 
@@ -77,7 +97,7 @@ class DantzigPricing(PricingStrategy):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
-        solver: object | None = None,
+        solver: NetworkSimplexProtocol | None = None,
     ) -> tuple[int, int] | None:
         """Find arc with most negative reduced cost."""
         best: tuple[int, int] | None = None
@@ -160,11 +180,11 @@ class DevexPricing(PricingStrategy):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
-        solver: object | None = None,
+        solver: NetworkSimplexProtocol | None = None,
     ) -> tuple[int, int] | None:
         """Find entering arc using Devex pricing with block search."""
-        # Use vectorized implementation if solver is available and has the method
-        if solver is not None and hasattr(solver, "_select_entering_arc_vectorized"):
+        # Use vectorized implementation if solver is available
+        if solver is not None:
             return self._select_entering_arc_vectorized(
                 solver, actual_arc_count, allow_zero, tolerance
             )
@@ -269,7 +289,7 @@ class DevexPricing(PricingStrategy):
 
     def _select_entering_arc_vectorized(
         self,
-        solver: object,
+        solver: NetworkSimplexProtocol,
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
