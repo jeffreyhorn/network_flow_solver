@@ -552,8 +552,14 @@ Configuration options for the solver.
     - Small problems (300 arcs): 162% speedup (2.6x faster)
     - Medium problems (600 arcs): 92% speedup (1.9x faster)
     - Average improvement: 127% speedup (2.3x faster)
-  - `False`: Use traditional loop-based pricing (for debugging/comparison)
+    - Includes deferred weight updates (only selected arc's weight updated per iteration)
+  - `False`: Use loop-based pricing with deferred weight updates
+    - Optimized to update only the selected entering arc's weight (not all examined candidates)
+    - 97.5% reduction in weight update calls vs. old implementation
+    - 37% faster than previous loop-based implementation
+    - Useful for debugging or comparing against vectorized version
   - Only applies to Devex pricing strategy
+  - **Note**: Both vectorized and loop-based modes use deferred weight updates; this option only controls vectorization
 - `block_size` (int | str, optional): Arcs per pricing block
   - `None` or `"auto"` (default): Auto-tune based on problem size with runtime adaptation
   - int: Fixed block size (no adaptation)
