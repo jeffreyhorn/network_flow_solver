@@ -53,7 +53,7 @@ def benchmark(problem, cache_size, name, num_runs=3):
         solver = NetworkSimplex(problem, options=options)
 
         start = time.perf_counter()
-        result = solver.solve()
+        _result = solver.solve()
         elapsed = time.perf_counter() - start
         times.append(elapsed)
 

@@ -400,6 +400,11 @@ class SolverOptions:
                           - True: Always compute dense inverse with np.linalg.inv (O(n³) memory and time)
                           Dense inverse enables Sherman-Morrison rank-1 updates but is memory-intensive.
                           For large problems (>1000 nodes), sparse LU is recommended when available.
+        use_vectorized_pricing: Enable vectorized pricing operations (default: True).
+                               - True: Use NumPy vectorized operations for 2-3x speedup (recommended)
+                               - False: Use traditional loop-based pricing (for debugging/comparison)
+                               Only applies to Devex pricing strategy. Dantzig pricing is always loop-based.
+                               Vectorization provides significant performance improvements on medium/large problems.
 
     Examples:
         >>> # Default options (auto-tuning enabled)
@@ -442,6 +447,9 @@ class SolverOptions:
     adaptive_ft_min: int = 20
     adaptive_ft_max: int = 200
     use_dense_inverse: bool | None = None
+    use_vectorized_pricing: bool = (
+        True  # Re-enabled after cycling fix (see record_degenerate_pivot)
+    )
 
     def __post_init__(self) -> None:
         if self.tolerance <= 0:

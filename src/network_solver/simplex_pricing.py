@@ -9,13 +9,34 @@ from __future__ import annotations
 
 import math
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 import numpy as np
 
 if TYPE_CHECKING:
     from .basis import TreeBasis
     from .simplex import ArcState
+
+
+class NetworkSimplexProtocol(Protocol):
+    """Protocol for NetworkSimplex to avoid circular import."""
+
+    arc_flows: np.ndarray
+    arc_in_tree: np.ndarray
+    arc_artificial: np.ndarray
+    arcs: list[ArcState]
+    basis: TreeBasis
+
+    def _select_entering_arc_vectorized(
+        self,
+        start: int,
+        end: int,
+        weights: np.ndarray,
+        allow_zero: bool,
+        tolerance: float,
+        excluded: set[int],
+    ) -> tuple[int, int, float] | None: ...
+
 
 # Constants for Devex weight bounds
 DEVEX_WEIGHT_MIN = 1e-12  # Prevent division by zero or runaway weights
@@ -38,6 +59,7 @@ class PricingStrategy(ABC):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
+        solver: NetworkSimplexProtocol | None = None,
     ) -> tuple[int, int] | None:
         """Select an entering arc for the next pivot.
 
@@ -47,6 +69,7 @@ class PricingStrategy(ABC):
             actual_arc_count: Number of real (non-artificial) arcs.
             allow_zero: Whether to allow zero reduced cost arcs.
             tolerance: Numerical tolerance for comparisons.
+            solver: Optional NetworkSimplex solver instance for vectorized operations.
 
         Returns:
             Tuple of (arc_index, direction) where direction is +1 for forward
@@ -75,6 +98,7 @@ class DantzigPricing(PricingStrategy):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
+        solver: NetworkSimplexProtocol | None = None,
     ) -> tuple[int, int] | None:
         """Find arc with most negative reduced cost."""
         best: tuple[int, int] | None = None
@@ -123,6 +147,9 @@ class DevexPricing(PricingStrategy):
         weights: Approximate edge weights for each arc (used for normalization).
         block_size: Number of arcs to examine in each pricing round.
         pricing_block: Current block position (for round-robin search).
+        last_degenerate_arc: Index of the last arc that caused a degenerate pivot,
+            excluded from the next selection to prevent cycling on zero-cost arcs.
+            Cleared when a different arc is successfully selected.
     """
 
     def __init__(
@@ -149,6 +176,8 @@ class DevexPricing(PricingStrategy):
             self.weights = np.ones(arc_count, dtype=float)
         self.block_size = block_size
         self.pricing_block = 0
+        # Track the last arc that caused a degenerate pivot to prevent immediate reselection
+        self.last_degenerate_arc: int | None = None
 
     def select_entering_arc(
         self,
@@ -157,8 +186,16 @@ class DevexPricing(PricingStrategy):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
+        solver: NetworkSimplexProtocol | None = None,
     ) -> tuple[int, int] | None:
         """Find entering arc using Devex pricing with block search."""
+        # Use vectorized implementation if solver is available
+        if solver is not None:
+            return self._select_entering_arc_vectorized(
+                solver, actual_arc_count, allow_zero, tolerance
+            )
+
+        # Fall back to original loop-based implementation
         zero_candidates: list[tuple[int, int]] = []
         best: tuple[int, int] | None = None
         best_merit = -math.inf
@@ -255,6 +292,65 @@ class DevexPricing(PricingStrategy):
         better = merit > best_merit + tolerance
         tie = not better and abs(merit - best_merit) <= tolerance
         return better or (tie and (best is None or idx < best[0]))
+
+    def _select_entering_arc_vectorized(
+        self,
+        solver: NetworkSimplexProtocol,
+        actual_arc_count: int,
+        allow_zero: bool,
+        tolerance: float,
+    ) -> tuple[int, int] | None:
+        """Vectorized version of select_entering_arc using NumPy operations.
+
+        This method uses the solver's vectorized array infrastructure to
+        efficiently compute reduced costs and select candidates across blocks.
+
+        Note: Assumes vectorized arrays are already in sync with ArcState list.
+        Syncing happens after pivots and after tree initialization.
+        """
+        block_count = max(1, (actual_arc_count + self.block_size - 1) // self.block_size)
+
+        for _ in range(block_count):
+            start = self.pricing_block * self.block_size
+            if start >= actual_arc_count:
+                self.pricing_block = 0
+                start = 0
+            end = min(start + self.block_size, actual_arc_count)
+
+            # Use solver's vectorized selection method, excluding last degenerate arc
+            excluded = {self.last_degenerate_arc} if self.last_degenerate_arc is not None else set()
+            result = solver._select_entering_arc_vectorized(
+                start,
+                end,
+                self.weights,
+                allow_zero,
+                tolerance,
+                excluded,
+            )
+
+            if result is not None:
+                arc_idx, direction, merit = result
+                # Clear the last degenerate arc since we successfully selected a different arc
+                self.last_degenerate_arc = None
+                # Update weight for selected arc (only if improving move)
+                if merit > 0:
+                    arc = solver.arcs[arc_idx]
+                    self._update_weight(arc_idx, arc, solver.basis)
+                return (arc_idx, direction)
+
+            self.pricing_block = (self.pricing_block + 1) % block_count
+
+        return None
+
+    def record_degenerate_pivot(self, arc_idx: int) -> None:
+        """Record that an arc caused a degenerate pivot.
+
+        This arc will be excluded from the next selection to prevent cycling.
+
+        Args:
+            arc_idx: Index of the arc that caused a degenerate pivot
+        """
+        self.last_degenerate_arc = arc_idx
 
     def reset(self) -> None:
         """Reset Devex weights to 1.0 and pricing block to 0."""

@@ -71,11 +71,11 @@ def test_iteration_limit_preserves_current_flow_state():
     problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
 
     # Clamp the iteration budget so the solver has to return early with a feasible-but-ongoing basis.
-    # This problem requires 6 iterations to reach optimality; max_iterations=3 will hit the limit
-    # but still have a feasible solution.
-    limited = solve_min_cost_flow(problem, max_iterations=3)
+    # This problem requires 5 iterations to reach optimality with vectorized pricing;
+    # max_iterations=4 will hit the limit but still have a feasible solution.
+    limited = solve_min_cost_flow(problem, max_iterations=4)
     assert limited.status == "iteration_limit"
-    assert limited.iterations == 3
+    assert limited.iterations == 4
     # Should have a feasible solution (flows through s→a→c→t)
     assert limited.flows == {
         ("s", "a"): pytest.approx(10.0),
@@ -84,9 +84,9 @@ def test_iteration_limit_preserves_current_flow_state():
     }
 
     # Increase the budget to reach optimality.
-    optimal = solve_min_cost_flow(problem, max_iterations=6)
+    optimal = solve_min_cost_flow(problem, max_iterations=10)
     assert optimal.status == "optimal"
-    assert optimal.iterations == 6
+    assert optimal.iterations == 5
     assert optimal.flows == {
         ("s", "a"): pytest.approx(10.0),
         ("a", "c"): pytest.approx(10.0),
