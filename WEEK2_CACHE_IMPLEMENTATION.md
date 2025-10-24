@@ -102,35 +102,53 @@ Created `scripts/benchmark_projection_cache.py` to measure performance impact.
 
 **Results:**
 
-| Problem Size | Best Cache Size | Speedup | Time Without Cache | Time With Cache |
-|--------------|-----------------|---------|-------------------|-----------------|
-| Small (35 nodes, 300 arcs) | 200 | **1.22x** | 0.567s | 0.464s |
-| Medium (70 nodes, 1200 arcs) | 100 | **1.10x** | 2.893s | 2.627s |
-| Large (130 nodes, 4000 arcs) | 200 | **1.05x** | 20.786s | 19.801s |
+| Problem Size | Best Config | Speedup | Time Without Cache | Time With Best Config |
+|--------------|-------------|---------|--------------------|-----------------------|
+| Small (35 nodes, 300 arcs) | Cache=100 | **1.05x** | 0.390s | 0.372s |
+| Medium (70 nodes, 1200 arcs) | **No Cache** | **1.00x** | 2.307s | 2.307s (baseline) |
+| Large (130 nodes, 4000 arcs) | **No Cache** | **1.00x** | 16.752s | 16.752s (baseline) |
 
 **Key Observations:**
 
-1. **Modest speedups on test problems:** 1.05-1.22x (5-22% improvement)
-2. **Cache size matters:** Too small (50) can hurt performance due to thrashing
-3. **Optimal size varies:** 100-200 works best depending on problem structure
-4. **Memory overhead is minimal:** Even size=200 uses only ~160KB for 130-node problem
+1. **⚠️ Cache hurts performance on Medium/Large problems:**
+   - Small: 1.05x speedup (5% faster)
+   - Medium: 0.88-0.91x (9-12% **slower** with cache)
+   - Large: 0.84-0.97x (3-16% **slower** with cache)
 
-**Why speedups are modest vs Week 1 projections:**
+2. **Cache overhead exceeds benefits:**
+   - OrderedDict operations (`move_to_end`, `popitem`)
+   - Array copying on every cache hit (`.copy()` to prevent mutation)
+   - Cache key creation and tuple hashing
+   - For these test problems, overhead > time saved from avoiding recomputation
 
-The Week 1 analysis showed **99.2% cache hit potential** on medium network problems, suggesting 1.9-2.5x speedup. However, actual speedups are lower (1.05-1.22x) because:
+3. **Larger cache = worse performance:**
+   - Size 200 is slowest on Medium (0.81x) and Large (0.84x)
+   - More cache entries = more overhead managing the cache
 
-1. **Test problems are smaller:** Week 1 used 20 sources × 30 intermediates × 20 demands, while our benchmarks used smaller problems that solve faster
-2. **Fewer iterations:** Smaller problems have fewer pivot iterations, reducing projection reuse opportunities
-3. **Cache overhead:** OrderedDict operations and array copying add overhead that becomes relatively larger for small/fast problems
-4. **Not all time is in projections:** Other solver operations (pricing, pivot selection, basis updates) also take time
+4. **Memory overhead is minimal:** Even size=200 uses only ~160KB for 130-node problem (not the bottleneck)
 
-**Expected performance on larger problems:**
+**Why Week 1 analysis was misleading:**
 
-Based on Week 1 analysis, we should see **1.5-2.5x speedups** on:
-- Problems with 100+ nodes
-- 200+ iterations  
-- Devex pricing strategy
-- Dense network structure (intermediate nodes)
+The Week 1 analysis showed **99.2% cache hit potential** on medium network problems, suggesting 1.9-2.5x speedup. This was based on:
+- Counting repeated projection requests (high hit rate potential)
+- **BUT:** Not accounting for cache overhead costs
+
+The actual benchmarks reveal:
+1. **Cache operations are expensive:** OrderedDict management + array copying costs more than the projection computation itself
+2. **Hit rate ≠ speedup:** Even with 99% hit rate, if cache overhead > computation savings, performance degrades
+3. **Larger problems = worse:** More cache entries = more overhead managing the LRU cache
+
+**Root cause: Implementation overhead**
+
+The current implementation's overhead comes from:
+- `OrderedDict.move_to_end()` on every cache hit (O(1) but expensive constant factor)
+- `np.ndarray.copy()` on every cache hit (prevents mutation but doubles memory traffic)
+- Tuple creation and hashing for cache keys on every request
+- `OrderedDict.popitem()` on cache evictions
+
+**Conclusion: Cache is not beneficial with current implementation**
+
+The projection cache **hurts performance** on the tested problems. The overhead of cache management exceeds the time saved from avoiding recomputation.
 
 ## Performance Analysis
 
@@ -177,24 +195,26 @@ The cache is **fully integrated** into the solver:
 
 ## Usage Examples
 
-### Default (cache enabled with size 100)
+### Default (cache disabled - recommended)
 ```python
 from network_solver import solve_min_cost_flow
 
 result = solve_min_cost_flow(problem)
-# Cache is automatically enabled with default size 100
+# Cache is disabled by default (projection_cache_size=0)
+# This is RECOMMENDED based on benchmark results
 ```
 
-### Custom cache size
+### Enable cache (NOT recommended - for experimental use only)
 ```python
 from network_solver import solve_min_cost_flow
 from network_solver.data import SolverOptions
 
-options = SolverOptions(projection_cache_size=200)
+# WARNING: Cache may make solver SLOWER (3-16% performance loss observed)
+options = SolverOptions(projection_cache_size=100)
 result = solve_min_cost_flow(problem, options=options)
 ```
 
-### Disable cache
+### Explicitly disable cache (same as default)
 ```python
 options = SolverOptions(projection_cache_size=0)
 result = solve_min_cost_flow(problem, options=options)
@@ -239,20 +259,29 @@ Based on OPTIMIZATION_PROJECTS_2025.md, Week 3 goals are:
 
 ## Conclusion
 
-✅ **Week 2 Complete:** LRU cache successfully implemented, tested, and benchmarked.
+⚠️ **Week 2 Complete:** LRU cache implemented, tested, and benchmarked - but **NOT recommended for use**.
 
 **Achievements:**
 - ✅ LRU cache implementation with basis versioning
 - ✅ Configurable cache size via SolverOptions
 - ✅ 6/6 unit tests passing
-- ✅ 1.05-1.22x speedup on benchmark problems
 - ✅ Zero correctness issues (cached = non-cached results)
+- ❌ **Performance regression:** Cache makes solver 3-16% **slower** on Medium/Large problems
 
-**Key Metrics:**
+**Key Findings:**
 - Code changes: 4 files modified
 - Tests added: 6 comprehensive test cases
 - Benchmark suite: 3 problem sizes × 4 cache configurations
-- Memory overhead: <225 KB for largest tested configuration
-- Performance improvement: 5-22% on test problems
+- **Performance impact:** Small=1.05x faster, Medium=0.88x slower, Large=0.84x slower
+- **Root cause:** Cache overhead (OrderedDict + array copying) exceeds computation savings
 
-**Ready for Week 3:** Optimization and validation on larger problems.
+**Recommendation:** **Disable cache by default** (set `projection_cache_size=0`)
+
+**Next Steps (Week 3 - REVISED):**
+1. **Disable cache by default** to avoid performance regression
+2. **Investigate alternative implementations:**
+   - Simple dict without LRU (no `move_to_end` overhead)
+   - Return cached array directly without `.copy()` (requires careful lifetime management)
+   - NumPy-native cache using indices instead of tuples
+3. **Re-benchmark** with optimized implementation
+4. **Alternative approach:** Explore other optimization opportunities from OPTIMIZATION_PROJECTS_2025.md (vectorization, Numba JIT) instead of caching

@@ -24,7 +24,7 @@ class TreeBasis:
         root: int,
         tolerance: float,
         use_dense_inverse: bool | None = None,
-        projection_cache_size: int = 100,
+        projection_cache_size: int = 0,
     ) -> None:
         # Auto-detect if not specified: use sparse if available, else dense
         if use_dense_inverse is None:
