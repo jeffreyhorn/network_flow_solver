@@ -332,7 +332,6 @@ class NetworkSimplex:
         These arrays mirror the ArcState list but enable fast vectorized
         computation of reduced costs and candidate selection.
         """
-        n = len(self.arcs)
         self.arc_costs = np.array([arc.cost for arc in self.arcs], dtype=np.float64)
         self.arc_tails = np.array([arc.tail for arc in self.arcs], dtype=np.int32)
         self.arc_heads = np.array([arc.head for arc in self.arcs], dtype=np.int32)

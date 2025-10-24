@@ -92,7 +92,7 @@ def benchmark_with_vectorization(problem, enabled=True, runs=3):
     result = None
 
     try:
-        for run in range(runs):
+        for _ in range(runs):
             options = SolverOptions(pricing_strategy="devex")
             start_time = time.perf_counter()
             result = solve_min_cost_flow(problem, options=options)
@@ -149,7 +149,7 @@ def main():
         speedup = (time_baseline / time_vectorized - 1) * 100
         time_saved = time_baseline - time_vectorized
 
-        print(f"\n  Performance Improvement:")
+        print("\n  Performance Improvement:")
         print(f"    Speedup: {speedup:+.1f}%")
         print(f"    Time saved: {time_saved:.3f}s")
 
@@ -157,7 +157,7 @@ def main():
         if abs(result_baseline.objective - result_vectorized.objective) < 1e-6:
             print(f"    ✓ Results verified (objective: {result_vectorized.objective:.2f})")
         else:
-            print(f"    ✗ WARNING: Results differ!")
+            print("    ✗ WARNING: Results differ!")
             print(f"      Baseline: {result_baseline.objective:.6f}")
             print(f"      Vectorized: {result_vectorized.objective:.6f}")
 
