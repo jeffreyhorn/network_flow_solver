@@ -11,11 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Vectorized pricing operations (enabled by default)** (`simplex.py`, `simplex_pricing.py`)
   - **Feature**: Devex pricing uses vectorized NumPy array operations by default for dramatically improved performance
   - **Performance improvements**:
-    - Small problems (300 arcs): **214% speedup** (3.1x faster)
-    - Medium problems (600 arcs): **83% speedup** (1.8x faster)
-    - Large problems (900 arcs): **117% speedup** (2.2x faster)
-    - Average improvement: **138% speedup** (2.4x faster)
-    - Significantly exceeds 10% target from optimization roadmap (Project 2: Vectorize Pricing)
+    - Small problems (300 arcs): **162% speedup** (2.6x faster)
+    - Medium problems (600 arcs): **92% speedup** (1.9x faster)
+    - Average improvement: **127% speedup** (2.3x faster)
+  - **Anti-cycling mechanism**: Minimal exclusion of last degenerate arc prevents infinite loops on zero-cost arcs while preserving optimal solutions
+  - Significantly exceeds 10% target from optimization roadmap (Project 2: Vectorize Pricing)
   - **Implementation**:
     - `_build_vectorized_arrays()`: Creates NumPy arrays mirroring ArcState list (costs, tails, heads, capacities, flows, tree status, node potentials)
     - `_sync_vectorized_arrays()`: Syncs arrays when arcs are modified (artificial arcs added, flows updated)

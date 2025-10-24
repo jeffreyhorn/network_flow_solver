@@ -34,6 +34,7 @@ class NetworkSimplexProtocol(Protocol):
         weights: np.ndarray,
         allow_zero: bool,
         tolerance: float,
+        excluded: set[int],
     ) -> tuple[int, int, float] | None: ...
 
 
@@ -172,6 +173,8 @@ class DevexPricing(PricingStrategy):
             self.weights = np.ones(arc_count, dtype=float)
         self.block_size = block_size
         self.pricing_block = 0
+        # Track the last arc that caused a degenerate pivot to prevent immediate reselection
+        self.last_degenerate_arc: int | None = None
 
     def select_entering_arc(
         self,
@@ -311,17 +314,21 @@ class DevexPricing(PricingStrategy):
                 start = 0
             end = min(start + self.block_size, actual_arc_count)
 
-            # Use solver's vectorized selection method with degenerate penalty
+            # Use solver's vectorized selection method, excluding last degenerate arc
+            excluded = {self.last_degenerate_arc} if self.last_degenerate_arc is not None else set()
             result = solver._select_entering_arc_vectorized(
                 start,
                 end,
                 self.weights,
                 allow_zero,
                 tolerance,
+                excluded,
             )
 
             if result is not None:
                 arc_idx, direction, merit = result
+                # Clear the last degenerate arc since we successfully selected a different arc
+                self.last_degenerate_arc = None
                 # Update weight for selected arc (only if improving move)
                 if merit > 0:
                     arc = solver.arcs[arc_idx]
@@ -331,6 +338,16 @@ class DevexPricing(PricingStrategy):
             self.pricing_block = (self.pricing_block + 1) % block_count
 
         return None
+
+    def record_degenerate_pivot(self, arc_idx: int) -> None:
+        """Record that an arc caused a degenerate pivot.
+
+        This arc will be excluded from the next selection to prevent cycling.
+
+        Args:
+            arc_idx: Index of the arc that caused a degenerate pivot
+        """
+        self.last_degenerate_arc = arc_idx
 
     def reset(self) -> None:
         """Reset Devex weights to 1.0 and pricing block to 0."""

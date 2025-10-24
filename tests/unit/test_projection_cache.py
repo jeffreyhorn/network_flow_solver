@@ -224,8 +224,9 @@ def test_cache_hit_rate_on_network_flow():
 
     total_requests = solver.basis.cache_hits + solver.basis.cache_misses
 
-    # Should have many projection requests with Devex pricing
-    assert total_requests > 100
+    # Vectorized pricing is more efficient and requires fewer projection requests
+    # (34 vs 100+ with loop-based pricing)
+    assert total_requests > 20
 
     # Should achieve some cache hits
     # Note: Hit rate depends on problem size and iteration count.

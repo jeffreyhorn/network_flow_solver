@@ -212,10 +212,9 @@ result = solve_min_cost_flow(problem, options=options)
 
 **Vectorized pricing (enabled by default):**
 The Devex pricing strategy uses vectorized NumPy array operations by default, providing significant performance improvements:
-- **Small problems** (300 arcs): **214% speedup** (3.1x faster)
-- **Medium problems** (600 arcs): **83% speedup** (1.8x faster)
-- **Large problems** (900 arcs): **117% speedup** (2.2x faster)
-- **Average improvement**: **138% speedup** (2.4x faster)
+- **Small problems** (300 arcs): **162% speedup** (2.6x faster)
+- **Medium problems** (600 arcs): **92% speedup** (1.9x faster)
+- **Average improvement**: **127% speedup** (2.3x faster)
 - **Enabled by default**: `SolverOptions(use_vectorized_pricing=True)`
 - **Can be disabled**: Set `use_vectorized_pricing=False` for debugging or comparison with loop-based implementation
 - **Implementation**: Replaces Python loops with vectorized reduced cost computation, residual calculation, and candidate selection using NumPy masked arrays

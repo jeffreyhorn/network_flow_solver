@@ -549,9 +549,9 @@ Configuration options for the solver.
   - `"dantzig"`: Most negative reduced cost (simpler, no vectorization)
 - `use_vectorized_pricing` (bool): Enable vectorized pricing operations (default: True)
   - `True` (default): Use NumPy vectorized operations for significant speedup (recommended)
-    - Small problems (300 arcs): 214% speedup (3.1x faster)
-    - Medium problems (600 arcs): 83% speedup (1.8x faster)
-    - Large problems (900 arcs): 117% speedup (2.2x faster)
+    - Small problems (300 arcs): 162% speedup (2.6x faster)
+    - Medium problems (600 arcs): 92% speedup (1.9x faster)
+    - Average improvement: 127% speedup (2.3x faster)
   - `False`: Use traditional loop-based pricing (for debugging/comparison)
   - Only applies to Devex pricing strategy
 - `block_size` (int | str, optional): Arcs per pricing block
