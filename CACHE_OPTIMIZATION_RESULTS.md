@@ -135,26 +135,35 @@ For very small problems (< 50 nodes, < 100 iterations):
 - Cache lookup overhead (dict hash + check) is comparable to computation cost
 - Not enough repeated projections to amortize cache overhead
 
-**Solution:** Keep cache disabled by default, enable only for larger problems or via adaptive heuristic.
+**Current Solution:** Cache is **enabled by default** (projection_cache_size=100) because:
+- Most production problems are medium/large (where cache helps)
+- Small overhead on tiny problems (5%) is acceptable trade-off
+- Users can disable with `projection_cache_size=0` for very small problems
+- Future: could add adaptive heuristic to auto-disable for small problems
 
 ## Recommendations
 
-### 1. Enable Cache by Default for Medium+ Problems
+### 1. Cache Enabled by Default ✅ (Already Implemented)
 
-Update `SolverOptions` default:
+Cache is now enabled by default in `SolverOptions`:
 ```python
-projection_cache_size: int = 100  # Enable by default now that it's optimized
+projection_cache_size: int = 100  # Optimized cache provides 14% speedup on medium problems
 ```
 
-**OR** use adaptive approach:
+This is the right default because:
+- Most real-world problems are medium/large (where cache provides speedup)
+- Small overhead on tiny problems (5%) is acceptable
+- Users working with very small problems can disable: `SolverOptions(projection_cache_size=0)`
+
+**Future Enhancement (Optional):** Adaptive approach:
 ```python
 # In NetworkSimplex.__init__:
-if self.options.projection_cache_size is None:
-    # Auto-enable for larger problems
+if self.options.projection_cache_size == "auto":
+    # Auto-tune based on problem size
     if len(problem.nodes) >= 50:
-        cache_size = 100
+        cache_size = 100  # Enable for medium/large
     else:
-        cache_size = 0  # Disable for small problems
+        cache_size = 0  # Disable for very small
 ```
 
 ### 2. Optimal Cache Size
