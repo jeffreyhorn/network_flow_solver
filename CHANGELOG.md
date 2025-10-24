@@ -21,11 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `_compute_residuals_vectorized()`: Computes forward/backward residuals efficiently
     - `_select_entering_arc_vectorized()`: Selects best entering arc using NumPy masked arrays for eligibility checks and merit computation
     - Devex pricing automatically uses vectorization when solver instance is available
+  - **Configuration**:
+    - Enabled by default: `SolverOptions(use_vectorized_pricing=True)`
+    - Can be disabled for debugging/comparison: `use_vectorized_pricing=False`
+    - Only applies to Devex pricing strategy (Dantzig is always loop-based)
   - **Benefits**:
-    - No configuration needed - automatically enabled and transparent
+    - Enabled by default for optimal performance
     - Replaces Python loops with batch operations on NumPy arrays
     - Particularly effective for problems with many arcs where pricing is a bottleneck
-    - Maintains backward compatibility - falls back to standard methods if needed
+    - Can be disabled if needed for debugging or performance comparison
   - **Integration**:
     - Modified `PricingStrategy.select_entering_arc()` to accept optional solver parameter
     - `DevexPricing._select_entering_arc_vectorized()` leverages solver's vectorized infrastructure

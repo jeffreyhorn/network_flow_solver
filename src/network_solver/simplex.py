@@ -904,14 +904,15 @@ class NetworkSimplex:
             if result is not None:
                 return result
 
-        # Delegate to pricing strategy (pass self for vectorized operations)
+        # Delegate to pricing strategy (pass self if vectorization enabled)
+        solver = self if self.options.use_vectorized_pricing else None
         return self.pricing_strategy.select_entering_arc(
             self.arcs,
             self.basis,
             self.actual_arc_count,
             allow_zero,
             self.tolerance,
-            solver=self,
+            solver=solver,
         )
 
     # ============================================================================
