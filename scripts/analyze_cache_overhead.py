@@ -8,7 +8,6 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from network_solver import solve_min_cost_flow  # noqa: E402
 from network_solver.data import Arc, NetworkProblem, Node, SolverOptions  # noqa: E402
 from network_solver.simplex import NetworkSimplex  # noqa: E402
 
@@ -130,12 +129,12 @@ def main():
         overhead_seconds = with_cache["elapsed"] - no_cache["elapsed"]
         overhead_percent = (overhead_seconds / no_cache["elapsed"]) * 100
 
-        print(f"\n  No Cache:")
+        print("\n  No Cache:")
         print(f"    Time: {no_cache['elapsed']:.3f}s")
         print(f"    Iterations: {no_cache['iterations']}")
         print(f"    Total projection requests: {no_cache['total_requests']:,}")
 
-        print(f"\n  With Cache (size=100):")
+        print("\n  With Cache (size=100):")
         print(f"    Time: {with_cache['elapsed']:.3f}s")
         print(f"    Iterations: {with_cache['iterations']}")
         print(f"    Total projection requests: {with_cache['total_requests']:,}")
@@ -144,7 +143,7 @@ def main():
         print(f"    Hit rate: {with_cache['hit_rate']:.1%}")
         print(f"    Final cache size: {with_cache['cache_final_size']}")
 
-        print(f"\n  Cache Impact:")
+        print("\n  Cache Impact:")
         if overhead_seconds > 0:
             print(f"    Overhead: +{overhead_seconds:.3f}s (+{overhead_percent:.1f}%)")
             print(f"    Speedup: {no_cache['elapsed'] / with_cache['elapsed']:.2f}x")
@@ -163,10 +162,10 @@ def main():
 
         # Analyze if cache is beneficial
         if with_cache["hit_rate"] > 0:
-            print(f"\n  Analysis:")
+            print("\n  Analysis:")
             if overhead_seconds > 0:
                 print(f"    ❌ Cache adds overhead despite {with_cache['hit_rate']:.1%} hit rate")
-                print(f"    Reason: Cache operations cost more than projection recomputation")
+                print("    Reason: Cache operations cost more than projection recomputation")
             else:
                 print(f"    ✅ Cache beneficial with {with_cache['hit_rate']:.1%} hit rate")
 

@@ -100,11 +100,17 @@ def test_cache_invalidation_on_basis_change():
     # Basis version should have incremented (multiple pivots)
     assert solver.basis.basis_version > 0
 
-    # All cache entries should be for valid basis versions
-    for (_arc_key, basis_ver), projection in solver.basis.projection_cache.items():
-        assert basis_ver >= 0
-        assert basis_ver <= solver.basis.basis_version
+    # All cache entries should be valid projections
+    # (Optimized cache: cleared on basis change, so all entries are for current basis)
+    for arc_key, projection in solver.basis.projection_cache.items():
+        assert isinstance(arc_key, tuple)
+        assert len(arc_key) == 2  # (tail, head)
         assert isinstance(projection, np.ndarray)
+
+    # Cache should be for a recent basis version
+    # (May be one behind if final basis update had no projections)
+    assert solver.basis.cache_basis_version >= 0
+    assert solver.basis.cache_basis_version <= solver.basis.basis_version
 
 
 def test_cache_lru_eviction():

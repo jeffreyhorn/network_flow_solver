@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import OrderedDict, deque
+from collections import deque
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
@@ -24,7 +24,7 @@ class TreeBasis:
         root: int,
         tolerance: float,
         use_dense_inverse: bool | None = None,
-        projection_cache_size: int = 0,
+        projection_cache_size: int = 100,
     ) -> None:
         # Auto-detect if not specified: use sparse if available, else dense
         if use_dense_inverse is None:
@@ -44,9 +44,10 @@ class TreeBasis:
         self.basis_matrix: np.ndarray | None = None
         self.basis_inverse: np.ndarray | None = None
 
-        # Projection cache (Week 2: Implementation)
+        # Projection cache (Optimized: simple dict, no LRU overhead)
         self.projection_cache_size = projection_cache_size
-        self.projection_cache: OrderedDict[tuple[tuple[str, str], int], np.ndarray] = OrderedDict()
+        self.projection_cache: dict[tuple[str, str], np.ndarray] = {}  # arc_key -> projection
+        self.cache_basis_version = -1  # Track which basis version cache is valid for
         self.cache_hits = 0
         self.cache_misses = 0
 
@@ -210,13 +211,18 @@ class TreeBasis:
         self.projection_requests[arc_key] = self.projection_requests.get(arc_key, 0) + 1
         self.projection_history.append((self.basis_version, arc_key))
 
-        # Check cache (Week 2: LRU cache implementation)
-        cache_key = (arc_key, self.basis_version)
-        if cache_key in self.projection_cache:
-            # Cache hit: move to end (most recently used) and return cached result
-            self.cache_hits += 1
-            self.projection_cache.move_to_end(cache_key)
-            return self.projection_cache[cache_key].copy()
+        # Optimized cache: simple dict lookup with arc key
+        if self.projection_cache_size > 0:
+            # Invalidate cache if basis has changed
+            if self.cache_basis_version != self.basis_version:
+                self.projection_cache.clear()
+                self.cache_basis_version = self.basis_version
+
+            # Check cache using arc_key (tuple is hashable and correct)
+            if arc_key in self.projection_cache:
+                self.cache_hits += 1
+                # Return copy to prevent cache corruption if caller modifies array
+                return self.projection_cache[arc_key].copy()
 
         # Cache miss: compute projection
         self.cache_misses += 1
@@ -237,12 +243,9 @@ class TreeBasis:
 
         # Store in cache if computation succeeded
         if result is not None and self.projection_cache_size > 0:
-            # Evict oldest entry if cache is full (LRU eviction)
-            if len(self.projection_cache) >= self.projection_cache_size:
-                self.projection_cache.popitem(last=False)  # Remove oldest (first) item
-
-            # Add new result to cache (at end = most recently used)
-            self.projection_cache[cache_key] = result.copy()
+            # Simple cache: just store, no LRU eviction
+            # Cache is cleared on basis change, so size naturally bounded
+            self.projection_cache[arc_key] = result
 
         return result
 
