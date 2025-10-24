@@ -31,16 +31,19 @@ return self.projection_cache[arc_key]  # Direct return, no overhead!
 - Eliminated `popitem()` call on eviction
 - Simpler data structure = faster lookups
 
-### 2. Removed Array Copying
+### 2. Reduced Array Copying (50% reduction)
 **Before:** `.copy()` called twice per projection:
 - Once when storing in cache
 - Once when returning from cache
 
-**After:** Return cached array directly without copying
+**After:** `.copy()` called once (only on cache return for safety)
+- Storage: store array directly without copying
+- Return: copy to prevent cache corruption if caller modifies array
 
 **Savings:**
-- ~50% reduction in memory traffic for cached projections
-- No allocation/deallocation overhead
+- 50% reduction in memory traffic for cached projections (1 copy instead of 2)
+- 50% reduction in allocation/deallocation overhead
+- Safety: returned copy prevents accidental cache corruption
 
 ### 3. Simplified Cache Invalidation
 **Before:** Track `(arc_key, basis_version)` in cache key, use LRU eviction
@@ -64,10 +67,10 @@ if self.cache_basis_version != self.basis_version:
 # Simple lookup
 if arc_key in self.projection_cache:
     self.cache_hits += 1
-    return self.projection_cache[arc_key]  # No copy, no move_to_end
+    return self.projection_cache[arc_key].copy()  # Copy for safety, no move_to_end
 
 # Simple storage
-self.projection_cache[arc_key] = result  # No copy, no LRU management
+self.projection_cache[arc_key] = result  # No copy on storage, no LRU management
 ```
 
 ## Performance Results

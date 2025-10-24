@@ -221,7 +221,8 @@ class TreeBasis:
             # Check cache using arc_key (tuple is hashable and correct)
             if arc_key in self.projection_cache:
                 self.cache_hits += 1
-                return self.projection_cache[arc_key]  # No copy - return directly
+                # Return copy to prevent cache corruption if caller modifies array
+                return self.projection_cache[arc_key].copy()
 
         # Cache miss: compute projection
         self.cache_misses += 1
