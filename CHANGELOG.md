@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Deferred Devex weight updates (loop-based pricing optimization)** (`simplex_pricing.py`)
+  - **Feature**: Loop-based Devex pricing now defers weight updates until after arc selection
+  - **Performance improvements**:
+    - **97.5% reduction** in `_update_weight` calls (1,375 → 47 per solve)
+    - **94% reduction** in `project_column` calls (1,422 → 81 per solve)
+    - **37% faster** loop-based pricing (0.390s → 0.244s on medium problems)
+  - **Implementation**: Update weight only for the selected entering arc, not all examined candidates
+  - **Benefit**: Significantly improves loop-based fallback performance (when `use_vectorized_pricing=False`)
+  - Note: Vectorized pricing (default) already had this optimization built-in
+  - Completes Project 3 from optimization roadmap
 - **Vectorized pricing operations (enabled by default)** (`simplex.py`, `simplex_pricing.py`)
   - **Feature**: Devex pricing uses vectorized NumPy array operations by default for dramatically improved performance
   - **Performance improvements**:

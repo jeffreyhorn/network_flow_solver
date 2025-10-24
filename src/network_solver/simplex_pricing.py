@@ -222,7 +222,8 @@ class DevexPricing(PricingStrategy):
 
                 # Check forward direction
                 if forward_res > tolerance and rc < -tolerance:
-                    weight = self._update_weight(idx, arc, basis)
+                    # Use current weight for merit comparison (defer update until selection)
+                    weight = max(self.weights[idx], DEVEX_WEIGHT_MIN)
                     merit = (rc * rc) / weight
                     if self._is_better_candidate(merit, idx, best_merit, best, tolerance):
                         best_merit = merit
@@ -231,7 +232,8 @@ class DevexPricing(PricingStrategy):
 
                 # Check backward direction
                 if backward_res > tolerance and rc > tolerance:
-                    weight = self._update_weight(idx, arc, basis)
+                    # Use current weight for merit comparison (defer update until selection)
+                    weight = max(self.weights[idx], DEVEX_WEIGHT_MIN)
                     merit = (rc * rc) / weight
                     if self._is_better_candidate(merit, idx, best_merit, best, tolerance):
                         best_merit = merit
@@ -245,6 +247,9 @@ class DevexPricing(PricingStrategy):
                     zero_candidates.append((idx, -1))
 
             if best is not None:
+                # Update weight only for the selected arc
+                arc = arcs[best[0]]
+                self._update_weight(best[0], arc, basis)
                 return best
             if allow_zero and zero_candidates:
                 self.pricing_block = (self.pricing_block + 1) % block_count
