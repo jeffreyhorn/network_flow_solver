@@ -38,6 +38,11 @@ class TreeBasis:
         self.tree_arc_indices: list[int] = []
         self.basis_matrix: np.ndarray | None = None
         self.basis_inverse: np.ndarray | None = None
+
+        # Instrumentation for projection pattern analysis (Week 1)
+        self.projection_requests: dict[tuple[str, str], int] = {}  # arc_key -> request_count
+        self.basis_version = 0  # Incremented on basis changes for cache key
+        self.projection_history: list[tuple[int, tuple[str, str]]] = []  # (basis_version, arc_key)
         self.lu_factors: LUFactors | None = None
         self.ft_engine: ForrestTomlin | None = None
         self.ft_update_limit = 64
@@ -189,6 +194,11 @@ class TreeBasis:
         return vec
 
     def project_column(self, arc: ArcState) -> np.ndarray | None:
+        # Instrumentation: Track projection requests
+        arc_key = arc.key
+        self.projection_requests[arc_key] = self.projection_requests.get(arc_key, 0) + 1
+        self.projection_history.append((self.basis_version, arc_key))
+
         column = self._column_vector(arc)
         if self.ft_engine is not None:
             # Prefer Forrest–Tomlin solves so Devex stays in sync with incremental updates.
@@ -273,6 +283,10 @@ class TreeBasis:
         pos = self.arc_to_pos.get(leaving_idx)
         if pos is None:
             return False
+
+        # Instrumentation: Increment basis version on any arc replacement
+        # (will be used as cache key to track which basis a projection belongs to)
+        self.basis_version += 1
 
         new_col = self._column_vector(arcs[entering_idx])
         if self.ft_engine is not None:

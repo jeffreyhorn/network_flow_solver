@@ -1,0 +1,227 @@
+================================================================================
+PROJECTION PATTERN ANALYSIS - Week 1: Cache Design
+================================================================================
+
+[Running small problem for quick validation...]
+
+================================================================================
+Analyzing: Small Transportation (5×5)
+================================================================================
+
+Problem Statistics:
+  Nodes: 10
+  Arcs: 25
+  Iterations: 19
+  Objective: 87.50
+
+--------------------------------------------------------------------------------
+PROJECTION PATTERN ANALYSIS
+--------------------------------------------------------------------------------
+
+1. Request Statistics:
+   Total projection requests: 19
+   Unique arcs projected: 19
+   Average requests per arc: 1.0
+   Requests per iteration: 1.0
+
+2. Repetition Analysis (Cache Hit Potential):
+   Arcs requested once: 19
+   Arcs requested multiple times: 0
+   Total repeated requests: 0
+   Potential cache hit rate: 0.0%
+
+3. Top 10 Most Frequently Requested Arcs:
+   1. ('S0', 'D0'): 1 requests
+   2. ('S0', 'D1'): 1 requests
+   3. ('S1', 'D0'): 1 requests
+   4. ('S1', 'D1'): 1 requests
+   5. ('S0', 'D2'): 1 requests
+   6. ('S2', 'D0'): 1 requests
+   7. ('S1', 'D2'): 1 requests
+   8. ('S2', 'D1'): 1 requests
+   9. ('S0', 'D3'): 1 requests
+   10. ('S3', 'D0'): 1 requests
+
+4. Working Set Analysis:
+   Number of basis versions: 19
+   Average arcs per basis version: 1.0
+   Maximum arcs per basis version: 1
+   Iterations per basis change: 1.0
+
+5. Temporal Locality:
+   Consecutive identical requests: 0
+   Temporal locality rate: 0.0%
+
+6. Cache Size Recommendations:
+   Conservative (50th percentile): 1 arcs
+   Aggressive (90th percentile): 1 arcs
+   Maximum (100th percentile): 1 arcs
+
+   Estimated memory for different cache sizes:
+     50 arcs: ~39.1 KB
+     100 arcs: ~78.1 KB
+     200 arcs: ~156.2 KB
+     1 arcs: ~0.8 KB
+
+[Running medium problem...]
+
+================================================================================
+Analyzing: Medium Transportation (15×15)
+================================================================================
+
+Problem Statistics:
+  Nodes: 30
+  Arcs: 225
+  Iterations: 134
+  Objective: 5100.00
+
+--------------------------------------------------------------------------------
+PROJECTION PATTERN ANALYSIS
+--------------------------------------------------------------------------------
+
+1. Request Statistics:
+   Total projection requests: 134
+   Unique arcs projected: 134
+   Average requests per arc: 1.0
+   Requests per iteration: 1.0
+
+2. Repetition Analysis (Cache Hit Potential):
+   Arcs requested once: 134
+   Arcs requested multiple times: 0
+   Total repeated requests: 0
+   Potential cache hit rate: 0.0%
+
+3. Top 10 Most Frequently Requested Arcs:
+   1. ('S0', 'D0'): 1 requests
+   2. ('S0', 'D1'): 1 requests
+   3. ('S1', 'D0'): 1 requests
+   4. ('S1', 'D1'): 1 requests
+   5. ('S0', 'D2'): 1 requests
+   6. ('S2', 'D0'): 1 requests
+   7. ('S1', 'D2'): 1 requests
+   8. ('S2', 'D1'): 1 requests
+   9. ('S0', 'D3'): 1 requests
+   10. ('S3', 'D0'): 1 requests
+
+4. Working Set Analysis:
+   Number of basis versions: 134
+   Average arcs per basis version: 1.0
+   Maximum arcs per basis version: 1
+   Iterations per basis change: 1.0
+
+5. Temporal Locality:
+   Consecutive identical requests: 0
+   Temporal locality rate: 0.0%
+
+6. Cache Size Recommendations:
+   Conservative (50th percentile): 1 arcs
+   Aggressive (90th percentile): 1 arcs
+   Maximum (100th percentile): 1 arcs
+
+   Estimated memory for different cache sizes:
+     50 arcs: ~39.1 KB
+     100 arcs: ~78.1 KB
+     200 arcs: ~156.2 KB
+     1 arcs: ~0.8 KB
+
+[Running large problem - this will take several minutes...]
+
+================================================================================
+Analyzing: Medium Network Flow (20 sources)
+================================================================================
+
+Problem Statistics:
+  Nodes: 80
+  Arcs: 1066
+  Iterations: 228
+  Objective: 10560.00
+
+--------------------------------------------------------------------------------
+PROJECTION PATTERN ANALYSIS
+--------------------------------------------------------------------------------
+
+1. Request Statistics:
+   Total projection requests: 13,241
+   Unique arcs projected: 983
+   Average requests per arc: 13.5
+   Requests per iteration: 58.1
+
+2. Repetition Analysis (Cache Hit Potential):
+   Arcs requested once: 105
+   Arcs requested multiple times: 878
+   Total repeated requests: 13,136
+   Potential cache hit rate: 99.2%
+
+3. Top 10 Most Frequently Requested Arcs:
+   1. ('I18', 'I23'): 47 requests
+   2. ('S13', 'I18'): 42 requests
+   3. ('S14', 'I16'): 41 requests
+   4. ('I21', 'D0'): 41 requests
+   5. ('I9', 'I20'): 41 requests
+   6. ('S14', 'I15'): 40 requests
+   7. ('S13', 'I16'): 39 requests
+   8. ('S14', 'I14'): 39 requests
+   9. ('S14', 'I17'): 39 requests
+   10. ('S13', 'I15'): 38 requests
+
+4. Working Set Analysis:
+   Number of basis versions: 228
+   Average arcs per basis version: 57.2
+   Maximum arcs per basis version: 256
+   Iterations per basis change: 1.0
+
+5. Temporal Locality:
+   Consecutive identical requests: 28
+   Temporal locality rate: 0.2%
+
+6. Cache Size Recommendations:
+   Conservative (50th percentile): 39 arcs
+   Aggressive (90th percentile): 137 arcs
+   Maximum (100th percentile): 256 arcs
+
+   Estimated memory for different cache sizes:
+     50 arcs: ~39.1 KB
+     100 arcs: ~78.1 KB
+     200 arcs: ~156.2 KB
+     256 arcs: ~200.0 KB
+
+
+================================================================================
+SUMMARY COMPARISON
+================================================================================
+
+Problem                                    Requests   Unique     Hit%    MaxWS
+--------------------------------------------------------------------------------
+Small Transportation (5×5)                       19       19     0.0%        1
+Medium Transportation (15×15)                   134      134     0.0%        1
+Medium Network Flow (20 sources)             13,241      983    99.2%      256
+
+================================================================================
+CACHE DESIGN RECOMMENDATIONS
+================================================================================
+
+Based on analysis of 3 problems:
+
+1. CACHE HIT POTENTIAL: 33.1% average
+   - Significant opportunity for caching
+   - Many arcs are projected multiple times
+
+2. CACHE STRATEGY: LRU Cache
+   - Working set varies by basis version
+   - LRU will naturally evict old projections
+   - Invalidate on basis change (increment version)
+
+3. CACHE SIZE: Start with 100-200 arcs
+   - Covers 90% of working sets
+   - Memory overhead: ~80-160 KB
+   - Configurable via SolverOptions
+
+4. CACHE KEY: (arc_key, basis_version)
+   - Ensures correct projection for current basis
+   - Simple invalidation on basis changes
+
+5. NEXT STEPS (Week 2):
+   - Implement LRU cache in TreeBasis
+   - Add projection_cache_size to SolverOptions
+   - Measure actual hit rates and speedup
+   - Tune cache size based on performance
