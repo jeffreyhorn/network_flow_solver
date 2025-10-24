@@ -403,7 +403,6 @@ class NetworkSimplex:
         weights: np.ndarray,
         allow_zero: bool,
         tolerance: float,
-        excluded_arcs: set[int] | None = None,
     ) -> tuple[int, int, float] | None:
         """Vectorized arc selection for a block of arcs.
 
@@ -413,7 +412,6 @@ class NetworkSimplex:
             weights: Devex weights array
             allow_zero: Whether to allow zero reduced cost arcs
             tolerance: Numerical tolerance
-            excluded_arcs: Set of arc indices to exclude (e.g., recent degenerate pivots)
 
         Returns:
             Tuple of (arc_index, direction, merit) or None if no candidate found
@@ -433,16 +431,8 @@ class NetworkSimplex:
         artificial_block = self.arc_artificial[start:end]
         weights_block = weights[start:end]
 
-        # Mask for eligible arcs (not in tree, not artificial, not excluded)
+        # Mask for eligible arcs (not in tree, not artificial)
         eligible = ~in_tree_block & ~artificial_block
-
-        # Exclude arcs that recently caused degenerate pivots
-        if excluded_arcs:
-            excluded_mask = np.zeros(end - start, dtype=bool)
-            for arc_idx in excluded_arcs:
-                if start <= arc_idx < end:
-                    excluded_mask[arc_idx - start] = True
-            eligible = eligible & ~excluded_mask
 
         # If no eligible arcs in this block, return None
         if not np.any(eligible):
@@ -968,15 +958,6 @@ class NetworkSimplex:
 
             iterations += 1
 
-            # Periodically clear degenerate penalty set (every 5 iterations)
-            # This allows previously degenerate arcs to be reconsidered
-            if (
-                self.options.use_vectorized_pricing
-                and isinstance(self.pricing_strategy, DevexPricing)
-                and iterations % 5 == 0
-            ):
-                self.pricing_strategy.clear_degenerate_penalties()
-
             # Adapt block size if auto-tuning is enabled
             block_size_changed = self.adaptive_tuner.adapt_block_size(
                 total_iterations_offset + iterations
@@ -1139,11 +1120,6 @@ class NetworkSimplex:
         if leaving_idx == arc_idx:
             entering.in_tree = False
             # Degenerate pivot: tree unchanged but flows adjusted.
-            # Record this for vectorized pricing to prevent cycling
-            if self.options.use_vectorized_pricing and isinstance(
-                self.pricing_strategy, DevexPricing
-            ):
-                self.pricing_strategy.record_degenerate_pivot(arc_idx)
             if self.logger.isEnabledFor(logging.DEBUG):
                 self.logger.debug(
                     "Degenerate pivot (entering arc is also leaving)",

@@ -554,7 +554,6 @@ Configuration options for the solver.
     - Large problems (900 arcs): 117% speedup (2.2x faster)
   - `False`: Use traditional loop-based pricing (for debugging/comparison)
   - Only applies to Devex pricing strategy
-  - Includes degenerate pivot detection to prevent cycling
 - `block_size` (int | str, optional): Arcs per pricing block
   - `None` or `"auto"` (default): Auto-tune based on problem size with runtime adaptation
   - int: Fixed block size (no adaptation)

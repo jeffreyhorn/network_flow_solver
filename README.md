@@ -228,8 +228,6 @@ options = SolverOptions(pricing_strategy="devex")  # use_vectorized_pricing=True
 options = SolverOptions(pricing_strategy="devex", use_vectorized_pricing=False)
 ```
 
-**Cycling prevention:** The vectorized implementation includes a degenerate pivot detection mechanism to prevent infinite cycling. When an arc causes a degenerate pivot (zero flow change), it is temporarily excluded from selection for a few iterations, forcing the algorithm to explore alternative arcs. This ensures convergence even on highly degenerate problems while maintaining the performance benefits of vectorization.
-
 The vectorization works by maintaining parallel NumPy arrays that mirror the arc list, enabling batch operations for computing reduced costs, checking eligibility, and selecting the best entering arc. This optimization is particularly effective for problems with many arcs where pricing is a bottleneck.
 
 **Performance tuning:**
