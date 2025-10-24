@@ -130,9 +130,8 @@ def profile_problem(problem: NetworkProblem, name: str) -> dict:
     profiler.disable()
     elapsed = time.time() - start_time
 
-    # Collect statistics
-    s = io.StringIO()
-    stats = pstats.Stats(profiler, stream=s)
+    # Collect statistics - output directly to stdout
+    stats = pstats.Stats(profiler)
     stats.strip_dirs()
     stats.sort_stats("cumulative")
 
@@ -146,9 +145,6 @@ def profile_problem(problem: NetworkProblem, name: str) -> dict:
     stats.print_stats(20)
 
     # Print top functions by total time
-    s = io.StringIO()
-    stats = pstats.Stats(profiler, stream=s)
-    stats.strip_dirs()
     stats.sort_stats("tottime")
     print(f"\n{'-' * 80}")
     print("Top 20 functions by total time:")
