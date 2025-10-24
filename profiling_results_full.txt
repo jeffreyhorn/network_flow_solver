@@ -1,0 +1,453 @@
+================================================================================
+NETWORK SIMPLEX SOLVER - PERFORMANCE PROFILING
+================================================================================
+
+================================================================================
+Profiling: Small Transportation (5×5)
+================================================================================
+Nodes: 10, Arcs: 25
+
+Solved in 0.075s, 19 iterations
+Objective: 87.50
+
+--------------------------------------------------------------------------------
+Top 20 functions by cumulative time:
+--------------------------------------------------------------------------------
+         10541 function calls in 0.075 seconds
+
+   Ordered by: cumulative time
+   List reduced from 185 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.075    0.075 solver.py:13(solve_min_cost_flow)
+        1    0.000    0.000    0.069    0.069 simplex.py:1065(solve)
+        2    0.000    0.000    0.064    0.032 simplex.py:773(_run_simplex_iterations)
+       19    0.002    0.000    0.060    0.003 simplex.py:836(_pivot)
+       19    0.003    0.000    0.045    0.002 basis.py:207(estimate_condition_number)
+      228    0.018    0.000    0.038    0.000 forrest_tomlin.py:46(solve)
+      228    0.001    0.000    0.018    0.000 basis_lu.py:48(solve_lu)
+      228    0.017    0.000    0.017    0.000 {method 'solve' of 'SuperLU' objects}
+       22    0.001    0.000    0.009    0.000 basis.py:49(rebuild)
+        3    0.000    0.000    0.008    0.003 simplex.py:428(_rebuild_tree_structure)
+        3    0.000    0.000    0.007    0.002 basis.py:137(_build_numeric_basis)
+        6    0.000    0.000    0.007    0.001 basis_lu.py:24(build_lu)
+       19    0.000    0.000    0.006    0.000 basis.py:267(replace_arc)
+       19    0.001    0.000    0.006    0.000 forrest_tomlin.py:65(update)
+      190    0.001    0.000    0.005    0.000 fromnumeric.py:2338(sum)
+        1    0.000    0.000    0.005    0.005 simplex.py:99(__init__)
+        6    0.000    0.000    0.005    0.001 _compressed.py:30(__init__)
+      290    0.004    0.000    0.004    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      190    0.001    0.000    0.004    0.000 fromnumeric.py:69(_wrapreduction)
+       57    0.001    0.000    0.003    0.000 _linalg.py:2623(norm)
+
+
+
+--------------------------------------------------------------------------------
+Top 20 functions by total time:
+--------------------------------------------------------------------------------
+         10541 function calls in 0.075 seconds
+
+   Ordered by: internal time
+   List reduced from 185 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      228    0.018    0.000    0.038    0.000 forrest_tomlin.py:46(solve)
+      228    0.017    0.000    0.017    0.000 {method 'solve' of 'SuperLU' objects}
+      290    0.004    0.000    0.004    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+       19    0.003    0.000    0.045    0.002 basis.py:207(estimate_condition_number)
+       19    0.002    0.000    0.060    0.003 simplex.py:836(_pivot)
+       57    0.001    0.000    0.003    0.000 _linalg.py:2623(norm)
+       20    0.001    0.000    0.002    0.000 specialized_pivots.py:80(find_entering_arc_row_scan)
+      190    0.001    0.000    0.004    0.000 fromnumeric.py:69(_wrapreduction)
+       22    0.001    0.000    0.009    0.000 basis.py:49(rebuild)
+       19    0.001    0.000    0.006    0.000 forrest_tomlin.py:65(update)
+      190    0.001    0.000    0.005    0.000 fromnumeric.py:2338(sum)
+        6    0.001    0.000    0.001    0.000 {built-in method scipy.sparse.linalg._dsolve._superlu.gstrf}
+      228    0.001    0.000    0.018    0.000 basis_lu.py:48(solve_lu)
+      475    0.001    0.000    0.001    0.000 {method 'reshape' of 'numpy.ndarray' objects}
+       19    0.001    0.000    0.001    0.000 basis.py:94(collect_cycle)
+      245    0.001    0.000    0.001    0.000 {built-in method numpy.array}
+      305    0.001    0.000    0.001    0.000 {built-in method builtins.max}
+       18    0.001    0.000    0.001    0.000 _sputils.py:264(get_index_dtype)
+       19    0.001    0.000    0.001    0.000 simplex.py:766(_update_tree_sets)
+      580    0.001    0.000    0.001    0.000 {built-in method numpy.asarray}
+
+
+
+================================================================================
+Profiling: Medium Transportation (15×15)
+================================================================================
+Nodes: 30, Arcs: 225
+
+Solved in 0.989s, 134 iterations
+Objective: 5100.00
+
+--------------------------------------------------------------------------------
+Top 20 functions by cumulative time:
+--------------------------------------------------------------------------------
+         194104 function calls in 0.989 seconds
+
+   Ordered by: cumulative time
+   List reduced from 202 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.989    0.989 solver.py:13(solve_min_cost_flow)
+        1    0.001    0.001    0.969    0.969 simplex.py:1065(solve)
+        2    0.004    0.002    0.962    0.481 simplex.py:773(_run_simplex_iterations)
+      134    0.036    0.000    0.788    0.006 simplex.py:836(_pivot)
+      134    0.034    0.000    0.498    0.004 basis.py:207(estimate_condition_number)
+     1607    0.333    0.000    0.450    0.000 forrest_tomlin.py:46(solve)
+      135    0.000    0.000    0.147    0.001 simplex.py:745(_find_entering_arc)
+      135    0.000    0.000    0.146    0.001 specialized_pivots.py:69(find_entering_arc)
+      135    0.080    0.001    0.145    0.001 specialized_pivots.py:80(find_entering_arc_row_scan)
+     1607    0.007    0.000    0.095    0.000 basis_lu.py:48(solve_lu)
+     1607    0.084    0.000    0.084    0.000 {method 'solve' of 'SuperLU' objects}
+      137    0.028    0.000    0.073    0.001 basis.py:49(rebuild)
+     1340    0.025    0.000    0.069    0.000 fromnumeric.py:2338(sum)
+      134    0.002    0.000    0.069    0.001 basis.py:267(replace_arc)
+      134    0.008    0.000    0.064    0.000 forrest_tomlin.py:65(update)
+    29308    0.028    0.000    0.056    0.000 simplex.py:53(forward_residual)
+      134    0.001    0.000    0.044    0.000 basis.py:191(project_column)
+     1340    0.019    0.000    0.042    0.000 fromnumeric.py:69(_wrapreduction)
+     1917    0.040    0.000    0.040    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      134    0.027    0.000    0.035    0.000 basis.py:94(collect_cycle)
+
+
+
+--------------------------------------------------------------------------------
+Top 20 functions by total time:
+--------------------------------------------------------------------------------
+         194104 function calls in 0.989 seconds
+
+   Ordered by: internal time
+   List reduced from 202 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     1607    0.333    0.000    0.450    0.000 forrest_tomlin.py:46(solve)
+     1607    0.084    0.000    0.084    0.000 {method 'solve' of 'SuperLU' objects}
+      135    0.080    0.001    0.145    0.001 specialized_pivots.py:80(find_entering_arc_row_scan)
+     1917    0.040    0.000    0.040    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      134    0.036    0.000    0.788    0.006 simplex.py:836(_pivot)
+      134    0.034    0.000    0.498    0.004 basis.py:207(estimate_condition_number)
+    31846    0.029    0.000    0.029    0.000 {built-in method math.isinf}
+      137    0.028    0.000    0.073    0.001 basis.py:49(rebuild)
+    29308    0.028    0.000    0.056    0.000 simplex.py:53(forward_residual)
+      134    0.027    0.000    0.035    0.000 basis.py:94(collect_cycle)
+     1340    0.025    0.000    0.069    0.000 fromnumeric.py:2338(sum)
+     8028    0.022    0.000    0.022    0.000 {method 'append' of 'collections.deque' objects}
+      134    0.020    0.000    0.033    0.000 simplex.py:766(_update_tree_sets)
+     1340    0.019    0.000    0.042    0.000 fromnumeric.py:69(_wrapreduction)
+      400    0.018    0.000    0.032    0.000 _linalg.py:2623(norm)
+    13693    0.017    0.000    0.017    0.000 {method 'append' of 'list' objects}
+     1634    0.015    0.000    0.015    0.000 {built-in method numpy.array}
+      172    0.013    0.000    0.024    0.000 {built-in method builtins.any}
+    29442    0.012    0.000    0.012    0.000 simplex.py:58(backward_residual)
+    27645    0.011    0.000    0.011    0.000 simplex.py:815(<genexpr>)
+
+
+
+================================================================================
+Profiling: Large Transportation (30×30)
+================================================================================
+Nodes: 60, Arcs: 900
+
+Solved in 6.981s, 494 iterations
+Objective: 74400.00
+
+--------------------------------------------------------------------------------
+Top 20 functions by cumulative time:
+--------------------------------------------------------------------------------
+         2164387 function calls in 6.980 seconds
+
+   Ordered by: cumulative time
+   List reduced from 202 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    6.981    6.981 solver.py:13(solve_min_cost_flow)
+        1    0.011    0.011    6.939    6.939 simplex.py:1065(solve)
+        2    0.027    0.013    6.916    3.458 simplex.py:773(_run_simplex_iterations)
+      494    0.167    0.000    3.794    0.008 simplex.py:836(_pivot)
+      495    0.002    0.000    2.579    0.005 simplex.py:745(_find_entering_arc)
+      495    0.002    0.000    2.574    0.005 specialized_pivots.py:69(find_entering_arc)
+      495    1.488    0.003    2.572    0.005 specialized_pivots.py:80(find_entering_arc_row_scan)
+      494    0.149    0.000    2.151    0.004 basis.py:207(estimate_condition_number)
+     5921    1.467    0.000    2.052    0.000 forrest_tomlin.py:46(solve)
+   436593    0.620    0.000    0.870    0.000 simplex.py:53(forward_residual)
+      567    0.304    0.001    0.515    0.001 {built-in method builtins.any}
+     5921    0.040    0.000    0.477    0.000 basis_lu.py:48(solve_lu)
+     5921    0.414    0.000    0.414    0.000 {method 'solve' of 'SuperLU' objects}
+      497    0.199    0.000    0.330    0.001 basis.py:49(rebuild)
+      494    0.009    0.000    0.294    0.001 basis.py:267(replace_arc)
+   455351    0.275    0.000    0.275    0.000 {built-in method math.isinf}
+      494    0.041    0.000    0.275    0.001 forrest_tomlin.py:65(update)
+      494    0.003    0.000    0.268    0.001 basis.py:191(project_column)
+      494    0.198    0.000    0.261    0.001 basis.py:94(collect_cycle)
+      494    0.183    0.000    0.247    0.000 simplex.py:766(_update_tree_sets)
+
+
+
+--------------------------------------------------------------------------------
+Top 20 functions by total time:
+--------------------------------------------------------------------------------
+         2164387 function calls in 6.980 seconds
+
+   Ordered by: internal time
+   List reduced from 202 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      495    1.488    0.003    2.572    0.005 specialized_pivots.py:80(find_entering_arc_row_scan)
+     5921    1.467    0.000    2.052    0.000 forrest_tomlin.py:46(solve)
+   436593    0.620    0.000    0.870    0.000 simplex.py:53(forward_residual)
+     5921    0.414    0.000    0.414    0.000 {method 'solve' of 'SuperLU' objects}
+      567    0.304    0.001    0.515    0.001 {built-in method builtins.any}
+   455351    0.275    0.000    0.275    0.000 {built-in method math.isinf}
+   437087    0.245    0.000    0.245    0.000 simplex.py:58(backward_residual)
+   425230    0.211    0.000    0.211    0.000 simplex.py:815(<genexpr>)
+      497    0.199    0.000    0.330    0.001 basis.py:49(rebuild)
+      494    0.198    0.000    0.261    0.001 basis.py:94(collect_cycle)
+      494    0.183    0.000    0.247    0.000 simplex.py:766(_update_tree_sets)
+      494    0.167    0.000    3.794    0.008 simplex.py:836(_pivot)
+     7003    0.160    0.000    0.160    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      494    0.149    0.000    2.151    0.004 basis.py:207(estimate_condition_number)
+    98622    0.093    0.000    0.093    0.000 {method 'append' of 'list' objects}
+     4940    0.070    0.000    0.189    0.000 fromnumeric.py:69(_wrapreduction)
+    12329    0.057    0.000    0.057    0.000 {method 'reshape' of 'numpy.ndarray' objects}
+     1468    0.054    0.000    0.133    0.000 _linalg.py:2623(norm)
+    59043    0.048    0.000    0.048    0.000 {method 'append' of 'collections.deque' objects}
+     4940    0.042    0.000    0.240    0.000 fromnumeric.py:2338(sum)
+
+
+
+================================================================================
+Profiling: Small Network Flow (10 sources)
+================================================================================
+Nodes: 40, Arcs: 267
+
+Solved in 1.024s, 84 iterations
+Objective: 2680.00
+
+--------------------------------------------------------------------------------
+Top 20 functions by cumulative time:
+--------------------------------------------------------------------------------
+         121944 function calls in 1.024 seconds
+
+   Ordered by: cumulative time
+   List reduced from 196 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    1.024    1.024 solver.py:13(solve_min_cost_flow)
+        1    0.002    0.002    1.004    1.004 simplex.py:1065(solve)
+        2    0.002    0.001    0.995    0.498 simplex.py:773(_run_simplex_iterations)
+     2414    0.509    0.000    0.688    0.000 forrest_tomlin.py:46(solve)
+       85    0.001    0.000    0.497    0.006 simplex.py:745(_find_entering_arc)
+       85    0.031    0.000    0.496    0.006 simplex_pricing.py:153(select_entering_arc)
+       84    0.008    0.000    0.471    0.006 simplex.py:836(_pivot)
+     1407    0.028    0.000    0.443    0.000 simplex_pricing.py:220(_update_weight)
+     1491    0.014    0.000    0.438    0.000 basis.py:191(project_column)
+       84    0.016    0.000    0.318    0.004 basis.py:207(estimate_condition_number)
+     2414    0.028    0.000    0.150    0.000 basis_lu.py:48(solve_lu)
+     2414    0.109    0.000    0.109    0.000 {method 'solve' of 'SuperLU' objects}
+       87    0.024    0.000    0.049    0.001 basis.py:49(rebuild)
+       84    0.010    0.000    0.039    0.000 basis.py:267(replace_arc)
+       84    0.005    0.000    0.028    0.000 forrest_tomlin.py:65(update)
+      840    0.005    0.000    0.028    0.000 fromnumeric.py:2338(sum)
+      121    0.010    0.000    0.026    0.000 {built-in method builtins.any}
+       84    0.018    0.000    0.022    0.000 simplex.py:766(_update_tree_sets)
+      840    0.007    0.000    0.022    0.000 fromnumeric.py:69(_wrapreduction)
+     1209    0.020    0.000    0.020    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+
+
+
+--------------------------------------------------------------------------------
+Top 20 functions by total time:
+--------------------------------------------------------------------------------
+         121944 function calls in 1.024 seconds
+
+   Ordered by: internal time
+   List reduced from 196 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     2414    0.509    0.000    0.688    0.000 forrest_tomlin.py:46(solve)
+     2414    0.109    0.000    0.109    0.000 {method 'solve' of 'SuperLU' objects}
+       85    0.031    0.000    0.496    0.006 simplex_pricing.py:153(select_entering_arc)
+     2414    0.028    0.000    0.150    0.000 basis_lu.py:48(solve_lu)
+     1407    0.028    0.000    0.443    0.000 simplex_pricing.py:220(_update_weight)
+       87    0.024    0.000    0.049    0.001 basis.py:49(rebuild)
+     1209    0.020    0.000    0.020    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+     4911    0.020    0.000    0.020    0.000 {method 'reshape' of 'numpy.ndarray' objects}
+     2436    0.018    0.000    0.018    0.000 {built-in method numpy.array}
+       84    0.018    0.000    0.022    0.000 simplex.py:766(_update_tree_sets)
+       84    0.016    0.000    0.318    0.004 basis.py:207(estimate_condition_number)
+    21290    0.016    0.000    0.016    0.000 simplex.py:815(<genexpr>)
+     1491    0.014    0.000    0.438    0.000 basis.py:191(project_column)
+     4133    0.011    0.000    0.011    0.000 {method 'add' of 'set' objects}
+      121    0.010    0.000    0.026    0.000 {built-in method builtins.any}
+       84    0.010    0.000    0.039    0.000 basis.py:267(replace_arc)
+       84    0.009    0.000    0.012    0.000 basis.py:94(collect_cycle)
+        1    0.008    0.008    0.011    0.011 specializations.py:60(analyze_network_structure)
+       84    0.008    0.000    0.471    0.006 simplex.py:836(_pivot)
+     6985    0.008    0.000    0.012    0.000 simplex.py:53(forward_residual)
+
+
+
+================================================================================
+Profiling: Medium Network Flow (20 sources)
+================================================================================
+Nodes: 80, Arcs: 1066
+
+Solved in 7.297s, 228 iterations
+Objective: 10560.00
+
+--------------------------------------------------------------------------------
+Top 20 functions by cumulative time:
+--------------------------------------------------------------------------------
+         887755 function calls in 7.296 seconds
+
+   Ordered by: cumulative time
+   List reduced from 196 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    7.296    7.296 solver.py:13(solve_min_cost_flow)
+        1    0.023    0.023    7.251    7.251 simplex.py:1065(solve)
+        2    0.008    0.004    7.197    3.598 simplex.py:773(_run_simplex_iterations)
+      229    0.002    0.000    5.221    0.023 simplex.py:745(_find_entering_arc)
+      229    0.412    0.002    5.218    0.023 simplex_pricing.py:153(select_entering_arc)
+    15747    3.239    0.000    4.781    0.000 forrest_tomlin.py:46(solve)
+    13013    0.336    0.000    4.513    0.000 simplex_pricing.py:220(_update_weight)
+    13241    0.076    0.000    4.189    0.000 basis.py:191(project_column)
+      228    0.026    0.000    1.708    0.007 simplex.py:836(_pivot)
+    15747    0.088    0.000    1.268    0.000 basis_lu.py:48(solve_lu)
+    15747    1.115    0.000    1.115    0.000 {method 'solve' of 'SuperLU' objects}
+      228    0.059    0.000    0.957    0.004 basis.py:207(estimate_condition_number)
+      251    0.144    0.001    0.269    0.001 {built-in method builtins.any}
+      231    0.131    0.001    0.210    0.001 basis.py:49(rebuild)
+      228    0.004    0.000    0.191    0.001 basis.py:267(replace_arc)
+    74733    0.111    0.000    0.185    0.000 simplex.py:53(forward_residual)
+      228    0.033    0.000    0.183    0.001 forrest_tomlin.py:65(update)
+    13469    0.100    0.000    0.168    0.000 basis.py:183(_column_vector)
+    15779    0.158    0.000    0.158    0.000 {built-in method numpy.array}
+      228    0.118    0.001    0.151    0.001 simplex.py:766(_update_tree_sets)
+
+
+
+--------------------------------------------------------------------------------
+Top 20 functions by total time:
+--------------------------------------------------------------------------------
+         887755 function calls in 7.296 seconds
+
+   Ordered by: internal time
+   List reduced from 196 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    15747    3.239    0.000    4.781    0.000 forrest_tomlin.py:46(solve)
+    15747    1.115    0.000    1.115    0.000 {method 'solve' of 'SuperLU' objects}
+      229    0.412    0.002    5.218    0.023 simplex_pricing.py:153(select_entering_arc)
+    13013    0.336    0.000    4.513    0.000 simplex_pricing.py:220(_update_weight)
+    15779    0.158    0.000    0.158    0.000 {built-in method numpy.array}
+      251    0.144    0.001    0.269    0.001 {built-in method builtins.any}
+      231    0.131    0.001    0.210    0.001 basis.py:49(rebuild)
+   201931    0.124    0.000    0.124    0.000 simplex.py:815(<genexpr>)
+    31720    0.122    0.000    0.122    0.000 {method 'reshape' of 'numpy.ndarray' objects}
+      228    0.118    0.001    0.151    0.001 simplex.py:766(_update_tree_sets)
+    74733    0.111    0.000    0.185    0.000 simplex.py:53(forward_residual)
+    13469    0.100    0.000    0.168    0.000 basis.py:183(_column_vector)
+    15747    0.088    0.000    1.268    0.000 basis_lu.py:48(solve_lu)
+     3242    0.080    0.000    0.080    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+    13241    0.076    0.000    4.189    0.000 basis.py:191(project_column)
+    75880    0.075    0.000    0.075    0.000 {built-in method math.isinf}
+    15755    0.073    0.000    0.073    0.000 {built-in method numpy.zeros}
+    32496    0.069    0.000    0.069    0.000 {built-in method numpy.asarray}
+    17328    0.061    0.000    0.062    0.000 {built-in method builtins.max}
+      228    0.059    0.000    0.957    0.004 basis.py:207(estimate_condition_number)
+
+
+
+================================================================================
+Profiling: Large Network Flow (40 sources)
+================================================================================
+Nodes: 160, Arcs: 4267
+
+Solved in 65.864s, 356 iterations
+Objective: 40660.00
+
+--------------------------------------------------------------------------------
+Top 20 functions by cumulative time:
+--------------------------------------------------------------------------------
+         6717952 function calls in 65.850 seconds
+
+   Ordered by: cumulative time
+   List reduced from 196 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000   65.850   65.850 solver.py:13(solve_min_cost_flow)
+        1    0.146    0.146   65.666   65.666 simplex.py:1065(solve)
+        2    0.025    0.013   65.470   32.735 simplex.py:773(_run_simplex_iterations)
+      357    0.012    0.000   60.217    0.169 simplex.py:745(_find_entering_arc)
+      357    4.398    0.012   60.206    0.169 simplex_pricing.py:153(select_entering_arc)
+   127063    3.904    0.000   52.708    0.000 simplex_pricing.py:220(_update_weight)
+   127419    0.815    0.000   48.159    0.000 basis.py:191(project_column)
+   131331   32.748    0.000   47.125    0.000 forrest_tomlin.py:46(solve)
+   131331    1.016    0.000   12.591    0.000 basis_lu.py:48(solve_lu)
+   131331   11.118    0.000   11.118    0.000 {method 'solve' of 'SuperLU' objects}
+      356    0.054    0.000    3.732    0.010 simplex.py:836(_pivot)
+      356    0.101    0.000    1.747    0.005 basis.py:207(estimate_condition_number)
+   750014    1.227    0.000    1.689    0.000 simplex.py:53(forward_residual)
+   127775    0.862    0.000    1.654    0.000 basis.py:183(_column_vector)
+      385    0.763    0.002    1.503    0.004 {built-in method builtins.any}
+   131373    0.926    0.000    0.926    0.000 {built-in method numpy.array}
+   263014    0.909    0.000    0.909    0.000 {method 'reshape' of 'numpy.ndarray' objects}
+   131343    0.807    0.000    0.807    0.000 {built-in method numpy.zeros}
+  1293666    0.737    0.000    0.737    0.000 simplex.py:815(<genexpr>)
+      356    0.569    0.002    0.665    0.002 simplex.py:766(_update_tree_sets)
+
+
+
+--------------------------------------------------------------------------------
+Top 20 functions by total time:
+--------------------------------------------------------------------------------
+         6717952 function calls in 65.850 seconds
+
+   Ordered by: internal time
+   List reduced from 196 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+   131331   32.748    0.000   47.125    0.000 forrest_tomlin.py:46(solve)
+   131331   11.118    0.000   11.118    0.000 {method 'solve' of 'SuperLU' objects}
+      357    4.398    0.012   60.206    0.169 simplex_pricing.py:153(select_entering_arc)
+   127063    3.904    0.000   52.708    0.000 simplex_pricing.py:220(_update_weight)
+   750014    1.227    0.000    1.689    0.000 simplex.py:53(forward_residual)
+   131331    1.016    0.000   12.591    0.000 basis_lu.py:48(solve_lu)
+   131373    0.926    0.000    0.926    0.000 {built-in method numpy.array}
+   263014    0.909    0.000    0.909    0.000 {method 'reshape' of 'numpy.ndarray' objects}
+   127775    0.862    0.000    1.654    0.000 basis.py:183(_column_vector)
+   127419    0.815    0.000   48.159    0.000 basis.py:191(project_column)
+   131343    0.807    0.000    0.807    0.000 {built-in method numpy.zeros}
+      385    0.763    0.002    1.503    0.004 {built-in method builtins.any}
+  1293666    0.737    0.000    0.737    0.000 simplex.py:815(<genexpr>)
+      356    0.569    0.002    0.665    0.002 simplex.py:766(_update_tree_sets)
+   136387    0.536    0.000    0.540    0.000 {built-in method builtins.max}
+   749955    0.515    0.000    0.515    0.000 simplex.py:58(backward_residual)
+   751877    0.463    0.000    0.463    0.000 {built-in method math.isinf}
+   561515    0.457    0.000    0.457    0.000 {built-in method builtins.abs}
+   264202    0.425    0.000    0.425    0.000 {built-in method numpy.asarray}
+   127063    0.364    0.000    0.478    0.000 simplex_pricing.py:243(_is_better_candidate)
+
+
+
+
+================================================================================
+PROFILING SUMMARY
+================================================================================
+
+Problem                                     Nodes     Arcs   Time (s)    Iters
+--------------------------------------------------------------------------------
+Small Transportation (5×5)                     10       25      0.075       19
+Medium Transportation (15×15)                  30      225      0.989      134
+Large Transportation (30×30)                   60      900      6.981      494
+Small Network Flow (10 sources)                40      267      1.024       84
+Medium Network Flow (20 sources)               80     1066      7.297      228
+Large Network Flow (40 sources)               160     4267     65.864      356
+
+================================================================================
+Profiling complete! Review the detailed output above.
+================================================================================

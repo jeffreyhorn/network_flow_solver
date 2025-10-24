@@ -1,0 +1,13 @@
+================================================================================
+NETWORK SIMPLEX SOLVER - PERFORMANCE PROFILING
+================================================================================
+Traceback (most recent call last):
+  File "/Users/jeff/experiments/network_flow_solver/scripts/profile_performance.py", line 219, in <module>
+    main()
+  File "/Users/jeff/experiments/network_flow_solver/scripts/profile_performance.py", line 178, in main
+    problem = create_transportation_problem(5, 5)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jeff/experiments/network_flow_solver/scripts/profile_performance.py", line 48, in create_transportation_problem
+    return NetworkProblem(nodes=nodes, arcs=arcs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: NetworkProblem.__init__() missing 1 required positional argument: 'directed'
