@@ -101,7 +101,7 @@ def test_cache_invalidation_on_basis_change():
     assert solver.basis.basis_version > 0
 
     # All cache entries should be for valid basis versions
-    for (arc_key, basis_ver), projection in solver.basis.projection_cache.items():
+    for (_arc_key, basis_ver), projection in solver.basis.projection_cache.items():
         assert basis_ver >= 0
         assert basis_ver <= solver.basis.basis_version
         assert isinstance(projection, np.ndarray)

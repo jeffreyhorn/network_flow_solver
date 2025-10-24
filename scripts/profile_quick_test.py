@@ -3,6 +3,7 @@
 
 import cProfile
 import pstats
+
 from network_solver import solve_min_cost_flow
 from network_solver.data import Arc, NetworkProblem, Node
 

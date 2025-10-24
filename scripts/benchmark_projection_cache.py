@@ -8,8 +8,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from network_solver import solve_min_cost_flow
-from network_solver.data import NetworkProblem, Node, Arc, SolverOptions
+from network_solver import solve_min_cost_flow  # noqa: E402
+from network_solver.data import Arc, NetworkProblem, Node, SolverOptions  # noqa: E402
 
 
 def create_network_flow_problem(num_sources, num_intermediates, num_demands):

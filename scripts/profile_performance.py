@@ -11,12 +11,10 @@ performance reports including:
 
 import cProfile
 import pstats
-import io
 import time
-from pathlib import Path
 
 from network_solver import solve_min_cost_flow
-from network_solver.data import Arc, NetworkProblem, Node, SolverOptions
+from network_solver.data import Arc, NetworkProblem, Node
 
 
 def create_transportation_problem(num_sources: int, num_sinks: int) -> NetworkProblem:
