@@ -416,6 +416,10 @@ class NetworkSimplex:
         Returns:
             Tuple of (arc_index, direction, merit) or None if no candidate found
         """
+        # Handle empty block
+        if start >= end:
+            return None
+
         # Compute reduced costs and residuals for the block
         rc = self._compute_reduced_costs_vectorized()[start:end]
         forward_res, backward_res = self._compute_residuals_vectorized()
@@ -429,6 +433,10 @@ class NetworkSimplex:
 
         # Mask for eligible arcs (not in tree, not artificial)
         eligible = ~in_tree_block & ~artificial_block
+
+        # If no eligible arcs in this block, return None
+        if not np.any(eligible):
+            return None
 
         # Forward direction candidates: forward_res > tol and rc < -tol
         forward_viable = eligible & (forward_res > tolerance) & (rc < -tolerance)
@@ -943,6 +951,11 @@ class NetworkSimplex:
                 break
             arc_idx, direction = entering
             self._pivot(arc_idx, direction)
+
+            # Sync vectorized arrays after pivot (flows and tree status changed)
+            if self.options.use_vectorized_pricing:
+                self._sync_vectorized_arrays()
+
             iterations += 1
 
             # Adapt block size if auto-tuning is enabled

@@ -545,12 +545,13 @@ Configuration options for the solver.
 - `max_iterations` (int, optional): Maximum simplex iterations. Default: `max(100, 5*num_arcs)`
 - `tolerance` (float): Numerical tolerance for feasibility/optimality (default: 1e-6)
 - `pricing_strategy` (str): Arc selection strategy
-  - `"devex"` (default): Devex normalized pricing with **vectorization enabled by default** (faster, 2-3x speedup on medium/large problems)
+  - `"devex"` (default): Devex normalized pricing with **experimental vectorization** (can be enabled for 2-3x speedup)
   - `"dantzig"`: Most negative reduced cost (simpler, no vectorization)
-- `use_vectorized_pricing` (bool): Enable vectorized pricing operations (default: True)
-  - `True` (default): Use NumPy vectorized operations for 2-3x speedup (recommended)
-  - `False`: Use traditional loop-based pricing (for debugging/comparison)
+- `use_vectorized_pricing` (bool): Enable vectorized pricing operations (default: False, experimental)
+  - `True`: Use NumPy vectorized operations for 2-3x speedup (experimental, may cycle on degenerate problems)
+  - `False` (default): Use traditional loop-based pricing (stable)
   - Only applies to Devex pricing strategy
+  - **Note**: Vectorization currently disabled by default due to a known cycling bug in degenerate cases. Enable at your own risk.
 - `block_size` (int | str, optional): Arcs per pricing block
   - `None` or `"auto"` (default): Auto-tune based on problem size with runtime adaptation
   - int: Fixed block size (no adaptation)

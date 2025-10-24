@@ -298,12 +298,10 @@ class DevexPricing(PricingStrategy):
 
         This method uses the solver's vectorized array infrastructure to
         efficiently compute reduced costs and select candidates across blocks.
-        """
-        # Sync mutable arrays (flows, tree status) before pricing
-        solver.arc_flows[:] = [arc.flow for arc in solver.arcs]
-        solver.arc_in_tree[:] = [arc.in_tree for arc in solver.arcs]
-        solver.arc_artificial[:] = [arc.artificial for arc in solver.arcs]
 
+        Note: Assumes vectorized arrays are already in sync with ArcState list.
+        Syncing happens after pivots and after tree initialization.
+        """
         block_count = max(1, (actual_arc_count + self.block_size - 1) // self.block_size)
 
         for _ in range(block_count):

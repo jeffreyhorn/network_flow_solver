@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Vectorized pricing operations for 2-3x speedup** (`simplex.py`, `simplex_pricing.py`)
-  - **Feature**: Devex pricing now uses vectorized NumPy array operations for dramatically improved performance
-  - **Performance improvements**:
+- **Vectorized pricing operations (experimental, disabled by default)** (`simplex.py`, `simplex_pricing.py`)
+  - **Feature**: Devex pricing can optionally use vectorized NumPy array operations for dramatically improved performance
+  - **Performance improvements** (when enabled):
     - Small problems (35 nodes, 300 arcs): **198% speedup** (3x faster)
     - Medium problems (50 nodes, 600 arcs): **101% speedup** (2x faster)
     - Exceeds 10% target from optimization roadmap (Project 2: Vectorize Pricing)
@@ -22,21 +22,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `_select_entering_arc_vectorized()`: Selects best entering arc using NumPy masked arrays for eligibility checks and merit computation
     - Devex pricing automatically uses vectorization when solver instance is available
   - **Configuration**:
-    - Enabled by default: `SolverOptions(use_vectorized_pricing=True)`
-    - Can be disabled for debugging/comparison: `use_vectorized_pricing=False`
+    - **Disabled by default** due to known cycling bug: `SolverOptions(use_vectorized_pricing=False)`
+    - Can be enabled experimentally: `use_vectorized_pricing=True` (not recommended for production)
     - Only applies to Devex pricing strategy (Dantzig is always loop-based)
-  - **Benefits**:
-    - Enabled by default for optimal performance
+  - **Known Issue**:
+    - **Cycling bug in degenerate cases**: Vectorized implementation may cause infinite loops on problems with degenerate pivots
+    - **Root cause**: Vectorized version uses fixed Devex weights throughout arc selection, while loop-based version dynamically updates weights for each candidate
+    - **Status**: Temporarily disabled by default to ensure stable CI/CD. Work ongoing to resolve architectural difference
+    - Users can enable at their own risk for well-behaved problems
+  - **Benefits** (when working correctly):
     - Replaces Python loops with batch operations on NumPy arrays
     - Particularly effective for problems with many arcs where pricing is a bottleneck
-    - Can be disabled if needed for debugging or performance comparison
   - **Integration**:
     - Modified `PricingStrategy.select_entering_arc()` to accept optional solver parameter
     - `DevexPricing._select_entering_arc_vectorized()` leverages solver's vectorized infrastructure
-    - Called automatically from `NetworkSimplex._find_entering_arc()`
-  - **Benchmark script**: `benchmark_vectorized_pricing.py` demonstrates performance improvements
-  - **Documentation**: Updated README.md and docs/api.md with vectorization details
-  - All 444+ unit tests passing with vectorized implementation
+    - Called automatically from `NetworkSimplex._find_entering_arc()` when enabled
+  - **Benchmark script**: `benchmark_vectorized_pricing.py` demonstrates performance improvements (on non-degenerate problems)
+  - **Documentation**: Updated README.md and docs/api.md with experimental status and known issues
+  - All 444+ unit tests passing with vectorization **disabled** (default)
 
 - **Projection cache for basis solves** (`basis.py`, `data.py`)
   - **Feature**: Optimized cache for basis projection results provides 10-14% speedup on medium/large problems
