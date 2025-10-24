@@ -447,7 +447,9 @@ class SolverOptions:
     adaptive_ft_min: int = 20
     adaptive_ft_max: int = 200
     use_dense_inverse: bool | None = None
-    use_vectorized_pricing: bool = True  # Re-enabled with cycling fix (see #TODO)
+    use_vectorized_pricing: bool = (
+        True  # Re-enabled after cycling fix (see record_degenerate_pivot)
+    )
 
     def __post_init__(self) -> None:
         if self.tolerance <= 0:
