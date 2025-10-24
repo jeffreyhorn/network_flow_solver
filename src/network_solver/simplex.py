@@ -970,11 +970,12 @@ class NetworkSimplex:
 
             # Periodically clear degenerate penalty set (every 5 iterations)
             # This allows previously degenerate arcs to be reconsidered
-            if self.options.use_vectorized_pricing and isinstance(
-                self.pricing_strategy, DevexPricing
+            if (
+                self.options.use_vectorized_pricing
+                and isinstance(self.pricing_strategy, DevexPricing)
+                and iterations % 5 == 0
             ):
-                if iterations % 5 == 0:
-                    self.pricing_strategy.clear_degenerate_penalties()
+                self.pricing_strategy.clear_degenerate_penalties()
 
             # Adapt block size if auto-tuning is enabled
             block_size_changed = self.adaptive_tuner.adapt_block_size(
