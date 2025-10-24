@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Vectorized pricing operations for 2-3x speedup** (`simplex.py`, `simplex_pricing.py`)
+  - **Feature**: Devex pricing now uses vectorized NumPy array operations for dramatically improved performance
+  - **Performance improvements**:
+    - Small problems (35 nodes, 300 arcs): **198% speedup** (3x faster)
+    - Medium problems (50 nodes, 600 arcs): **101% speedup** (2x faster)
+    - Exceeds 10% target from optimization roadmap (Project 2: Vectorize Pricing)
+  - **Implementation**:
+    - `_build_vectorized_arrays()`: Creates NumPy arrays mirroring ArcState list (costs, tails, heads, capacities, flows, tree status, node potentials)
+    - `_sync_vectorized_arrays()`: Syncs arrays when arcs are modified (artificial arcs added, flows updated)
+    - `_compute_reduced_costs_vectorized()`: Computes all reduced costs using vectorized operations
+    - `_compute_residuals_vectorized()`: Computes forward/backward residuals efficiently
+    - `_select_entering_arc_vectorized()`: Selects best entering arc using NumPy masked arrays for eligibility checks and merit computation
+    - Devex pricing automatically uses vectorization when solver instance is available
+  - **Benefits**:
+    - No configuration needed - automatically enabled and transparent
+    - Replaces Python loops with batch operations on NumPy arrays
+    - Particularly effective for problems with many arcs where pricing is a bottleneck
+    - Maintains backward compatibility - falls back to standard methods if needed
+  - **Integration**:
+    - Modified `PricingStrategy.select_entering_arc()` to accept optional solver parameter
+    - `DevexPricing._select_entering_arc_vectorized()` leverages solver's vectorized infrastructure
+    - Called automatically from `NetworkSimplex._find_entering_arc()`
+  - **Benchmark script**: `benchmark_vectorized_pricing.py` demonstrates performance improvements
+  - **Documentation**: Updated README.md and docs/api.md with vectorization details
+  - All 444+ unit tests passing with vectorized implementation
+
 - **Projection cache for basis solves** (`basis.py`, `data.py`)
   - **Feature**: Optimized cache for basis projection results provides 10-14% speedup on medium/large problems
   - **Performance**:

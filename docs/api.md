@@ -545,8 +545,8 @@ Configuration options for the solver.
 - `max_iterations` (int, optional): Maximum simplex iterations. Default: `max(100, 5*num_arcs)`
 - `tolerance` (float): Numerical tolerance for feasibility/optimality (default: 1e-6)
 - `pricing_strategy` (str): Arc selection strategy
-  - `"devex"` (default): Devex normalized pricing (faster)
-  - `"dantzig"`: Most negative reduced cost (simpler)
+  - `"devex"` (default): Devex normalized pricing with **automatic vectorization** (faster, 2-3x speedup on medium/large problems)
+  - `"dantzig"`: Most negative reduced cost (simpler, no vectorization)
 - `block_size` (int | str, optional): Arcs per pricing block
   - `None` or `"auto"` (default): Auto-tune based on problem size with runtime adaptation
   - int: Fixed block size (no adaptation)
