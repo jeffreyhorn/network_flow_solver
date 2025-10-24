@@ -110,8 +110,14 @@ class DantzigPricing(PricingStrategy):
                 continue
 
             rc = arc.cost + basis.potential[arc.tail] - basis.potential[arc.head]
-            forward_res = arc.forward_residual()
-            backward_res = arc.backward_residual()
+
+            # Use cached residuals if solver available, otherwise compute
+            if solver is not None:
+                forward_res = solver.forward_residuals[idx]
+                backward_res = solver.backward_residuals[idx]
+            else:
+                forward_res = arc.forward_residual()
+                backward_res = arc.backward_residual()
 
             # Check forward direction (rc < 0 and forward residual > 0)
             if forward_res > tolerance and rc < -tolerance:
@@ -217,8 +223,14 @@ class DevexPricing(PricingStrategy):
                     continue
 
                 rc = arc.cost + basis.potential[arc.tail] - basis.potential[arc.head]
-                forward_res = arc.forward_residual()
-                backward_res = arc.backward_residual()
+
+                # Use cached residuals if solver available, otherwise compute
+                if solver is not None:
+                    forward_res = solver.forward_residuals[idx]
+                    backward_res = solver.backward_residuals[idx]
+                else:
+                    forward_res = arc.forward_residual()
+                    backward_res = arc.backward_residual()
 
                 # Check forward direction
                 if forward_res > tolerance and rc < -tolerance:
