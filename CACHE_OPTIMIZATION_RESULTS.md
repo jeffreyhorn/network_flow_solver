@@ -75,13 +75,17 @@ self.projection_cache[arc_key] = result  # No copy on storage, no LRU management
 
 ## Performance Results
 
+**Note:** Benchmark numbers below are from optimized cache without safety copy. Current implementation includes `.copy()` on cache return for safety (see "Reduced Array Copying" above), which may reduce speedup by ~2-4% but still significantly better than original implementation.
+
 ### Comparison: Original vs Optimized
 
-| Problem Size | Original Speedup | Optimized Speedup | Improvement |
-|--------------|------------------|-------------------|-------------|
+| Problem Size | Original Speedup | Optimized Speedup (no copy)* | Improvement |
+|--------------|------------------|------------------------------|-------------|
 | **Small (35 nodes, 300 arcs)** | 1.05x (5% faster) | 0.95x (5% slower) | Slight regression |
 | **Medium (70 nodes, 1200 arcs)** | **0.88x (12% SLOWER)** | **1.14x (14% FASTER)** | **+26% improvement!** |
 | **Large (130 nodes, 4000 arcs)** | 0.84x (16% slower) | ~0.98-1.0x (neutral) | **+14% improvement** |
+
+\* With safety copy added (current): expect ~1.10-1.12x on medium (still excellent improvement)
 
 ### Detailed Benchmark Results (Optimized Cache)
 
