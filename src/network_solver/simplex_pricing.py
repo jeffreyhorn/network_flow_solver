@@ -147,6 +147,9 @@ class DevexPricing(PricingStrategy):
         weights: Approximate edge weights for each arc (used for normalization).
         block_size: Number of arcs to examine in each pricing round.
         pricing_block: Current block position (for round-robin search).
+        last_degenerate_arc: Index of the last arc that caused a degenerate pivot,
+            excluded from the next selection to prevent cycling on zero-cost arcs.
+            Cleared when a different arc is successfully selected.
     """
 
     def __init__(
