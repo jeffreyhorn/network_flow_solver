@@ -1,0 +1,148 @@
+{
+  "benchmark_sources": {
+    "dimacs": {
+      "name": "DIMACS Implementation Challenge - Network Flows and Matching (1st Challenge, 1990-1991)",
+      "url": "http://archive.dimacs.rutgers.edu/Challenges/",
+      "license_type": "Public Domain / Academic Use",
+      "terms": "Benchmark data appears to be in the public domain and freely available for educational and scientific use. Published materials may have additional AMS (American Mathematical Society) restrictions. Users are requested to acknowledge the source and notify DIMACS of usage for documentation purposes.",
+      "redistribution": "Allowed for educational and scientific purposes with proper acknowledgment",
+      "citation_required": true,
+      "citation": "Johnson, D.S. and McGeoch, C.C. (Eds.). Network Flows and Matching: First DIMACS Implementation Challenge. DIMACS Series in Discrete Mathematics and Theoretical Computer Science, Volume 12 (1993).",
+      "notes": "License or copyright restrictions may apply to published volumes through AMS.",
+      "last_verified": "2025-10-25"
+    },
+    "or_library": {
+      "name": "OR-Library (J.E. Beasley)",
+      "url": "https://people.brunel.ac.uk/~mastjjb/jeb/info.html",
+      "legal_page": "https://people.brunel.ac.uk/~mastjjb/jeb/orlib/legal.html",
+      "license_type": "Academic Use with Attribution (Non-Commercial)",
+      "terms": "Test data sets can be used by students and teachers for operations research purposes. Proper acknowledgment and identification of J.E. Beasley as the author is required. Non-commercial use only - commercial redistribution prohibited. Contact author for other uses.",
+      "redistribution": "Non-commercial only, with attribution to J.E. Beasley",
+      "citation_required": true,
+      "citation": "Beasley, J.E. OR-Library: distributing test problems by electronic mail. Journal of the Operational Research Society 41(11) (1990) pp1069-1072.",
+      "notes": "Users should consult the legal page for specific restrictions. Contact Professor Beasley through Brunel University for detailed terms.",
+      "last_verified": "2025-10-25"
+    },
+    "lemon": {
+      "name": "LEMON (Library for Efficient Modeling and Optimization in Networks)",
+      "url": "https://lemon.cs.elte.hu/",
+      "benchmark_data_url": "https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData",
+      "license_page": "https://lemon.cs.elte.hu/trac/lemon/wiki/License",
+      "license_type": "Mixed - LEMON library (Boost 1.0), benchmark data (varies by source)",
+      "terms": "LEMON library code is released under Boost Software License 1.0 (very permissive). Benchmark data aggregates instances from various sources - each dataset inherits its original source license. NETGEN/GRIDGEN/GOTO/GRIDGRAPH instances are public domain. Real-world instances (TIGER/Line, Western Ontario CV) have third-party licenses that must be verified.",
+      "redistribution": "LEMON library code: freely allowed. Benchmark data: verify per-dataset licensing before redistribution.",
+      "citation_required": true,
+      "citation": "Péter Kovács. Minimum-cost flow algorithms: an experimental evaluation. Optimization Methods and Software, 30:94-127, 2015.",
+      "notes": "Part of COIN-OR project. LEMON library has very permissive Boost 1.0 license. WARNING: Benchmark data is NOT all Boost-licensed - it aggregates instances from multiple sources. Generated instances (NETGEN, GRIDGEN, GOTO, GRIDGRAPH) are public domain. Real-world instances (TIGER/Line from 9th DIMACS Challenge, Computer Vision instances from Western Ontario) have third-party licenses. Always verify license for each specific benchmark instance before redistribution.",
+      "last_verified": "2025-10-25"
+    },
+    "commalab": {
+      "name": "CommaLAB - Computational Mathematics Laboratory, University of Pisa",
+      "url": "https://commalab.di.unipi.it/",
+      "mcf_url": "https://commalab.di.unipi.it/datasets/mcf/",
+      "mmcf_url": "https://commalab.di.unipi.it/datasets/mmcf/",
+      "license_type": "Unspecified / Academic Use Implied",
+      "terms": "No explicit license terms stated. Site is described as 'a service to the optimization community.' Various datasets are attributed to specific researchers.",
+      "redistribution": "Unclear - consult CommaLAB team",
+      "citation_required": true,
+      "citation": "Varies by dataset - cite original researchers (Frangioni, Gendron, Castro, Vance, etc.)",
+      "notes": "Attribution appears necessary for datasets. Some instances (GARR, SNDLib) derive from real-world networks. MMCFBlock component is part of open-source SMS++ project. Contact CommaLAB for explicit redistribution terms.",
+      "contact": "https://commalab.di.unipi.it/",
+      "last_verified": "2025-10-25"
+    },
+    "network_repository": {
+      "name": "Network Repository (networkrepository.com)",
+      "url": "https://networkrepository.com/",
+      "dimacs_url": "https://networkrepository.com/dimacs.php",
+      "policy_url": "https://networkrepository.com/policy.php",
+      "license_type": "Creative Commons Attribution-ShareAlike",
+      "terms": "Attribution required for any public use. Must provide link to license and indicate changes. If remixing or building upon material, must distribute under same license. Dataset-specific citations must be honored.",
+      "redistribution": "Allowed with attribution and ShareAlike",
+      "citation_required": true,
+      "citation": "Varies by dataset - see individual dataset pages for specific citations",
+      "notes": "Public domain elements exempt from license requirements. No warranties given. No additional legal/technological restrictions may be applied.",
+      "last_verified": "2025-10-25"
+    },
+    "cv_western_ontario": {
+      "name": "Computer Vision Research Group, University of Western Ontario",
+      "url": "http://vision.csd.uwo.ca/data/maxflow/",
+      "license_type": "Unspecified / Academic Use Implied",
+      "terms": "No explicit license terms found. Instances are maximum flow problems from computer vision applications.",
+      "redistribution": "Unclear - contact research group",
+      "citation_required": true,
+      "citation": "Cite original research papers that generated the instances",
+      "notes": "Used as basis for some LEMON benchmark instances. Verify current availability and terms with University of Western Ontario.",
+      "last_verified": "2025-10-25"
+    }
+  },
+  "problem_generators": {
+    "netgen": {
+      "name": "NETGEN - Network Flow Problem Generator",
+      "language": "Fortran 77 / C",
+      "original_paper": "Klingman, D., A. Napier, and J. Stutz. NETGEN: A Program for Generating Large Scale Capacitated Assignment, Transportation, and Minimum Cost Flow Network Problems. Management Science 20.5 (1974): 814-821.",
+      "fortran_source": "https://www.netlib.org/lp/generators/netgen",
+      "c_source": [
+        "http://archive.dimacs.rutgers.edu/pub/netflow/generators/network/netgen/netgen.c",
+        "http://elib.zib.de/pub/mp-testdata/generators/netgen/netgen.c"
+      ],
+      "python_implementation": "https://pypi.org/project/pynetgen/",
+      "github_implementation": "https://github.com/emmanuj/netgen",
+      "license_type": "Public Domain / Netlib",
+      "generates": "Capacitated/uncapacitated minimum cost flow, transportation, and assignment problems",
+      "output_format": "DIMACS",
+      "notes": "No maintained Python ports exist. Original Fortran/C versions available. Modern implementations on GitHub/PyPI are independent reimplementations.",
+      "last_verified": "2025-10-25"
+    },
+    "gridgen": {
+      "name": "GRIDGEN - Grid Network Generator",
+      "language": "C",
+      "source": "http://archive.dimacs.rutgers.edu/pub/netflow/generators/network/gridgen/gridgen.c",
+      "license_type": "Public Domain / DIMACS",
+      "generates": "Grid-like network flow problems",
+      "output_format": "DIMACS",
+      "notes": "Available from DIMACS netflow archive",
+      "last_verified": "2025-10-25"
+    },
+    "goto": {
+      "name": "GOTO - Grid On Torus Generator",
+      "language": "C",
+      "author": "Andrew V. Goldberg, Stanford University (1991)",
+      "source": "http://archive.dimacs.rutgers.edu/pub/netflow/generators/network/grid-on-torus/goto.c",
+      "license_type": "Public Domain / DIMACS",
+      "generates": "Grid on torus network structures",
+      "output_format": "DIMACS",
+      "notes": "Available from DIMACS netflow archive",
+      "last_verified": "2025-10-25"
+    },
+    "gridgraph": {
+      "name": "GRIDGRAPH - Grid-based Graph Generator",
+      "language": "C",
+      "source": "http://archive.dimacs.rutgers.edu/",
+      "license_type": "Public Domain / DIMACS",
+      "generates": "Grid-based graph problems",
+      "output_format": "DIMACS",
+      "notes": "Part of DIMACS generator suite. Specific download link to be determined.",
+      "last_verified": "2025-10-25"
+    }
+  },
+  "summary": {
+    "can_redistribute": [
+      "DIMACS (with acknowledgment)",
+      "LEMON (Boost License)",
+      "Network Repository (with attribution and ShareAlike)"
+    ],
+    "requires_contact": [
+      "OR-Library (verify current terms with J.E. Beasley)",
+      "CommaLAB (no explicit license stated)",
+      "CV Western Ontario (verify availability and terms)"
+    ],
+    "citation_required_all": true,
+    "recommendation": "For MVP, focus on DIMACS and LEMON benchmark instances which have clear, permissive licenses. Use download scripts rather than committing files to repository. Always include proper attribution."
+  },
+  "metadata": {
+    "last_updated": "2025-10-25",
+    "curator": "network-flow-solver project",
+    "purpose": "License audit for Phase 1 of benchmark suite development",
+    "disclaimer": "This document represents research findings as of the last verified date. Users should verify current license terms directly with source organizations before redistribution or commercial use."
+  }
+}
