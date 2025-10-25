@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Optional Numba JIT compilation for Forrest-Tomlin operations** (`forrest_tomlin.py`, `basis.py`, `data.py`, `simplex.py`)
+  - **Feature**: Optional JIT (Just-In-Time) compilation for performance-critical Forrest-Tomlin update loops
+  - **Installation**: `pip install 'network-flow-solver[jit]'` or `pip install numba>=0.58.0`
+  - **Performance**: Targets the primary computational bottleneck (Forrest-Tomlin solves: 49.7% of baseline runtime)
+  - **Implementation**:
+    - `_apply_ft_updates_jit()`: JIT-compiled update application using Numba's @njit decorator
+    - `_apply_ft_updates_python()`: Pure Python fallback when Numba unavailable
+    - Automatic detection: uses JIT if Numba installed, gracefully falls back to Python
+    - Converts FTUpdate list to NumPy arrays (pivots, ys, thetas) for efficient batch processing
+  - **Configuration**:
+    - `SolverOptions(use_jit=True)` - Enable JIT compilation (default, requires Numba)
+    - `SolverOptions(use_jit=False)` - Disable JIT compilation (pure Python)
+    - Automatically falls back to Python if Numba not installed (no errors)
+  - **Benchmark**: `benchmarks/benchmark_jit_compilation.py`
+  - **Note**: Performance impact varies by problem size; best for large problems with many FT updates
+  - Implements Project 6 from optimization roadmap
 - **Vectorized residual calculations** (`simplex.py`, `simplex_pricing.py`, `specialized_pivots.py`)
   - **Feature**: Pre-computed residual arrays cached and updated on flow changes
   - **Performance improvements**:
