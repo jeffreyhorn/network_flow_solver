@@ -121,6 +121,7 @@ class NetworkSimplex:
         # Adaptive refactorization tracking
         self.condition_number_history: list[float] = []
         self.adaptive_rebuild_count = 0
+        self.pivots_since_condition_check = 0  # Track pivots for interval checking
 
         # Detect network specializations for potential optimizations
         from .specializations import analyze_network_structure, get_specialization_info
@@ -1240,16 +1241,21 @@ class NetworkSimplex:
         condition_number = None
 
         if self.options.adaptive_refactorization:
-            # Monitor condition number for adaptive triggering
-            condition_number = self.basis.estimate_condition_number()
-            if condition_number is not None:
-                self.condition_number_history.append(condition_number)
+            # Only check condition number at specified intervals to reduce overhead
+            self.pivots_since_condition_check += 1
+            if self.pivots_since_condition_check >= self.options.condition_check_interval:
+                self.pivots_since_condition_check = 0
 
-                # Trigger rebuild if condition number exceeds threshold
-                if condition_number > self.options.condition_number_threshold:
-                    force_rebuild = True
-                    rebuild_reason = "condition_number_threshold"
-                    self.adaptive_rebuild_count += 1
+                # Monitor condition number for adaptive triggering
+                condition_number = self.basis.estimate_condition_number()
+                if condition_number is not None:
+                    self.condition_number_history.append(condition_number)
+
+                    # Trigger rebuild if condition number exceeds threshold
+                    if condition_number > self.options.condition_number_threshold:
+                        force_rebuild = True
+                        rebuild_reason = "condition_number_threshold"
+                        self.adaptive_rebuild_count += 1
 
         # Also check fixed update limit
         if self.ft_updates_since_rebuild >= self.adaptive_tuner.current_ft_limit:
