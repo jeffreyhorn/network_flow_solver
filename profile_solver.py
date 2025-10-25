@@ -11,9 +11,9 @@ Example:
     python profile_solver.py benchmarks/problems/lemon/gridgen/gridgen_8_09a.min
 """
 
-import sys
 import cProfile
 import pstats
+import sys
 from pathlib import Path
 
 # Add src to path
