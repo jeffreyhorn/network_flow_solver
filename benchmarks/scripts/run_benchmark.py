@@ -34,6 +34,7 @@ import math
 import sys
 import threading
 import time
+from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -168,8 +169,6 @@ def validate_solution(
         capacity_ok = True
         if arc_map is None:
             # Build map that handles parallel arcs correctly
-            from collections import defaultdict
-
             def arc_bounds_factory():
                 return {"lower": 0.0, "upper": 0.0}
 
