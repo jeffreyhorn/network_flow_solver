@@ -570,6 +570,7 @@ result = solve_min_cost_flow(problem, options=options)
 # Customize adaptive behavior
 options = SolverOptions(
     adaptive_refactorization=True,       # Enable adaptive mode (default)
+    condition_check_interval=10,         # Check condition number every N pivots (default)
     condition_number_threshold=1e12,     # Trigger threshold (default)
     adaptive_ft_min=20,                  # Minimum refactorization limit
     adaptive_ft_max=200,                 # Maximum refactorization limit
@@ -579,6 +580,11 @@ options = SolverOptions(
 
 **Parameters:**
 - `adaptive_refactorization` - Enable/disable adaptive behavior (default: `True`)
+- `condition_check_interval` - How often to check condition number (default: `10`)
+  - `1`: Check every pivot (most conservative, slowest)
+  - `10`: Check every 10 pivots (good balance, recommended)
+  - `50`: Check every 50 pivots (faster but less responsive)
+  - Reduces overhead from expensive condition number estimation (1.5x speedup)
 - `condition_number_threshold` - Condition number limit for triggering rebuild (default: `1e12`)
   - Lower (1e10): More conservative, more rebuilds, better stability
   - Higher (1e14): More aggressive, fewer rebuilds, faster but less stable
