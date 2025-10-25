@@ -102,10 +102,13 @@ Comprehensive collection of test problems for operations research, originally de
 - Problems organized by problem type in subdirectories
 
 **License**:
-- **Type**: Academic Use with Attribution
+- **Type**: Academic Use with Attribution (Non-Commercial)
 - **Terms**: Data sets can be used by students and teachers for OR purposes
-- **Restrictions**: Proper acknowledgment and identification of J.E. Beasley as author required
-- **Redistribution**: Allowed with attribution
+- **Restrictions**: 
+  - Proper acknowledgment and identification of J.E. Beasley as author required
+  - **Non-commercial use only** - commercial redistribution prohibited
+  - Contact author for other uses beyond academic/educational purposes
+- **Redistribution**: Non-commercial only, with attribution
 - **Citation**: Required
 
 **Citation**:
@@ -153,11 +156,17 @@ Benchmark test suite used in experimental evaluation of minimum-cost flow algori
 - Instances available at FTP site referenced in publications
 
 **License**:
-- **Type**: Boost Software License 1.0
-- **Terms**: Free of charge for any person or organization, commercial or non-commercial
-- **Restrictions**: Minimal - must include copyright notices in source code distributions
-- **Redistribution**: Freely allowed
-- **Citation**: Recommended (see below)
+- **Type**: Mixed - LEMON library (Boost 1.0), benchmark data (varies by source)
+- **LEMON Library Code**: Boost Software License 1.0 - very permissive
+- **Benchmark Data Licensing**:
+  - **NETGEN/GRIDGEN/GOTO/GRIDGRAPH instances**: Public domain (DIMACS generators)
+  - **TIGER/Line road networks**: Check 9th DIMACS Challenge and Census Bureau terms
+  - **Western Ontario CV instances**: Third-party, verify original source licensing
+  - **Mixed-source datasets**: Licensing depends on original data provider
+- **Terms**: LEMON library itself is freely usable; benchmark instances inherit original source licenses
+- **Restrictions**: Varies by dataset - check individual instance provenance
+- **Redistribution**: Check per-dataset licensing before redistributing
+- **Citation**: Recommended for LEMON benchmark paper (see below)
 
 **Citation**:
 ```
@@ -167,9 +176,12 @@ Optimization Methods and Software, 30:94-127, 2015.
 
 **Notes**:
 - Part of COIN-OR initiative
-- Very permissive license - excellent choice for benchmarking
-- Library implementations available in C++
-- Benchmark data is separate from library code
+- LEMON library code has very permissive license (Boost 1.0)
+- **Benchmark data is NOT all Boost-licensed** - aggregates instances from various sources
+- Generated instances (NETGEN, GRIDGEN, etc.) are public domain
+- Real-world instances (TIGER/Line, CV) have third-party licenses
+- **Important**: Verify license for each specific instance before redistribution
+- Excellent choice for benchmarking, but audit individual datasets
 
 ---
 
@@ -349,17 +361,22 @@ and Minimum Cost Flow Network Problems. Management Science
   - http://archive.dimacs.rutgers.edu/pub/netflow/generators/network/netgen/netgen.c
   - http://elib.zib.de/pub/mp-testdata/generators/netgen/netgen.c
 
-**Modern Implementations**:
-- **Python**: https://pypi.org/project/pynetgen/ (PyNETGEN)
+**Alternative Implementations**:
+- **PyNETGEN (Python)**: https://pypi.org/project/pynetgen/ 
+  - Independent reimplementation, not a direct port
+  - **Maintenance status unclear** - last PyPI update should be verified
 - **GitHub library**: https://github.com/emmanuj/netgen
+  - Independent implementation
+  - **Maintenance status unclear** - check repository activity
 
 **License**: Public Domain / Netlib (freely available)
 
 **Notes**:
-- **No maintained Python ports** of original - implementations are independent rewrites
-- Original Fortran/C versions are standard reference
+- **No official maintained Python ports** of the original Fortran/C implementations
+- Alternative Python implementations exist but are independent rewrites with unclear maintenance status
+- Original Fortran/C versions remain the standard reference implementations
 - Widely used in OR literature
-- **For MVP**: Use existing NETGEN-generated instances or wrap C version with subprocess calls
+- **For MVP**: Use existing NETGEN-generated instances from benchmark sources, or wrap original C version with subprocess calls if generation needed
 
 ---
 
@@ -492,10 +509,16 @@ and Minimum Cost Flow Network Problems. Management Science
 
 **Recommended Approach**:
 - **Download scripts** rather than committing benchmark files
-- Store in `benchmarks/problems/` (excluded from git via `.gitignore`)
-- Commit `problem_catalog.json` with metadata
-- Include license information in catalog
+- Store in `benchmarks/problems/` per Phase 2 plan (excluded from git via `.gitignore`)
+- Commit `benchmarks/metadata/problem_catalog.json` with metadata
+- License information in `benchmarks/metadata/licenses.json`
 - Provide clear attribution in documentation
+
+**Note**: Directory structure follows Phase 2 plan in `docs/project_plans/BENCHMARK_SUITE_PLAN.md`:
+- `benchmarks/problems/` - Problem files (not committed)
+- `benchmarks/metadata/` - Catalog and licenses (committed)
+- `benchmarks/parsers/` - Format parsers (Phase 3)
+- `benchmarks/results/` - Benchmark results (Phase 5+)
 
 **For a Few Small Instances**:
 - Can commit 2-3 small representative problems (<10KB each)
