@@ -518,9 +518,13 @@ def print_summary(results: list[BenchmarkResult]) -> None:
         with_memory = [r for r in successful if r.memory_mb is not None]
         if with_memory:
             avg_memory = sum(r.memory_mb for r in with_memory) / len(with_memory)
-            avg_peak = sum(r.peak_memory_mb for r in with_memory) / len(with_memory)
             print(f"  Average memory: {avg_memory:.1f} MB")
-            print(f"  Average peak memory: {avg_peak:.1f} MB")
+
+            # Peak memory may be tracked separately
+            with_peak_memory = [r for r in with_memory if r.peak_memory_mb is not None]
+            if with_peak_memory:
+                avg_peak = sum(r.peak_memory_mb for r in with_peak_memory) / len(with_peak_memory)
+                print(f"  Average peak memory: {avg_peak:.1f} MB")
 
     print("=" * 70)
 
