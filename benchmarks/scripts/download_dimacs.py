@@ -60,13 +60,13 @@ DIMACS_INSTANCES = {
         "url_base": f"{LEMON_BASE_URL}/netgen",
         "files": [
             # Format: (filename, description)
-            # NETGEN-8 family: 8,000 nodes, varying density (08=sparse to 13=denser)
+            # NETGEN-8 family: 256-512 nodes, varying density (08=sparse to 13=denser)
             # Files are gzip compressed (.min.gz), will be decompressed to .min
-            ("netgen_8_08a.min.gz", "NETGEN-8 sparse network (8K nodes, variant a)"),
-            ("netgen_8_08b.min.gz", "NETGEN-8 sparse network (8K nodes, variant b)"),
-            ("netgen_8_09a.min.gz", "NETGEN-8 network (8K nodes, variant a)"),
-            ("netgen_8_10a.min.gz", "NETGEN-8 network (8K nodes, variant a)"),
-            ("netgen_8_11a.min.gz", "NETGEN-8 network (8K nodes, variant a)"),
+            ("netgen_8_08a.min.gz", "NETGEN-8 sparse network (256 nodes, variant a)"),
+            ("netgen_8_08b.min.gz", "NETGEN-8 sparse network (256 nodes, variant b)"),
+            ("netgen_8_09a.min.gz", "NETGEN-8 network (512 nodes, variant a)"),
+            ("netgen_8_10a.min.gz", "NETGEN-8 network (512 nodes, variant a)"),
+            ("netgen_8_11a.min.gz", "NETGEN-8 network (512 nodes, variant a)"),
         ],
         "local_dir": "benchmarks/problems/lemon/netgen",
         "license": "LEMON: Boost 1.0 (library), NETGEN instances: Public Domain",
@@ -77,10 +77,10 @@ DIMACS_INSTANCES = {
         "size_category": "small",
         "url_base": f"{LEMON_BASE_URL}/gridgen",
         "files": [
-            # GRIDGEN-8 family: Grid networks with ~8,000 nodes
-            ("gridgen_8_08a.min.gz", "GRIDGEN-8 grid network (variant a)"),
-            ("gridgen_8_08b.min.gz", "GRIDGEN-8 grid network (variant b)"),
-            ("gridgen_8_09a.min.gz", "GRIDGEN-8 grid network (variant a)"),
+            # GRIDGEN-8 family: Grid networks with 256-512 nodes
+            ("gridgen_8_08a.min.gz", "GRIDGEN-8 grid network (256 nodes, variant a)"),
+            ("gridgen_8_08b.min.gz", "GRIDGEN-8 grid network (256 nodes, variant b)"),
+            ("gridgen_8_09a.min.gz", "GRIDGEN-8 grid network (512 nodes, variant a)"),
         ],
         "local_dir": "benchmarks/problems/lemon/gridgen",
         "license": "LEMON: Boost 1.0 (library), GRIDGEN instances: Public Domain",
@@ -91,10 +91,10 @@ DIMACS_INSTANCES = {
         "size_category": "small",
         "url_base": f"{LEMON_BASE_URL}/goto",
         "files": [
-            # GOTO-8 family: Grid-on-torus networks with ~8,000 nodes
-            ("goto_8_08a.min.gz", "GOTO-8 grid-on-torus (variant a)"),
-            ("goto_8_08b.min.gz", "GOTO-8 grid-on-torus (variant b)"),
-            ("goto_8_09a.min.gz", "GOTO-8 grid-on-torus (variant a)"),
+            # GOTO-8 family: Grid-on-torus networks with 256-512 nodes
+            ("goto_8_08a.min.gz", "GOTO-8 grid-on-torus (256 nodes, variant a)"),
+            ("goto_8_08b.min.gz", "GOTO-8 grid-on-torus (256 nodes, variant b)"),
+            ("goto_8_09a.min.gz", "GOTO-8 grid-on-torus (512 nodes, variant a)"),
         ],
         "local_dir": "benchmarks/problems/lemon/goto",
         "license": "LEMON: Boost 1.0 (library), GOTO instances: Public Domain",
