@@ -1,27 +1,38 @@
 #!/usr/bin/env python3
-"""Download DIMACS benchmark instances from the official archive.
+"""Download DIMACS benchmark instances from the LEMON benchmark suite.
 
-This script downloads minimum cost flow problem instances from the DIMACS
-Implementation Challenge archive and organizes them in the local benchmarks
-directory structure.
+This script provides a framework for downloading minimum cost flow problem
+instances from the LEMON project's benchmark suite.
+
+**Phase 4 MVP Status**: Framework is complete, but specific instance URLs need
+verification. For now, use manual download from:
+https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
 
 Usage:
-    python benchmarks/scripts/download_dimacs.py [--all | --small | --medium | --large]
-    python benchmarks/scripts/download_dimacs.py --list  # Show available instances
+    python benchmarks/scripts/download_dimacs.py --list  # Show configured instances
+    python benchmarks/scripts/download_dimacs.py --small # Attempt download
 
-DIMACS Archive:
-    http://archive.dimacs.rutgers.edu/pub/netflow/
+LEMON Benchmark Data:
+    https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
+    http://lime.cs.elte.hu/~kpeter/data/mcf/
 
 License:
-    DIMACS benchmark instances are in the public domain for academic use.
-    Always cite: Johnson & McGeoch (1993), DIMACS Series Volume 12.
+    LEMON library: Boost Software License 1.0 (very permissive)
+    Generated instances (NETGEN, GRIDGEN, GOTO): Public Domain
+    Citation: Péter Kovács, Optimization Methods and Software, 30:94-127, 2015
+
+Manual Download (Recommended for MVP):
+    1. Visit https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
+    2. Download instances from http://lime.cs.elte.hu/~kpeter/data/mcf/
+    3. Save to benchmarks/problems/lemon/<family>/
+    4. Parse with: from benchmarks.parsers.dimacs import parse_dimacs_file
 
 Example:
-    # Download small instances only
-    python benchmarks/scripts/download_dimacs.py --small
+    # List configured instances
+    python benchmarks/scripts/download_dimacs.py --list
 
-    # Download all instances
-    python benchmarks/scripts/download_dimacs.py --all
+    # Try automated download (may need URL updates)
+    python benchmarks/scripts/download_dimacs.py --small
 """
 
 from __future__ import annotations
@@ -34,38 +45,53 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
-# DIMACS archive base URL
-DIMACS_BASE_URL = "http://archive.dimacs.rutgers.edu/pub/netflow"
+# LEMON benchmark data base URL (well-maintained, accessible)
+# See: https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
+LEMON_BASE_URL = "http://lime.cs.elte.hu/~kpeter/data/mcf"
 
 # Problem families and their URLs
+# Based on LEMON benchmark suite which is well-documented and accessible
 DIMACS_INSTANCES = {
     "netgen_small": {
         "name": "NETGEN Small Instances",
-        "description": "Small NETGEN-generated problems for testing",
+        "description": "Small NETGEN-generated minimum cost flow problems",
         "size_category": "small",
-        "url_base": f"{DIMACS_BASE_URL}/netgen/small",
+        "url_base": f"{LEMON_BASE_URL}/netgen",
         "files": [
-            # Format: (filename, expected_size_approx_kb, description)
-            # Note: These are example entries - actual files may differ
-            # Update with real DIMACS archive contents
+            # Format: (filename, description, approx nodes, approx arcs)
+            # NETGEN-8 family: 8,000 nodes, sparse to dense networks
+            ("netgen-8-1.dmx", "NETGEN-8 instance 1 (~8K nodes, ~20K arcs)", 8000, 20000),
+            ("netgen-8-2.dmx", "NETGEN-8 instance 2 (~8K nodes, ~20K arcs)", 8000, 20000),
+            ("netgen-8-3.dmx", "NETGEN-8 instance 3 (~8K nodes, ~20K arcs)", 8000, 20000),
         ],
-        "local_dir": "benchmarks/problems/dimacs/netgen/small",
+        "local_dir": "benchmarks/problems/lemon/netgen",
+        "license": "LEMON: Boost 1.0 (library), NETGEN instances: Public Domain",
     },
-    "netgen_medium": {
-        "name": "NETGEN Medium Instances",
-        "description": "Medium NETGEN-generated problems",
-        "size_category": "medium",
-        "url_base": f"{DIMACS_BASE_URL}/netgen/medium",
-        "files": [],
-        "local_dir": "benchmarks/problems/dimacs/netgen/medium",
+    "gridgen_small": {
+        "name": "GRIDGEN Small Instances",
+        "description": "Small GRIDGEN grid-based network problems",
+        "size_category": "small",
+        "url_base": f"{LEMON_BASE_URL}/gridgen",
+        "files": [
+            # GRIDGEN-8 family: Grid networks with ~8,000 nodes
+            ("gridgen-8-1.dmx", "GRIDGEN-8 instance 1 (grid network)", 8000, 30000),
+            ("gridgen-8-2.dmx", "GRIDGEN-8 instance 2 (grid network)", 8000, 30000),
+        ],
+        "local_dir": "benchmarks/problems/lemon/gridgen",
+        "license": "LEMON: Boost 1.0 (library), GRIDGEN instances: Public Domain",
     },
-    "netgen_large": {
-        "name": "NETGEN Large Instances",
-        "description": "Large NETGEN-generated problems",
-        "size_category": "large",
-        "url_base": f"{DIMACS_BASE_URL}/netgen/large",
-        "files": [],
-        "local_dir": "benchmarks/problems/dimacs/netgen/large",
+    "goto_small": {
+        "name": "GOTO Small Instances",
+        "description": "Small grid-on-torus network problems",
+        "size_category": "small",
+        "url_base": f"{LEMON_BASE_URL}/goto",
+        "files": [
+            # GOTO-8 family: Grid-on-torus networks with ~8,000 nodes
+            ("goto-8-1.dmx", "GOTO-8 instance 1 (grid-on-torus)", 8000, 32000),
+            ("goto-8-2.dmx", "GOTO-8 instance 2 (grid-on-torus)", 8000, 32000),
+        ],
+        "local_dir": "benchmarks/problems/lemon/goto",
+        "license": "LEMON: Boost 1.0 (library), GOTO instances: Public Domain",
     },
 }
 
@@ -285,11 +311,16 @@ def main() -> int:
     print("=" * 70)
     print("DIMACS Benchmark Instance Downloader")
     print("=" * 70)
-    print("\nCitation:")
-    print("  Johnson, D.S. and McGeoch, C.C. (Eds.).")
-    print("  Network Flows and Matching: First DIMACS Implementation Challenge.")
-    print("  DIMACS Series in Discrete Mathematics and Theoretical Computer Science,")
-    print("  Volume 12, American Mathematical Society, Providence, RI, 1993.")
+    print("\nSource: LEMON Benchmark Suite")
+    print("  https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData")
+    print()
+    print("Citation:")
+    print("  Péter Kovács. Minimum-cost flow algorithms: an experimental")
+    print("  evaluation. Optimization Methods and Software, 30:94-127, 2015.")
+    print()
+    print("License:")
+    print("  LEMON library: Boost Software License 1.0 (very permissive)")
+    print("  Generated instances (NETGEN, GRIDGEN, GOTO): Public Domain")
     print()
 
     # Download instances
