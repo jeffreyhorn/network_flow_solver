@@ -10,15 +10,21 @@ from ..basis_lu import LUFactors, build_lu, solve_lu
 
 # Optional Numba JIT compilation for performance-critical loops
 try:
-    from numba import njit
+    from numba import njit  # type: ignore[import-untyped]
 
     _HAS_NUMBA = True
 except ImportError:
     _HAS_NUMBA = False
 
     # Provide a no-op decorator when Numba is not available
-    def njit(*args, **kwargs):  # type: ignore[no-redef]
-        def decorator(func):  # type: ignore[no-untyped-def]
+    from typing import Any, Callable, TypeVar
+
+    _F = TypeVar("_F", bound=Callable[..., Any])
+
+    def njit(*args: Any, **kwargs: Any) -> Callable[[_F], _F]:
+        """No-op decorator fallback when Numba is not available."""
+
+        def decorator(func: _F) -> _F:
             return func
 
         return decorator
@@ -33,7 +39,7 @@ class FTUpdate:
     theta: float
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=True, fastmath=True)  # type: ignore[misc]
 def _apply_ft_updates_jit(
     result: np.ndarray,
     pivots: np.ndarray,
