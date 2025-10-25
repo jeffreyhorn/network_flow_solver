@@ -408,7 +408,10 @@ class SolverOptions:
         use_jit: Enable Numba JIT compilation for performance-critical operations (default: True).
                 - True: JIT-compile Forrest-Tomlin update loops (requires numba package)
                 - False: Use pure Python implementation
-                JIT compilation can provide 20-40% speedup on Forrest-Tomlin solve operations.
+                JIT compilation may provide modest speedup on Forrest-Tomlin solve operations,
+                but actual performance varies by problem size and hardware. Benchmarks show
+                similar or slightly slower performance on medium-sized problems due to array
+                conversion overhead. May benefit larger problems with more FT updates.
                 Falls back to Python implementation if numba is not installed.
                 Install with: pip install 'network-flow-solver[jit]'
 

@@ -558,7 +558,9 @@ Configuration options for the solver.
   - `False`: Use pure Python implementation
   - Automatically falls back to Python if Numba not installed
   - Targets Forrest-Tomlin update loops (primary computational bottleneck: 49.7% of runtime)
-  - Best for large problems with many basis updates
+  - Performance varies by problem size and hardware; benchmarks show similar or slightly slower
+    performance on medium-sized problems due to array conversion overhead
+  - May benefit larger problems with more FT updates
   - Install with: `pip install 'network-flow-solver[jit]'`
   - `False`: Use loop-based pricing with deferred weight updates
     - Optimized to update only the selected entering arc's weight (not all examined candidates)
@@ -631,7 +633,9 @@ The solver includes several automatic performance optimizations that require no 
 - Automatically enabled when Numba installed, gracefully falls back to Python
 - Enable/disable with `use_jit` option (default: True)
 - Install with: `pip install 'network-flow-solver[jit]'` or `pip install numba>=0.58.0`
-- Best for large problems with many basis updates
+- Performance varies by problem size and hardware; benchmarks show similar or slightly slower
+  performance on medium-sized problems due to array conversion overhead
+- May benefit larger problems with more FT updates
 - Array lookups (O(1)) replace method calls throughout:
   - Ratio test in pivot operations
   - Pricing strategy candidate evaluation
