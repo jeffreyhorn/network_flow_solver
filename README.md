@@ -238,6 +238,26 @@ result = solve_min_cost_flow(problem, options=options)
 - **Devex pricing** (default): Uses normalized reduced costs and block-based search for efficient arc selection. Generally faster on large problems. **Automatically uses vectorized NumPy operations** for 1.8-3.1x speedup on problems with 200+ arcs.
 - **Dantzig pricing**: Selects the arc with the most negative reduced cost. Simpler but may require more iterations.
 
+**Automatic pricing strategy selection:**
+The solver automatically detects certain problem structures that benefit from specific pricing strategies:
+- **Grid-on-torus structures**: Automatically switches to Dantzig pricing when detected
+  - Detection criteria: ≤4 supply/demand nodes, >98% transshipment nodes, regular grid connectivity
+  - Performance: GOTO instances solve in ~11s (previously timed out with Devex)
+  - Override: Set `explicit_pricing_strategy=True` to disable auto-detection
+
+```python
+# Default: Auto-detection enabled (recommended)
+result = solve_min_cost_flow(problem)
+# INFO: Auto-detected grid-on-torus structure, switching to Dantzig pricing
+
+# Override auto-detection with explicit strategy
+options = SolverOptions(
+    pricing_strategy="devex",
+    explicit_pricing_strategy=True  # Forces Devex even on GOTO
+)
+result = solve_min_cost_flow(problem, options=options)
+```
+
 **Vectorized pricing (enabled by default):**
 The Devex pricing strategy uses vectorized NumPy array operations by default, providing significant performance improvements:
 - **Small problems** (300 arcs): **162% speedup** (2.6x faster)

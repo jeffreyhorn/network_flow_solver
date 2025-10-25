@@ -197,18 +197,20 @@ class NetworkSimplex:
         # Initialize devex_weights that may be shared with pricing strategy
         self.devex_weights: list[float] = [1.0] * len(self.arcs)
 
-        # Initialize pricing strategy based on solver options
-        if self.options.pricing_strategy == "devex":
+        # Auto-detect problem structures that benefit from different pricing strategies
+        pricing_strategy = self._select_pricing_strategy()
+
+        # Initialize pricing strategy based on selection
+        if pricing_strategy == "devex":
             # Pass devex_weights to share state between NetworkSimplex and DevexPricing
             self.pricing_strategy: PricingStrategy = DevexPricing(
                 len(self.arcs), self.adaptive_tuner.block_size, self.devex_weights
             )
-        elif self.options.pricing_strategy == "dantzig":
+        elif pricing_strategy == "dantzig":
             self.pricing_strategy = DantzigPricing()
         else:
             raise SolverConfigurationError(
-                f"Unknown pricing strategy '{self.options.pricing_strategy}'. "
-                f"Valid options: 'devex', 'dantzig'."
+                f"Unknown pricing strategy '{pricing_strategy}'. Valid options: 'devex', 'dantzig'."
             )
         self.original_costs = [arc.cost for arc in self.arcs]
         self.perturbed_costs = [arc.cost for arc in self.arcs]
@@ -271,6 +273,73 @@ class NetworkSimplex:
     # ============================================================================
     # Problem Setup and Initialization
     # ============================================================================
+
+    def _select_pricing_strategy(self) -> str:
+        """Auto-select pricing strategy based on problem structure.
+
+        Detects grid-on-torus and similar structures that benefit from Dantzig pricing.
+        Returns the user's explicit choice if specified, otherwise auto-detects.
+
+        Returns:
+            Pricing strategy name: "devex" or "dantzig"
+        """
+        # If user explicitly requested a strategy via options, honor it
+        # This allows users to override auto-detection if needed
+        if self.options.explicit_pricing_strategy:
+            return self.options.pricing_strategy
+
+        # Auto-detection heuristics for grid-on-torus structures
+        # These structures have been empirically observed to perform poorly with Devex
+
+        num_nodes = len(self.problem.nodes)
+        num_arcs = len(self.arcs)
+
+        if num_nodes == 0:
+            return self.options.pricing_strategy  # Use default
+
+        # Count supply/demand nodes
+        supply_nodes = sum(
+            1 for node in self.problem.nodes.values() if node.supply > self.tolerance
+        )
+        demand_nodes = sum(
+            1 for node in self.problem.nodes.values() if node.supply < -self.tolerance
+        )
+        transshipment_nodes = num_nodes - supply_nodes - demand_nodes
+
+        # Calculate transshipment percentage
+        transshipment_pct = transshipment_nodes / num_nodes
+
+        # Calculate average degree (arcs per node)
+        avg_degree = (2 * num_arcs) / num_nodes if num_nodes > 0 else 0
+
+        # Heuristic: Grid-on-torus structures have distinctive characteristics:
+        # 1. Very few supply/demand nodes (typically 1 source + 1 sink)
+        # 2. Very high transshipment percentage (>98%)
+        # 3. Regular grid structure (arcs ~8x nodes for 2D grids)
+        # 4. Regular connectivity pattern
+
+        non_transshipment = supply_nodes + demand_nodes
+
+        is_likely_goto = (
+            non_transshipment <= 4  # Very few supply/demand nodes (1-2 sources/sinks)
+            and transshipment_pct > 0.98  # >98% transshipment nodes
+            and avg_degree >= 8  # Grid-like connectivity (directed arcs)
+            and 6 <= (num_arcs / num_nodes) <= 12  # ~8 arcs per node for wrapped grids
+        )
+
+        if is_likely_goto:
+            self.logger.info(
+                "Auto-detected grid-on-torus structure, switching to Dantzig pricing",
+                extra={
+                    "transshipment_pct": f"{transshipment_pct * 100:.1f}%",
+                    "avg_degree": f"{avg_degree:.1f}",
+                    "arcs_per_node": f"{num_arcs / num_nodes:.1f}",
+                },
+            )
+            return "dantzig"
+
+        # Default to user-specified or Devex
+        return self.options.pricing_strategy
 
     def _initial_supplies(self) -> list[float]:
         supplies = [0.0] * len(self.node_ids)
