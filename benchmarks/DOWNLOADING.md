@@ -194,7 +194,7 @@ See `docs/benchmarks/BENCHMARK_SOURCES.md` for other potential sources:
 
 ## Phase 4 Status
 
-**Current**: MVP implementation with 7 small instances (~8K nodes each)
+**Current**: MVP implementation with 11 small instances (256-512 nodes each)
 
 **Future Phases**:
 - Phase 5: Add medium instances (10K-50K nodes)
