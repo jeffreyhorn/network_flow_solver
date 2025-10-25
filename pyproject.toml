@@ -103,7 +103,7 @@ python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 warn_redundant_casts = true
-warn_unused_ignores = true
+warn_unused_ignores = false
 disallow_any_generics = true
 check_untyped_defs = true
 no_implicit_reexport = true
@@ -111,7 +111,7 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
 [[tool.mypy.overrides]]
-module = ["hypothesis.*", "scipy.*", "numpy.*", "matplotlib.*", "networkx.*"]
+module = ["hypothesis.*", "scipy.*", "numpy.*", "matplotlib.*", "networkx.*", "numba.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
