@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Automatic pricing strategy selection for grid-on-torus structures** (`simplex.py`)
   - **Feature**: Auto-detects grid-on-torus network structures and switches to Dantzig pricing
-  - **Performance**: GOTO instances now solve in ~14s (previously timed out at 300s+ with Devex)
+  - **Performance**: GOTO instances now solve in ~11s (previously timed out at 300s+ with Devex)
   - **Implementation**:
     - `_select_pricing_strategy()`: Detects GOTO patterns based on structural heuristics
     - Heuristics: ≤4 supply/demand nodes, >98% transshipment, regular grid connectivity
