@@ -166,7 +166,7 @@ def validate_solution(
         for (tail, head), flow_value in result.flows.items():
             if (tail, head) in arc_map:
                 arc = arc_map[(tail, head)]
-                lower = arc.lower if hasattr(arc, "lower") else 0.0
+                lower = getattr(arc, "lower", 0.0)
                 upper = arc.capacity if arc.capacity is not None else float("inf")
                 if flow_value < lower - tolerance or flow_value > upper + tolerance:
                     capacity_ok = False
