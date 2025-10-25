@@ -25,6 +25,7 @@ class TreeBasis:
         tolerance: float,
         use_dense_inverse: bool | None = None,
         projection_cache_size: int = 100,
+        use_jit: bool = True,
     ) -> None:
         # Auto-detect if not specified: use sparse if available, else dense
         if use_dense_inverse is None:
@@ -35,6 +36,7 @@ class TreeBasis:
         self.root = root
         self.tolerance = tolerance
         self.use_dense_inverse = use_dense_inverse
+        self.use_jit = use_jit
         self.parent: list[int | None] = [None] * node_count
         self.parent_arc: list[int | None] = [None] * node_count
         self.parent_dir: list[int] = [0] * node_count
@@ -194,6 +196,7 @@ class TreeBasis:
             tolerance=self.tolerance,
             max_updates=self.ft_update_limit,
             norm_growth_limit=self.ft_norm_limit,
+            use_jit=self.use_jit,
         )
         self.lu_factors = build_lu(matrix)
 

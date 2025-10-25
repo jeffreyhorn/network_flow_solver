@@ -930,6 +930,24 @@ print(f"   Iterations: {result7.iterations}")
 print(f"   (Uses deferred weight updates - only selected arc updated)")
 print(f"   (Useful for debugging or comparing against vectorized version)")
 
+# Configuration 8: JIT compilation enabled (requires Numba)
+print("\n8. JIT compilation for Forrest-Tomlin operations:")
+try:
+    options8 = SolverOptions(use_jit=True)
+    result8 = solve_min_cost_flow(problem, options=options8)
+    print(f"   Iterations: {result8.iterations}")
+    print(f"   (JIT-compiles Forrest-Tomlin update loops)")
+    print(f"   (Install with: pip install 'network-flow-solver[jit]')")
+except Exception as e:
+    print(f"   JIT not available (install Numba): {e}")
+
+# Configuration 9: Disable JIT (pure Python fallback)
+print("\n9. JIT disabled (pure Python):")
+options9 = SolverOptions(use_jit=False)
+result9 = solve_min_cost_flow(problem, options=options9)
+print(f"   Iterations: {result9.iterations}")
+print(f"   (Uses pure Python implementation)")
+
 # All should give same objective (within tolerance)
 print(f"\nAll objectives equal: {all(abs(r.objective - result1.objective) < 1e-4 
                                       for r in [result2, result3, result4, result5, result6, result7])}")

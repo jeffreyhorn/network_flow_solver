@@ -405,6 +405,15 @@ class SolverOptions:
                                - False: Use traditional loop-based pricing (for debugging/comparison)
                                Only applies to Devex pricing strategy. Dantzig pricing is always loop-based.
                                Vectorization provides significant performance improvements on medium/large problems.
+        use_jit: Enable Numba JIT compilation for performance-critical operations (default: True).
+                - True: JIT-compile Forrest-Tomlin update loops (requires numba package)
+                - False: Use pure Python implementation
+                JIT compilation may provide modest speedup on Forrest-Tomlin solve operations,
+                but actual performance varies by problem size and hardware. Benchmarks show
+                similar or slightly slower performance on medium-sized problems due to array
+                conversion overhead. May benefit larger problems with more FT updates.
+                Falls back to Python implementation if numba is not installed.
+                Install with: pip install 'network-flow-solver[jit]'
 
     Examples:
         >>> # Default options (auto-tuning enabled)
@@ -450,6 +459,7 @@ class SolverOptions:
     use_vectorized_pricing: bool = (
         True  # Re-enabled after cycling fix (see record_degenerate_pivot)
     )
+    use_jit: bool = True  # Enable Numba JIT compilation for Forrest-Tomlin operations
 
     def __post_init__(self) -> None:
         if self.tolerance <= 0:

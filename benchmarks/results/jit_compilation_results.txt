@@ -1,0 +1,16 @@
+JIT Compilation Benchmark Results
+================================================================================
+
+Numba version: 0.62.1
+Problem size: 130 nodes, 4225 arcs
+
+Without JIT:
+  Average time: 2.273s ± 0.079s
+  Iterations: 90
+
+With JIT:
+  Average time: 2.404s ± 0.606s
+  Iterations: 90
+
+Speedup: 0.95x (-5.5%)
+Time saved: -0.132s per solve

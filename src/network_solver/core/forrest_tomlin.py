@@ -8,6 +8,23 @@ import numpy as np
 
 from ..basis_lu import LUFactors, build_lu, solve_lu
 
+# Optional Numba JIT compilation for performance-critical loops
+try:
+    from numba import njit
+
+    _HAS_NUMBA = True
+except ImportError:
+    _HAS_NUMBA = False
+
+    # Provide a no-op decorator when Numba is not available
+    def njit(*args, **kwargs):  # type: ignore
+        """No-op decorator fallback when Numba is not available."""
+
+        def decorator(func):  # type: ignore
+            return func
+
+        return decorator
+
 
 @dataclass
 class FTUpdate:
@@ -16,6 +33,57 @@ class FTUpdate:
     pivot: int
     y: np.ndarray
     theta: float
+
+
+@njit(cache=True, fastmath=True)  # type: ignore[misc]
+def _apply_ft_updates_jit(
+    result: np.ndarray,
+    pivots: np.ndarray,
+    ys: np.ndarray,
+    thetas: np.ndarray,
+) -> None:
+    """Apply Forrest-Tomlin updates to the solution vector (JIT-compiled).
+
+    This function applies the accumulated FT updates to the base solution.
+    Each update modifies the result vector based on the pivot element.
+
+    Args:
+        result: Solution vector to modify in-place (will be updated)
+        pivots: Array of pivot indices for each update
+        ys: 2D array where ys[i] is the y vector for update i
+        thetas: Array of theta values for each update
+
+    Note:
+        This is the performance-critical inner loop that gets called 131k+ times
+        per solve. JIT compilation can provide significant speedup here.
+    """
+    n_updates = len(pivots)
+    for i in range(n_updates):
+        pivot_idx = pivots[i]
+        pivot_value = result[pivot_idx]
+        correction = pivot_value / thetas[i]
+        # Vectorized subtraction: result -= ys[i] * correction
+        for j in range(len(result)):
+            result[j] -= ys[i, j] * correction
+
+
+def _apply_ft_updates_python(
+    result: np.ndarray,
+    updates: list[FTUpdate],
+) -> None:
+    """Apply Forrest-Tomlin updates to the solution vector (pure Python).
+
+    This is the original implementation without JIT compilation.
+    Used as fallback when Numba is not available or JIT is disabled.
+
+    Args:
+        result: Solution vector to modify in-place
+        updates: List of FTUpdate objects to apply
+    """
+    for update in updates:
+        pivot_value = result[update.pivot]
+        correction = pivot_value / update.theta
+        result -= update.y * correction
 
 
 class ForrestTomlin:
@@ -27,12 +95,14 @@ class ForrestTomlin:
         tolerance: float = 1e-9,
         max_updates: int | None = 128,
         norm_growth_limit: float | None = None,
+        use_jit: bool = True,
     ) -> None:
         self._validate_square(matrix)
         self.size = matrix.shape[0]
         self.tolerance = tolerance
         self.max_updates = max_updates
         self.norm_growth_limit = norm_growth_limit
+        self.use_jit = use_jit and _HAS_NUMBA  # Only enable if Numba is available
         self._initial_matrix = np.array(matrix, dtype=float, copy=True)
         self._current_matrix = self._initial_matrix.copy()
         self._base_factors: LUFactors = build_lu(self._initial_matrix)
@@ -55,11 +125,28 @@ class ForrestTomlin:
             except np.linalg.LinAlgError:
                 return None
         result = np.array(base, dtype=float, copy=True)
-        for update in self._updates:
-            # Apply stored Givens-like corrections so the running solve reflects all pivots.
-            pivot_value = result[update.pivot]
-            correction = pivot_value / update.theta
-            result -= update.y * correction
+
+        # Apply accumulated FT updates using JIT path if available and enabled
+        if not self._updates:
+            return result
+
+        if self.use_jit:
+            # JIT path: convert updates to arrays for efficient processing
+            n_updates = len(self._updates)
+            pivots = np.empty(n_updates, dtype=np.int64)
+            thetas = np.empty(n_updates, dtype=np.float64)
+            ys = np.empty((n_updates, self.size), dtype=np.float64)
+
+            for i, update in enumerate(self._updates):
+                pivots[i] = update.pivot
+                thetas[i] = update.theta
+                ys[i, :] = update.y
+
+            _apply_ft_updates_jit(result, pivots, ys, thetas)
+        else:
+            # Python path: original implementation
+            _apply_ft_updates_python(result, self._updates)
+
         return result
 
     def update(self, pivot: int, new_column: np.ndarray) -> bool:

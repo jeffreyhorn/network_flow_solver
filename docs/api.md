@@ -553,6 +553,15 @@ Configuration options for the solver.
     - Medium problems (600 arcs): 92% speedup (1.9x faster)
     - Average improvement: 127% speedup (2.3x faster)
     - Includes deferred weight updates (only selected arc's weight updated per iteration)
+- `use_jit` (bool): Enable Numba JIT compilation for Forrest-Tomlin operations (default: True)
+  - `True` (default): JIT-compile performance-critical loops (requires `pip install numba>=0.58.0`)
+  - `False`: Use pure Python implementation
+  - Automatically falls back to Python if Numba not installed
+  - Targets Forrest-Tomlin update loops (primary computational bottleneck: 49.7% of runtime)
+  - Performance varies by problem size and hardware; benchmarks show similar or slightly slower
+    performance on medium-sized problems due to array conversion overhead
+  - May benefit larger problems with more FT updates
+  - Install with: `pip install 'network-flow-solver[jit]'`
   - `False`: Use loop-based pricing with deferred weight updates
     - Optimized to update only the selected entering arc's weight (not all examined candidates)
     - 97.5% reduction in weight update calls vs. old implementation
@@ -617,12 +626,16 @@ The solver includes several automatic performance optimizations that require no 
 - Forward and backward residuals pre-computed as NumPy arrays
 - Updated automatically after flow changes in pivots
 - Eliminates ~750,000 function calls per solve on large problems
-- Array lookups (O(1)) replace method calls throughout:
-  - Ratio test in pivot operations
-  - Pricing strategy candidate evaluation
-  - Specialized pivot selection
-- Always active - no configuration needed
-- Performance scales with problem size (more arcs = more benefit)
+
+**JIT Compilation (Optional)**
+- Numba JIT compilation for Forrest-Tomlin update loops
+- Targets primary computational bottleneck (49.7% of baseline runtime)
+- Automatically enabled when Numba installed, gracefully falls back to Python
+- Enable/disable with `use_jit` option (default: True)
+- Install with: `pip install 'network-flow-solver[jit]'` or `pip install numba>=0.58.0`
+- **Measured Performance**: Benchmarks on medium-sized transportation problems (130 nodes, 4,225 arcs)
+  show 0.95x speedup (-5.5% slower) due to array conversion overhead. Performance varies by problem
+  size and hardware; may benefit larger problems with more Forrest-Tomlin updates per solve.
 
 **Deferred Weight Updates**
 - Devex weights updated only for selected entering arc

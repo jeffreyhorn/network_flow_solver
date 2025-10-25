@@ -30,11 +30,39 @@ pip install -e ".[dev,umfpack]"
 # Or install with tutorial support (Jupyter notebook)
 pip install -e ".[tutorial]"
 
+# Or install with visualization support
+pip install -e ".[visualization]"
+
+# Or install with JIT compilation support (optional performance boost)
+pip install -e ".[jit]"
+
 # Or install everything
 pip install -e ".[all]"
 
 # Or install runtime only
 pip install -e .
+```
+
+### Optional Performance Features
+
+The package supports optional JIT (Just-In-Time) compilation for performance-critical operations:
+
+- **Numba JIT**: Install with `pip install -e ".[jit]"` or `pip install numba>=0.58.0`
+  - Accelerates Forrest-Tomlin basis update operations
+  - Automatically enabled when Numba is installed (configure with `use_jit=True/False`)
+  - Gracefully falls back to pure Python if Numba is unavailable
+  - Best for large problems with many basis updates
+
+```python
+from network_solver import solve_min_cost_flow, SolverOptions
+
+# Enable JIT compilation (default if Numba installed)
+options = SolverOptions(use_jit=True)
+result = solve_min_cost_flow(problem, options=options)
+
+# Disable JIT compilation
+options = SolverOptions(use_jit=False)
+result = solve_min_cost_flow(problem, options=options)
 ```
 
 See [INSTALL.md](INSTALL.md) for detailed installation instructions and troubleshooting.
