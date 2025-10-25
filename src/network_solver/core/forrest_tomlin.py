@@ -17,7 +17,8 @@ except ImportError:
     _HAS_NUMBA = False
 
     # Provide a no-op decorator when Numba is not available
-    from typing import Any, Callable, TypeVar
+    from collections.abc import Callable
+    from typing import Any, TypeVar
 
     _F = TypeVar("_F", bound=Callable[..., Any])
 

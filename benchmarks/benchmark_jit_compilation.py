@@ -135,7 +135,7 @@ def main():
     print("\nCreating large transportation problem...")
     problem = create_large_transportation_problem()
     print(f"  Problem size: {len(problem.nodes)} nodes, {len(problem.arcs)} arcs")
-    print(f"  Expected FT updates: ~100-200 per basis rebuild")
+    print("  Expected FT updates: ~100-200 per basis rebuild")
 
     # Benchmark without JIT
     print("\n" + "-" * 80)
@@ -170,7 +170,7 @@ def main():
         speedup_percent = (speedup - 1) * 100
         time_saved = stats_no_jit["avg_time"] - stats_with_jit["avg_time"]
 
-        print(f"\nJIT Compilation Impact:")
+        print("\nJIT Compilation Impact:")
         print(f"  Speedup: {speedup:.2f}x ({speedup_percent:+.1f}%)")
         print(f"  Time saved: {time_saved:.3f}s per solve")
 
@@ -191,12 +191,12 @@ def main():
             f.write("=" * 80 + "\n\n")
             f.write(f"Numba version: {NUMBA_VERSION}\n")
             f.write(f"Problem size: {len(problem.nodes)} nodes, {len(problem.arcs)} arcs\n\n")
-            f.write(f"Without JIT:\n")
+            f.write("Without JIT:\n")
             f.write(
                 f"  Average time: {stats_no_jit['avg_time']:.3f}s ± {stats_no_jit['std_time']:.3f}s\n"
             )
             f.write(f"  Iterations: {stats_no_jit['avg_iterations']:.0f}\n\n")
-            f.write(f"With JIT:\n")
+            f.write("With JIT:\n")
             f.write(
                 f"  Average time: {stats_with_jit['avg_time']:.3f}s ± {stats_with_jit['std_time']:.3f}s\n"
             )

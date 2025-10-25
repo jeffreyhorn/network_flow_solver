@@ -119,7 +119,7 @@ def benchmark_current_performance(problem, runs=5):
 
         # Verify all runs produce same result
         if run > 0 and abs(objectives[-1] - objectives[0]) > 1e-6:
-            print(f"    WARNING: Objective differs from run 1!")
+            print("    WARNING: Objective differs from run 1!")
             print(f"      Run 1: {objectives[0]:.6f}")
             print(f"      Run {run + 1}: {objectives[-1]:.6f}")
 
@@ -151,12 +151,12 @@ def print_results(stats, baseline_time=65.9):
     print("CUMULATIVE SPEEDUP BENCHMARK RESULTS")
     print("=" * 80)
 
-    print(f"\nBaseline Performance (October 2024 - commit 0fa28c1):")
+    print("\nBaseline Performance (October 2024 - commit 0fa28c1):")
     print(f"  Runtime: {baseline_time:.1f} seconds")
-    print(f"  Iterations: 356")
+    print("  Iterations: 356")
     print(f"  Time per iteration: {baseline_time / 356 * 1000:.1f}ms")
 
-    print(f"\nCurrent Performance (All Optimizations Enabled):")
+    print("\nCurrent Performance (All Optimizations Enabled):")
     print(f"  Average runtime: {stats['avg_time']:.3f}s ± {stats['std_time']:.3f}s")
     print(f"  Min/Max: {stats['min_time']:.3f}s / {stats['max_time']:.3f}s")
     print(f"  Average iterations: {stats['avg_iterations']:.1f}")
@@ -170,7 +170,7 @@ def print_results(stats, baseline_time=65.9):
     time_saved = baseline_time - stats["avg_time"]
     time_saved_percent = (time_saved / baseline_time) * 100
 
-    print(f"\nPerformance Improvement:")
+    print("\nPerformance Improvement:")
     print(f"  Speedup: {speedup_ratio:.2f}x ({speedup_percent:+.1f}%)")
     print(f"  Time saved: {time_saved:.1f}s ({time_saved_percent:.1f}% reduction)")
 
@@ -178,24 +178,24 @@ def print_results(stats, baseline_time=65.9):
     predicted_speedup = 1.26  # From analysis: 1.20-1.30x range
     predicted_time = baseline_time / predicted_speedup
 
-    print(f"\nComparison to Theoretical Prediction:")
+    print("\nComparison to Theoretical Prediction:")
     print(f"  Predicted speedup: {predicted_speedup:.2f}x (20-30% faster)")
     print(f"  Predicted runtime: {predicted_time:.1f}s")
     print(f"  Actual vs predicted: {speedup_ratio / predicted_speedup:.2f}x")
 
     if speedup_ratio >= predicted_speedup:
-        print(f"  ✅ Actual performance EXCEEDS prediction!")
+        print("  ✅ Actual performance EXCEEDS prediction!")
     elif speedup_ratio >= (predicted_speedup * 0.9):
-        print(f"  ✅ Actual performance within 10% of prediction")
+        print("  ✅ Actual performance within 10% of prediction")
     else:
-        print(f"  ⚠️  Actual performance below prediction")
+        print("  ⚠️  Actual performance below prediction")
 
     # Break down by optimization (estimates)
-    print(f"\nOptimization Contribution Breakdown (Estimated):")
-    print(f"  Project 1 (Projection cache):     ~10-14% speedup")
-    print(f"  Project 2 (Vectorized pricing):   ~2.3x on pricing ops (~4% overall)")
-    print(f"  Project 3 (Deferred Devex):       ~97.5% call reduction (~6% overall)")
-    print(f"  Project 4 (Vectorized residuals): ~1.5M calls eliminated (~4% overall)")
+    print("\nOptimization Contribution Breakdown (Estimated):")
+    print("  Project 1 (Projection cache):     ~10-14% speedup")
+    print("  Project 2 (Vectorized pricing):   ~2.3x on pricing ops (~4% overall)")
+    print("  Project 3 (Deferred Devex):       ~97.5% call reduction (~6% overall)")
+    print("  Project 4 (Vectorized residuals): ~1.5M calls eliminated (~4% overall)")
 
     print("\n" + "=" * 80)
 
@@ -216,7 +216,7 @@ def main():
     print("\nCreating large transportation problem...")
     problem = create_large_transportation_problem()
     print(f"  Created network: {len(problem.nodes)} nodes, {len(problem.arcs)} arcs")
-    print(f"  Baseline reference: 160 nodes, 4,267 arcs, 65.9s runtime")
+    print("  Baseline reference: 160 nodes, 4,267 arcs, 65.9s runtime")
 
     # Run benchmark
     stats = benchmark_current_performance(problem, runs=5)
@@ -232,8 +232,8 @@ def main():
         f.write("Cumulative Speedup Benchmark Results\n")
         f.write("=" * 80 + "\n\n")
         f.write(f"Problem size: {len(problem.nodes)} nodes, {len(problem.arcs)} arcs\n")
-        f.write(f"Baseline: 65.9s (160 nodes, 4,267 arcs, 356 iterations)\n\n")
-        f.write(f"Current Performance:\n")
+        f.write("Baseline: 65.9s (160 nodes, 4,267 arcs, 356 iterations)\n\n")
+        f.write("Current Performance:\n")
         f.write(f"  Average runtime: {stats['avg_time']:.3f}s ± {stats['std_time']:.3f}s\n")
         f.write(f"  Min/Max: {stats['min_time']:.3f}s / {stats['max_time']:.3f}s\n")
         f.write(f"  Average iterations: {stats['avg_iterations']:.1f}\n")
@@ -248,7 +248,7 @@ def main():
 
         f.write(f"Speedup: {speedup_ratio:.2f}x ({speedup_percent:+.1f}%)\n")
         f.write(f"Time saved: {time_saved:.1f}s\n")
-        f.write(f"Predicted speedup: 1.26x (20-30%)\n")
+        f.write("Predicted speedup: 1.26x (20-30%)\n")
         f.write(f"Actual vs predicted: {speedup_ratio / 1.26:.2f}x\n")
 
     print(f"\nResults saved to: {results_file}")

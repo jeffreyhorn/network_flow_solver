@@ -1,0 +1,12 @@
+Collecting numba
+  Downloading numba-0.62.1-cp312-cp312-macosx_10_15_x86_64.whl.metadata (2.8 kB)
+Collecting llvmlite<0.46,>=0.45.0dev0 (from numba)
+  Downloading llvmlite-0.45.1-cp312-cp312-macosx_10_15_x86_64.whl.metadata (4.8 kB)
+Requirement already satisfied: numpy<2.4,>=1.22 in ./.venv/lib/python3.12/site-packages (from numba) (2.3.4)
+Downloading numba-0.62.1-cp312-cp312-macosx_10_15_x86_64.whl (2.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.7/2.7 MB 3.0 MB/s  0:00:01
+Downloading llvmlite-0.45.1-cp312-cp312-macosx_10_15_x86_64.whl (43.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 43.0/43.0 MB 2.8 MB/s  0:00:15
+Installing collected packages: llvmlite, numba
+
+Successfully installed llvmlite-0.45.1 numba-0.62.1
