@@ -293,9 +293,8 @@ def run_single_benchmark(
 
             # Validate solution
             if result and problem:
-                arc_map = {(arc.tail, arc.head): arc for arc in problem.arcs}
                 validation_status, objective_error, flow_conservation_ok, capacity_ok = (
-                    validate_solution(result, problem, known_optimal, arc_map)
+                    validate_solution(result, problem, known_optimal)
                 )
         else:
             # Unexpected state
