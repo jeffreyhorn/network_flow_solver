@@ -10,7 +10,7 @@ from ..basis_lu import LUFactors, build_lu, solve_lu
 
 # Optional Numba JIT compilation for performance-critical loops
 try:
-    from numba import njit  # type: ignore[import-untyped]
+    from numba import njit  # type: ignore
 
     _HAS_NUMBA = True
 except ImportError:
@@ -40,7 +40,7 @@ class FTUpdate:
     theta: float
 
 
-@njit(cache=True, fastmath=True)  # type: ignore[misc]
+@njit(cache=True, fastmath=True)  # type: ignore
 def _apply_ft_updates_jit(
     result: np.ndarray,
     pivots: np.ndarray,
