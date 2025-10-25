@@ -1574,6 +1574,7 @@ class NetworkSimplex:
             if arc.artificial:
                 continue
             flow_value = arc.flow + arc.shift
+
             if arc.key in flows:
                 flows[arc.key] += flow_value
             else:

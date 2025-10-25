@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 import threading
 import time
@@ -163,16 +164,28 @@ def validate_solution(
                 break
 
         # Check capacity constraints
-        # Create arc_map if not provided (for efficiency when called repeatedly)
+        # Handle parallel arcs: sum capacities for all arcs with same (tail, head)
         capacity_ok = True
         if arc_map is None:
-            arc_map = {(arc.tail, arc.head): arc for arc in problem.arcs}
+            # Build map that handles parallel arcs correctly
+            from collections import defaultdict
+
+            parallel_arc_bounds = defaultdict(lambda: {"lower": 0.0, "upper": 0.0})
+            for arc in problem.arcs:
+                key = (arc.tail, arc.head)
+                parallel_arc_bounds[key]["lower"] += getattr(arc, "lower", 0.0)
+                arc_upper = arc.capacity if arc.capacity is not None else float("inf")
+                if math.isinf(parallel_arc_bounds[key]["upper"]) or math.isinf(arc_upper):
+                    parallel_arc_bounds[key]["upper"] = float("inf")
+                else:
+                    parallel_arc_bounds[key]["upper"] += arc_upper
+            arc_map = dict(parallel_arc_bounds)
 
         for (tail, head), flow_value in result.flows.items():
             if (tail, head) in arc_map:
-                arc = arc_map[(tail, head)]
-                lower = getattr(arc, "lower", 0.0)
-                upper = arc.capacity if arc.capacity is not None else float("inf")
+                bounds = arc_map[(tail, head)]
+                lower = bounds["lower"]
+                upper = bounds["upper"]
                 if flow_value < lower - tolerance or flow_value > upper + tolerance:
                     capacity_ok = False
                     break
@@ -333,8 +346,8 @@ def discover_instances(
     instances: list[Path] = []
 
     if directory:
-        # Search specific directory
-        instances.extend(directory.glob("*.min"))
+        # Search specific directory recursively
+        instances.extend(directory.glob("**/*.min"))
     else:
         # Search by size category
         base_dir = Path("benchmarks/problems/lemon")
