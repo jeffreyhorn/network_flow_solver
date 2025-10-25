@@ -5,7 +5,11 @@ This script measures the performance impact of Numba JIT compilation on
 the Forrest-Tomlin update loop, which is the primary computational bottleneck
 (49.7% of runtime in baseline profiling).
 
-Expected impact: 20-40% speedup on Forrest-Tomlin solve operations.
+Observed impact: 0.95x speedup (-5.5% slower) on Forrest-Tomlin solve operations
+in this benchmark. JIT compilation did not yield the expected speedup in this
+configuration; array conversion overhead outweighs benefits on medium-sized problems.
+Results may vary depending on hardware and problem size. May benefit larger problems
+with more Forrest-Tomlin updates.
 """
 
 import sys
