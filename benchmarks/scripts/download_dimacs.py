@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """Download DIMACS benchmark instances from the LEMON benchmark suite.
 
-This script provides a framework for downloading minimum cost flow problem
-instances from the LEMON project's benchmark suite.
-
-**Phase 4 MVP Status**: Framework is complete, but specific instance URLs need
-verification. For now, use manual download from:
-https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
+This script downloads minimum cost flow problem instances from the LEMON
+project's benchmark suite. Files are automatically downloaded, decompressed
+from gzip format, and saved as DIMACS .min files ready for parsing.
 
 Usage:
-    python benchmarks/scripts/download_dimacs.py --list  # Show configured instances
-    python benchmarks/scripts/download_dimacs.py --small # Attempt download
+    python benchmarks/scripts/download_dimacs.py --list   # Show available instances
+    python benchmarks/scripts/download_dimacs.py --small  # Download small instances (11 files, ~700 KB)
+    python benchmarks/scripts/download_dimacs.py --all    # Download all configured instances
 
 LEMON Benchmark Data:
     https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
@@ -21,23 +19,25 @@ License:
     Generated instances (NETGEN, GRIDGEN, GOTO): Public Domain
     Citation: Péter Kovács, Optimization Methods and Software, 30:94-127, 2015
 
-Manual Download (Recommended for MVP):
-    1. Visit https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
-    2. Download instances from http://lime.cs.elte.hu/~kpeter/data/mcf/
-    3. Save to benchmarks/problems/lemon/<family>/
-    4. Parse with: from benchmarks.parsers.dimacs import parse_dimacs_file
+Features:
+    - Automatic gzip decompression (.min.gz → .min)
+    - Progress reporting with file sizes
+    - Skip already downloaded files (use --force to re-download)
+    - Downloaded files ready to parse with DIMACS parser
 
 Example:
-    # List configured instances
-    python benchmarks/scripts/download_dimacs.py --list
-
-    # Try automated download (may need URL updates)
+    # Download small benchmark instances
     python benchmarks/scripts/download_dimacs.py --small
+
+    # Parse a downloaded instance
+    from benchmarks.parsers.dimacs import parse_dimacs_file
+    problem = parse_dimacs_file('benchmarks/problems/lemon/netgen/netgen_8_08a.min')
 """
 
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import sys
 from pathlib import Path
@@ -54,41 +54,46 @@ LEMON_BASE_URL = "http://lime.cs.elte.hu/~kpeter/data/mcf"
 DIMACS_INSTANCES = {
     "netgen_small": {
         "name": "NETGEN Small Instances",
-        "description": "Small NETGEN-generated minimum cost flow problems",
+        "description": "Small NETGEN-8 minimum cost flow problems (gzip compressed)",
         "size_category": "small",
         "url_base": f"{LEMON_BASE_URL}/netgen",
         "files": [
-            # Format: (filename, description, approx nodes, approx arcs)
-            # NETGEN-8 family: 8,000 nodes, sparse to dense networks
-            ("netgen-8-1.dmx", "NETGEN-8 instance 1 (~8K nodes, ~20K arcs)", 8000, 20000),
-            ("netgen-8-2.dmx", "NETGEN-8 instance 2 (~8K nodes, ~20K arcs)", 8000, 20000),
-            ("netgen-8-3.dmx", "NETGEN-8 instance 3 (~8K nodes, ~20K arcs)", 8000, 20000),
+            # Format: (filename, description)
+            # NETGEN-8 family: 8,000 nodes, varying density (08=sparse to 13=denser)
+            # Files are gzip compressed (.min.gz), will be decompressed to .min
+            ("netgen_8_08a.min.gz", "NETGEN-8 sparse network (8K nodes, variant a)"),
+            ("netgen_8_08b.min.gz", "NETGEN-8 sparse network (8K nodes, variant b)"),
+            ("netgen_8_09a.min.gz", "NETGEN-8 network (8K nodes, variant a)"),
+            ("netgen_8_10a.min.gz", "NETGEN-8 network (8K nodes, variant a)"),
+            ("netgen_8_11a.min.gz", "NETGEN-8 network (8K nodes, variant a)"),
         ],
         "local_dir": "benchmarks/problems/lemon/netgen",
         "license": "LEMON: Boost 1.0 (library), NETGEN instances: Public Domain",
     },
     "gridgen_small": {
         "name": "GRIDGEN Small Instances",
-        "description": "Small GRIDGEN grid-based network problems",
+        "description": "Small GRIDGEN grid-based network problems (gzip compressed)",
         "size_category": "small",
         "url_base": f"{LEMON_BASE_URL}/gridgen",
         "files": [
             # GRIDGEN-8 family: Grid networks with ~8,000 nodes
-            ("gridgen-8-1.dmx", "GRIDGEN-8 instance 1 (grid network)", 8000, 30000),
-            ("gridgen-8-2.dmx", "GRIDGEN-8 instance 2 (grid network)", 8000, 30000),
+            ("gridgen_8_08a.min.gz", "GRIDGEN-8 grid network (variant a)"),
+            ("gridgen_8_08b.min.gz", "GRIDGEN-8 grid network (variant b)"),
+            ("gridgen_8_09a.min.gz", "GRIDGEN-8 grid network (variant a)"),
         ],
         "local_dir": "benchmarks/problems/lemon/gridgen",
         "license": "LEMON: Boost 1.0 (library), GRIDGEN instances: Public Domain",
     },
     "goto_small": {
         "name": "GOTO Small Instances",
-        "description": "Small grid-on-torus network problems",
+        "description": "Small grid-on-torus network problems (gzip compressed)",
         "size_category": "small",
         "url_base": f"{LEMON_BASE_URL}/goto",
         "files": [
             # GOTO-8 family: Grid-on-torus networks with ~8,000 nodes
-            ("goto-8-1.dmx", "GOTO-8 instance 1 (grid-on-torus)", 8000, 32000),
-            ("goto-8-2.dmx", "GOTO-8 instance 2 (grid-on-torus)", 8000, 32000),
+            ("goto_8_08a.min.gz", "GOTO-8 grid-on-torus (variant a)"),
+            ("goto_8_08b.min.gz", "GOTO-8 grid-on-torus (variant b)"),
+            ("goto_8_09a.min.gz", "GOTO-8 grid-on-torus (variant a)"),
         ],
         "local_dir": "benchmarks/problems/lemon/goto",
         "license": "LEMON: Boost 1.0 (library), GOTO instances: Public Domain",
@@ -99,9 +104,12 @@ DIMACS_INSTANCES = {
 def download_file(url: str, dest_path: Path, show_progress: bool = True) -> bool:
     """Download a file from a URL to a local path.
 
+    If the URL ends with .gz, the file will be automatically decompressed
+    and saved without the .gz extension.
+
     Args:
         url: URL to download from.
-        dest_path: Local path to save the file.
+        dest_path: Local path to save the file (without .gz for compressed files).
         show_progress: Whether to show download progress.
 
     Returns:
@@ -115,10 +123,27 @@ def download_file(url: str, dest_path: Path, show_progress: bool = True) -> bool
             content = response.read()
 
         dest_path.parent.mkdir(parents=True, exist_ok=True)
-        dest_path.write_bytes(content)
 
-        file_size_kb = len(content) / 1024
-        print(f"✓ ({file_size_kb:.1f} KB)")
+        # If the file is gzip compressed, decompress it
+        if url.endswith(".gz"):
+            try:
+                decompressed_content = gzip.decompress(content)
+                # Save decompressed file (dest_path should not have .gz extension)
+                dest_path.write_bytes(decompressed_content)
+                file_size_kb = len(decompressed_content) / 1024
+                compressed_size_kb = len(content) / 1024
+                print(
+                    f"✓ ({compressed_size_kb:.1f} KB compressed → {file_size_kb:.1f} KB decompressed)"
+                )
+            except Exception as e:
+                print(f"✗ Decompression error: {e}")
+                return False
+        else:
+            # Save file as-is
+            dest_path.write_bytes(content)
+            file_size_kb = len(content) / 1024
+            print(f"✓ ({file_size_kb:.1f} KB)")
+
         return True
 
     except HTTPError as e:
@@ -190,12 +215,15 @@ def download_instance_family(
 
     for file_info in family_info["files"]:
         filename = file_info[0]
-        dest_path = local_dir / filename
+        # If filename ends with .gz, strip it for the destination path
+        # (download_file will decompress automatically)
+        dest_filename = filename.replace(".gz", "") if filename.endswith(".gz") else filename
+        dest_path = local_dir / dest_filename
         url = f"{family_info['url_base']}/{filename}"
 
         # Skip if file exists and not forcing re-download
         if dest_path.exists() and not force:
-            print(f"  ⊙ {filename} (already exists, skipping)")
+            print(f"  ⊙ {dest_filename} (already exists, skipping)")
             successful += 1
             continue
 

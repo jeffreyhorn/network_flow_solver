@@ -5,7 +5,7 @@ This guide explains how to download DIMACS minimum cost flow benchmark instances
 ## Quick Start
 
 ```bash
-# Download small instances (recommended for initial testing)
+# Download small instances (recommended - downloads 11 instances, ~700 KB total)
 python benchmarks/scripts/download_dimacs.py --small
 
 # List all available instances
@@ -15,6 +15,8 @@ python benchmarks/scripts/download_dimacs.py --list
 python benchmarks/scripts/download_dimacs.py --all
 ```
 
+**Status**: ✅ **Automated downloads working!** Files are automatically downloaded from LEMON server, decompressed, and ready to parse.
+
 ## Available Instance Families
 
 The download script provides access to the **LEMON Benchmark Suite**, which is a well-maintained collection of DIMACS minimum cost flow problem instances.
@@ -22,23 +24,26 @@ The download script provides access to the **LEMON Benchmark Suite**, which is a
 ### NETGEN Instances
 - **Family**: `netgen_small`
 - **Description**: Generated using the NETGEN random network generator
-- **Size**: ~8,000 nodes, ~20,000 arcs per instance
-- **Count**: 3 instances
+- **Size**: 256-512 nodes, 2K-4K arcs per instance (varying density)
+- **Count**: 5 instances (netgen_8_08a/b, 09a, 10a, 11a)
 - **Problem Type**: General minimum cost flow with varying density
+- **Download size**: ~250 KB compressed → ~650 KB decompressed
 
 ### GRIDGEN Instances
 - **Family**: `gridgen_small`
 - **Description**: Grid-based network structures
-- **Size**: ~8,000 nodes, ~30,000 arcs per instance
-- **Count**: 2 instances
+- **Size**: 256-512 nodes, 2K-4K arcs per instance
+- **Count**: 3 instances (gridgen_8_08a/b, 09a)
 - **Problem Type**: Grid networks with regular structure
+- **Download size**: ~65 KB compressed → ~160 KB decompressed
 
 ### GOTO Instances
 - **Family**: `goto_small`
 - **Description**: Grid-on-torus networks (wrapped grid)
-- **Size**: ~8,000 nodes, ~32,000 arcs per instance
-- **Count**: 2 instances
+- **Size**: 256-512 nodes, 2K-4K arcs per instance
+- **Count**: 3 instances (goto_8_08a/b, 09a)
 - **Problem Type**: Toroidal grid networks (no boundary effects)
+- **Download size**: ~65 KB compressed → ~160 KB decompressed
 
 ## Command-Line Options
 
@@ -60,18 +65,25 @@ Downloaded instances are stored in:
 ```
 benchmarks/problems/lemon/
 ├── netgen/
-│   ├── netgen-8-1.dmx
-│   ├── netgen-8-2.dmx
-│   └── netgen-8-3.dmx
+│   ├── netgen_8_08a.min
+│   ├── netgen_8_08b.min
+│   ├── netgen_8_09a.min
+│   ├── netgen_8_10a.min
+│   └── netgen_8_11a.min
 ├── gridgen/
-│   ├── gridgen-8-1.dmx
-│   └── gridgen-8-2.dmx
+│   ├── gridgen_8_08a.min
+│   ├── gridgen_8_08b.min
+│   └── gridgen_8_09a.min
 └── goto/
-    ├── goto-8-1.dmx
-    └── goto-8-2.dmx
+    ├── goto_8_08a.min
+    ├── goto_8_08b.min
+    └── goto_8_09a.min
 ```
 
-**Note**: These files are excluded from git via `.gitignore` to avoid repository bloat. Each user downloads their own copies.
+**Note**: 
+- Files are automatically decompressed from `.min.gz` to `.min` format
+- These files are excluded from git via `.gitignore` to avoid repository bloat
+- Each user downloads their own copies (~700 KB total for small instances)
 
 ## Using Downloaded Instances
 
@@ -82,7 +94,7 @@ from benchmarks.parsers.dimacs import parse_dimacs_file
 from src.network_solver.solver import solve_min_cost_flow
 
 # Parse a downloaded instance
-problem = parse_dimacs_file('benchmarks/problems/lemon/netgen/netgen-8-1.dmx')
+problem = parse_dimacs_file('benchmarks/problems/lemon/netgen/netgen_8_08a.min')
 
 # Solve it
 result = solve_min_cost_flow(problem)
@@ -90,6 +102,15 @@ result = solve_min_cost_flow(problem)
 print(f"Status: {result.status}")
 print(f"Optimal cost: {result.objective}")
 print(f"Iterations: {result.iterations}")
+print(f"Nodes: {len(problem.nodes)}")
+print(f"Arcs: {len(problem.arcs)}")
+
+# Example output:
+# Status: optimal
+# Optimal cost: 3934294.0
+# Iterations: 287
+# Nodes: 256
+# Arcs: 2048
 ```
 
 ## Source and License
@@ -117,7 +138,11 @@ The LEMON benchmark server may occasionally be unavailable. If downloads fail:
 
 1. **Wait and retry**: The server may be temporarily down
 2. **Check your internet connection**: Ensure you can reach http://lime.cs.elte.hu
-3. **Manual download**: Visit https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData in your browser
+3. **Manual download**: Visit the specific family URL in your browser:
+   - NETGEN: http://lime.cs.elte.hu/~kpeter/data/mcf/netgen/
+   - GRIDGEN: http://lime.cs.elte.hu/~kpeter/data/mcf/gridgen/
+   - GOTO: http://lime.cs.elte.hu/~kpeter/data/mcf/goto/
+4. **Decompress manually**: Use `gunzip` on downloaded `.min.gz` files
 
 ### File already exists
 
