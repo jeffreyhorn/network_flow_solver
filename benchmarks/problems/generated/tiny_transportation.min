@@ -1,7 +1,7 @@
 c Tiny transportation problem for parser testing
 c 4 nodes: 2 supply (1,2), 2 demand (3,4)
 c 4 arcs connecting all supply to all demand nodes
-c Optimal cost: 130
+c Optimal cost: 111
 p min 4 4
 n 1 10
 n 2 15

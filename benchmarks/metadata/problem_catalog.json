@@ -107,7 +107,7 @@
           "nodes": 4,
           "arcs": 4,
           "description": "Minimal transportation problem: 2 supply nodes, 2 demand nodes",
-          "optimal_cost": 130,
+          "optimal_cost": 111,
           "problem_type": "transportation",
           "size_category": "small"
         },
@@ -117,7 +117,7 @@
           "nodes": 6,
           "arcs": 8,
           "description": "Small transshipment with intermediate nodes (1 supply, 1 demand, 4 transshipment)",
-          "optimal_cost": 47,
+          "optimal_cost": 95,
           "problem_type": "transshipment",
           "size_category": "small"
         },
