@@ -179,7 +179,7 @@ If you want to work on performance optimization:
 1. **Start with profiling** - Always profile before optimizing
 2. **Use the existing infrastructure** - `simplex_vectorized.py` has ready-to-use functions
 3. **Maintain test compatibility** - All 287 tests must pass
-4. **Benchmark thoroughly** - Use `profile_solver.py` to verify improvements
+4. **Benchmark thoroughly** - Use `scripts/profile_solver.py` to verify improvements
 5. **Document trade-offs** - Note any behavioral changes or edge cases
 
 ## Conclusion

@@ -483,7 +483,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `py.typed` marker for type checking support
 - `LICENSE` file (MIT License)
 - `INSTALL.md` with detailed installation instructions
-- `verify_install.py` script to test package installation
+- `scripts/verify_install.py` script to test package installation
 - Updated `.gitignore` to include build artifacts
 - Updated `requirements.txt` with clear dependency organization
 - Enhanced README.md with installation section
