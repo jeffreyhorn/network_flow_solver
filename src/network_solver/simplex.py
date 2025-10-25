@@ -171,6 +171,7 @@ class NetworkSimplex:
             self.tolerance,
             use_dense_inverse=self.options.use_dense_inverse,
             projection_cache_size=self.options.projection_cache_size,
+            use_jit=self.options.use_jit,
         )
         self.tree_adj: list[list[int]] = [[] for _ in range(self.node_count)]
 
