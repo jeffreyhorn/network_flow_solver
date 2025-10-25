@@ -1278,7 +1278,8 @@ class NetworkSimplex:
             if self.options.max_iterations is not None:
                 max_iterations = self.options.max_iterations
             else:
-                max_iterations = max(100, 5 * len(self.arcs))
+                # Increased from 5x to 20x to handle difficult instances (e.g., GOTO)
+                max_iterations = max(100, 20 * len(self.arcs))
 
         total_iterations = 0
         start_time = time.time()

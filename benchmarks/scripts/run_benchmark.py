@@ -67,12 +67,17 @@ class BenchmarkResult:
         return asdict(self)
 
 
-def run_single_benchmark(instance_path: Path, timeout_seconds: float = 300.0) -> BenchmarkResult:
+def run_single_benchmark(
+    instance_path: Path,
+    timeout_seconds: float = 300.0,
+    max_iterations: int | None = None,
+) -> BenchmarkResult:
     """Run solver on a single benchmark instance with timeout enforcement.
 
     Args:
         instance_path: Path to DIMACS instance file.
         timeout_seconds: Maximum time to allow for solving (default 300s = 5 min).
+        max_iterations: Maximum simplex iterations (None uses solver default: 20 * arcs).
 
     Returns:
         BenchmarkResult with performance metrics.
@@ -104,7 +109,7 @@ def run_single_benchmark(instance_path: Path, timeout_seconds: float = 300.0) ->
         def solve_with_timeout():
             """Run solver in a separate thread."""
             try:
-                solve_result = solve_min_cost_flow(problem)
+                solve_result = solve_min_cost_flow(problem, max_iterations=max_iterations)
                 result_container["result"] = solve_result
             except Exception as e:
                 exception_container["exception"] = e
@@ -363,6 +368,12 @@ def main() -> int:
         default=300.0,
         help="Timeout in seconds per instance (default: 300)",
     )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        metavar="N",
+        help="Maximum simplex iterations (default: solver uses 20 * arcs)",
+    )
 
     args = parser.parse_args()
 
@@ -402,7 +413,11 @@ def main() -> int:
         print(f"\n[{i}/{len(instances)}] Running {instance_path.name}...", end=" ")
         sys.stdout.flush()
 
-        result = run_single_benchmark(instance_path, timeout_seconds=args.timeout)
+        result = run_single_benchmark(
+            instance_path,
+            timeout_seconds=args.timeout,
+            max_iterations=args.max_iterations,
+        )
         results.append(result)
 
         if result.status == "optimal":
