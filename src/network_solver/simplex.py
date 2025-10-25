@@ -421,11 +421,23 @@ class NetworkSimplex:
         )
         self.backward_residuals = self.arc_flows - self.arc_lowers
 
+    def _sync_node_potentials(self) -> None:
+        """Sync only node potentials from basis (lightweight operation).
+
+        This is much faster than _sync_vectorized_arrays() since it only copies
+        node potentials, not arc data. Use this after pivots where arc arrays
+        are updated incrementally.
+        """
+        self.node_potentials[:] = self.basis.potential
+
     def _sync_vectorized_arrays(self) -> None:
         """Sync vectorized arrays with current ArcState list.
 
         Call this after operations that modify arcs (e.g., adding artificial arcs,
         updating flows/tree status). Only syncs fields that can change.
+
+        Note: After pivots, use _sync_node_potentials() instead since arc data
+        is now updated incrementally in _pivot().
         """
         n = len(self.arcs)
 
@@ -1043,9 +1055,9 @@ class NetworkSimplex:
             arc_idx, direction = entering
             self._pivot(arc_idx, direction)
 
-            # Sync vectorized arrays after pivot (flows and tree status changed)
+            # Sync node potentials after pivot (arc arrays updated incrementally in _pivot)
             if self.options.use_vectorized_pricing:
-                self._sync_vectorized_arrays()
+                self._sync_node_potentials()
 
             iterations += 1
 
@@ -1173,7 +1185,17 @@ class NetworkSimplex:
             if not math.isinf(arc.upper) and arc.flow > arc.upper + self.tolerance:
                 arc.flow = arc.upper
 
+            # Update vectorized arrays directly (avoid full sync overhead)
+            self.arc_flows[idx] = arc.flow
+            # Update residuals for this arc
+            if math.isinf(arc.upper):
+                self.forward_residuals[idx] = math.inf
+            else:
+                self.forward_residuals[idx] = arc.upper - arc.flow
+            self.backward_residuals[idx] = arc.flow - arc.lower
+
         entering.in_tree = True
+        self.arc_in_tree[arc_idx] = True  # Update vectorized array directly
         projection = self.basis.project_column(entering)
         if projection is not None:
             entering_weight = float(np.dot(projection, projection))
@@ -1209,6 +1231,7 @@ class NetworkSimplex:
 
         if leaving_idx == arc_idx:
             entering.in_tree = False
+            self.arc_in_tree[arc_idx] = False  # Update vectorized array directly
             # Degenerate pivot: tree unchanged but flows adjusted.
             # Record degenerate pivot to prevent immediate reselection (anti-cycling)
             if self.options.use_vectorized_pricing and isinstance(
@@ -1223,6 +1246,7 @@ class NetworkSimplex:
             return
         leaving_arc = self.arcs[leaving_idx]
         leaving_arc.in_tree = False
+        self.arc_in_tree[leaving_idx] = False  # Update vectorized array directly
         self.devex_weights[leaving_idx] = 1.0
 
         if self.logger.isEnabledFor(logging.DEBUG):
