@@ -6,7 +6,7 @@
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/network_flow_solver.git
+git clone https://github.com/jeffreyhorn/network_flow_solver.git
 cd network_flow_solver
 ```
 
