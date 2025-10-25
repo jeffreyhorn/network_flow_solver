@@ -1,0 +1,145 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2025-10-25",
+    "description": "Catalog of benchmark problem instances for minimum cost network flow solver testing and comparison",
+    "curator": "network-flow-solver project",
+    "schema_version": "1.0"
+  },
+  "problem_families": {
+    "dimacs_netgen": {
+      "name": "DIMACS NETGEN-Generated Instances",
+      "source": "DIMACS 1st Implementation Challenge",
+      "generator": "NETGEN",
+      "format": "DIMACS",
+      "license": "Public Domain / Academic Use",
+      "url": "http://archive.dimacs.rutgers.edu/pub/netflow/",
+      "citation": "Johnson, D.S. and McGeoch, C.C. (Eds.). Network Flows and Matching: First DIMACS Implementation Challenge. DIMACS Series Volume 12 (1993).",
+      "local_path": "benchmarks/problems/dimacs/netgen/",
+      "instances": [],
+      "notes": "To be populated in Phase 3 when problems are downloaded"
+    },
+    "dimacs_gridgen": {
+      "name": "DIMACS GRIDGEN-Generated Instances",
+      "source": "DIMACS 1st Implementation Challenge",
+      "generator": "GRIDGEN",
+      "format": "DIMACS",
+      "license": "Public Domain / Academic Use",
+      "url": "http://archive.dimacs.rutgers.edu/pub/netflow/",
+      "citation": "Johnson, D.S. and McGeoch, C.C. (Eds.). Network Flows and Matching: First DIMACS Implementation Challenge. DIMACS Series Volume 12 (1993).",
+      "local_path": "benchmarks/problems/dimacs/gridgen/",
+      "instances": [],
+      "notes": "To be populated in Phase 3 when problems are downloaded"
+    },
+    "dimacs_goto": {
+      "name": "DIMACS GOTO-Generated Instances (Grid on Torus)",
+      "source": "DIMACS 1st Implementation Challenge",
+      "generator": "GOTO",
+      "format": "DIMACS",
+      "license": "Public Domain / Academic Use",
+      "url": "http://archive.dimacs.rutgers.edu/pub/netflow/",
+      "citation": "Johnson, D.S. and McGeoch, C.C. (Eds.). Network Flows and Matching: First DIMACS Implementation Challenge. DIMACS Series Volume 12 (1993).",
+      "local_path": "benchmarks/problems/dimacs/goto/",
+      "instances": [],
+      "notes": "To be populated in Phase 3 when problems are downloaded"
+    },
+    "dimacs_real_world": {
+      "name": "DIMACS Real-World Instances",
+      "source": "DIMACS 1st Implementation Challenge",
+      "generator": "N/A (real-world data)",
+      "format": "DIMACS",
+      "license": "Public Domain / Academic Use (varies by dataset)",
+      "url": "http://archive.dimacs.rutgers.edu/pub/netflow/",
+      "citation": "Johnson, D.S. and McGeoch, C.C. (Eds.). Network Flows and Matching: First DIMACS Implementation Challenge. DIMACS Series Volume 12 (1993).",
+      "local_path": "benchmarks/problems/dimacs/real_world/",
+      "instances": [],
+      "notes": "To be populated in Phase 3. May include transportation networks and other real-world instances."
+    },
+    "lemon": {
+      "name": "LEMON Benchmark Suite",
+      "source": "LEMON (Library for Efficient Modeling and Optimization in Networks)",
+      "generator": "Mixed (NETGEN, GRIDGEN, GOTO, GRIDGRAPH, real-world)",
+      "format": "DIMACS",
+      "license": "Mixed - LEMON library (Boost 1.0), benchmark data (varies by source)",
+      "url": "https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData",
+      "citation": "Péter Kovács. Minimum-cost flow algorithms: an experimental evaluation. Optimization Methods and Software, 30:94-127, 2015.",
+      "local_path": "benchmarks/problems/lemon/",
+      "instances": [],
+      "notes": "To be populated in Phase 3. LEMON aggregates instances from multiple sources - verify individual instance licenses."
+    },
+    "or_library": {
+      "name": "OR-Library Network Flow Instances",
+      "source": "OR-Library (J.E. Beasley)",
+      "generator": "Various",
+      "format": "Various (DIMACS and custom formats)",
+      "license": "Academic Use with Attribution (Non-Commercial)",
+      "url": "https://people.brunel.ac.uk/~mastjjb/jeb/orlib/",
+      "citation": "Beasley, J.E. OR-Library: distributing test problems by electronic mail. Journal of the Operational Research Society 41(11) (1990) pp1069-1072.",
+      "local_path": "benchmarks/problems/or_library/",
+      "instances": [],
+      "notes": "Deferred to future phases. Focus on DIMACS-format instances first. Non-commercial use only."
+    },
+    "commalab": {
+      "name": "CommaLAB Network Flow Instances",
+      "source": "CommaLAB - Computational Mathematics Laboratory, University of Pisa",
+      "generator": "Various",
+      "format": "Various",
+      "license": "Unspecified / Academic Use Implied",
+      "url": "https://commalab.di.unipi.it/datasets/mcf/",
+      "citation": "Varies by dataset - cite original researchers",
+      "local_path": "benchmarks/problems/commalab/",
+      "instances": [],
+      "notes": "Deferred to future phases. Contact CommaLAB for explicit redistribution terms."
+    },
+    "generated": {
+      "name": "Locally Generated Test Instances",
+      "source": "network-flow-solver project",
+      "generator": "Local test generators",
+      "format": "DIMACS",
+      "license": "Same as project (to be determined)",
+      "url": "N/A",
+      "citation": "N/A",
+      "local_path": "benchmarks/problems/generated/",
+      "instances": [],
+      "notes": "Small test instances for unit testing and parser validation. To be created in Phase 3."
+    }
+  },
+  "size_categories": {
+    "small": {
+      "description": "Small problems for unit testing and debugging",
+      "node_range": [10, 100],
+      "arc_range": [50, 500],
+      "typical_use": "Unit testing, parser validation, algorithm debugging"
+    },
+    "medium": {
+      "description": "Medium problems for performance testing",
+      "node_range": [100, 1000],
+      "arc_range": [500, 10000],
+      "typical_use": "Performance testing, solver comparison"
+    },
+    "large": {
+      "description": "Large problems for scalability testing",
+      "node_range": [1000, 10000],
+      "arc_range": [10000, 100000],
+      "typical_use": "Scalability testing, optimization benchmarking"
+    },
+    "very_large": {
+      "description": "Very large problems for stress testing",
+      "node_range": [10000, null],
+      "arc_range": [100000, null],
+      "typical_use": "Stress testing, parallel algorithm evaluation"
+    }
+  },
+  "usage_notes": {
+    "download_instructions": "Problem files are not committed to the repository. Use download scripts in Phase 3+ to obtain benchmark instances.",
+    "local_storage": "Downloaded problems are stored in benchmarks/problems/ and excluded from git via .gitignore",
+    "attribution": "Always provide proper attribution when using benchmark instances. See benchmarks/metadata/licenses.json for requirements.",
+    "known_solutions": "Known optimal solutions are documented in benchmarks/metadata/known_solutions.json for correctness validation"
+  },
+  "statistics": {
+    "total_families": 8,
+    "populated_families": 0,
+    "total_instances": 0,
+    "last_statistics_update": "2025-10-25"
+  }
+}

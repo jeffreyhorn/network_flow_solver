@@ -1,0 +1,79 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2025-10-25",
+    "description": "Known optimal solutions for benchmark problem instances. Used for correctness validation during solver testing and comparison.",
+    "curator": "network-flow-solver project",
+    "schema_version": "1.0"
+  },
+  "solution_format": {
+    "description": "Each solution entry contains the optimal objective value and optionally the optimal flow values",
+    "fields": {
+      "problem_id": "Unique identifier matching problem_catalog.json",
+      "problem_file": "Filename of the problem instance",
+      "optimal_cost": "Optimal objective function value (minimum cost)",
+      "optimal_flow": "Optional: Dictionary of arc flows {(tail, head): flow_value}",
+      "source": "Source of the optimal solution (publication, solver, etc.)",
+      "verified_by": "Verification method or solver used to confirm optimality",
+      "notes": "Additional information about the solution"
+    }
+  },
+  "solutions": {
+    "dimacs_netgen": [],
+    "dimacs_gridgen": [],
+    "dimacs_goto": [],
+    "dimacs_real_world": [],
+    "lemon": [],
+    "or_library": [],
+    "commalab": [],
+    "generated": []
+  },
+  "validation_guidelines": {
+    "tolerance": {
+      "objective_value": 1e-6,
+      "flow_values": 1e-9,
+      "description": "Numerical tolerance for comparing solver results with known optimal solutions"
+    },
+    "validation_checks": [
+      "Objective value matches within tolerance",
+      "Flow conservation constraints satisfied at all nodes",
+      "Capacity constraints satisfied on all arcs",
+      "Non-negativity constraints satisfied",
+      "Optimal basis conditions satisfied (for simplex methods)"
+    ],
+    "reporting": {
+      "pass": "Solution verified correct within tolerance",
+      "fail_objective": "Objective value differs from known optimal by more than tolerance",
+      "fail_feasibility": "Solution violates flow conservation or capacity constraints",
+      "fail_optimality": "Solution is feasible but suboptimal"
+    }
+  },
+  "sources": {
+    "dimacs_challenge": {
+      "description": "Known optimal solutions published in DIMACS Challenge proceedings",
+      "citation": "Johnson, D.S. and McGeoch, C.C. (Eds.). Network Flows and Matching: First DIMACS Implementation Challenge. DIMACS Series Volume 12 (1993).",
+      "url": "http://archive.dimacs.rutgers.edu/Challenges/"
+    },
+    "lemon_benchmark": {
+      "description": "Known optimal solutions from LEMON benchmark suite",
+      "citation": "Péter Kovács. Minimum-cost flow algorithms: an experimental evaluation. Optimization Methods and Software, 30:94-127, 2015.",
+      "url": "https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData"
+    },
+    "verified_solvers": {
+      "description": "Solutions verified by multiple independent solvers (OR-Tools, NetworkX, LEMON)",
+      "method": "Cross-validation using 3+ independent implementations"
+    }
+  },
+  "usage_notes": {
+    "population": "This file will be populated in Phase 3+ as problems are downloaded and solutions are verified",
+    "verification": "Use multiple independent solvers to verify optimal solutions for new problem instances",
+    "storage": "For large problems, store only objective values to minimize file size. Full flow solutions can be recomputed.",
+    "updates": "Update this file when new problems are added or when errors in known solutions are discovered"
+  },
+  "statistics": {
+    "total_solutions": 0,
+    "solutions_with_flows": 0,
+    "verified_solutions": 0,
+    "last_statistics_update": "2025-10-25"
+  }
+}
