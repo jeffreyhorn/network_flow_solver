@@ -94,11 +94,11 @@ def run_benchmark(
         "max_iterations": timeout_iterations,
         **config_options,
     }
-    options = SolverOptions(**options_dict)
-
-    # Mark explicit pricing strategy to override auto-detection
+    # Mark explicit pricing strategy to override auto-detection if pricing_strategy is specified
     if "pricing_strategy" in config_options:
-        options._explicit_pricing = True
+        options_dict["explicit_pricing_strategy"] = True
+
+    options = SolverOptions(**options_dict)
 
     # Run solver
     solver = NetworkSimplex(problem, options=options)

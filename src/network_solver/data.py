@@ -361,6 +361,12 @@ class SolverOptions:
         pricing_strategy: Arc pricing strategy:
                          - "devex" (default): Devex normalized pricing (usually faster)
                          - "dantzig": Most negative reduced cost (simpler, sometimes better for dense problems)
+                         Note: Solver may auto-detect problem structures and override this setting
+                         unless explicit_pricing_strategy=True.
+        explicit_pricing_strategy: If True, disables automatic pricing strategy selection (default: False).
+                                  - False (default): Solver may auto-detect problem structures (e.g., grid-on-torus)
+                                    and switch to a more suitable pricing strategy
+                                  - True: Always use the specified pricing_strategy, no auto-detection
         block_size: Number of arcs to examine per pricing block.
                    - None or "auto": Auto-tune based on problem size with runtime adaptation
                    - int: Fixed block size (no adaptation)
@@ -447,6 +453,7 @@ class SolverOptions:
     max_iterations: int | None = None
     tolerance: float = 1e-6
     pricing_strategy: str = "devex"
+    explicit_pricing_strategy: bool = False  # Set to True to disable auto-detection
     block_size: int | str | None = None
     ft_update_limit: int = 64
     projection_cache_size: int = 100  # Optimized cache provides 14% speedup on medium problems

@@ -243,7 +243,7 @@ The solver automatically detects certain problem structures that benefit from sp
 - **Grid-on-torus structures**: Automatically switches to Dantzig pricing when detected
   - Detection criteria: ≤4 supply/demand nodes, >98% transshipment nodes, regular grid connectivity
   - Performance: GOTO instances solve in ~14s (previously timed out with Devex)
-  - Override: Explicitly setting `pricing_strategy` in SolverOptions disables auto-detection
+  - Override: Set `explicit_pricing_strategy=True` to disable auto-detection
 
 ```python
 # Default: Auto-detection enabled (recommended)
@@ -251,7 +251,10 @@ result = solve_min_cost_flow(problem)
 # INFO: Auto-detected grid-on-torus structure, switching to Dantzig pricing
 
 # Override auto-detection with explicit strategy
-options = SolverOptions(pricing_strategy="devex")  # Forces Devex even on GOTO
+options = SolverOptions(
+    pricing_strategy="devex",
+    explicit_pricing_strategy=True  # Forces Devex even on GOTO
+)
 result = solve_min_cost_flow(problem, options=options)
 ```
 

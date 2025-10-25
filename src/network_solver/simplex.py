@@ -285,7 +285,7 @@ class NetworkSimplex:
         """
         # If user explicitly requested a strategy via options, honor it
         # This allows users to override auto-detection if needed
-        if hasattr(self.options, "_explicit_pricing"):
+        if self.options.explicit_pricing_strategy:
             return self.options.pricing_strategy
 
         # Auto-detection heuristics for grid-on-torus structures
