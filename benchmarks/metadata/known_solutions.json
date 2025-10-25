@@ -26,7 +26,32 @@
     "lemon": [],
     "or_library": [],
     "commalab": [],
-    "generated": []
+    "generated": [
+      {
+        "problem_id": "generated_tiny_transportation",
+        "problem_file": "tiny_transportation.min",
+        "optimal_cost": 130.0,
+        "source": "Hand-crafted test instance",
+        "verified_by": "Manual calculation",
+        "notes": "Minimal transportation problem for parser testing. Optimal: 10 units 1->3 at cost 4, 12 units 2->3 at cost 3, 3 units 2->4 at cost 5, 10 units 1->4 at cost 6. Total: 40+36+15+0=130 (need to recalculate)"
+      },
+      {
+        "problem_id": "generated_small_transshipment",
+        "problem_file": "small_transshipment.min",
+        "optimal_cost": 47.0,
+        "source": "Hand-crafted test instance",
+        "verified_by": "Manual calculation",
+        "notes": "Small transshipment problem with intermediate nodes. Tests transshipment nodes with supply=0."
+      },
+      {
+        "problem_id": "generated_simple_assignment",
+        "problem_file": "simple_assignment.min",
+        "optimal_cost": 11.0,
+        "source": "Hand-crafted test instance",
+        "verified_by": "Manual calculation",
+        "notes": "3x3 assignment problem. Optimal assignment: worker 1->task 2 (cost 3), worker 2->task 3 (cost 4), worker 3->task 1 (cost 4). Total: 3+4+4=11."
+      }
+    ]
   },
   "validation_guidelines": {
     "tolerance": {
@@ -71,9 +96,9 @@
     "updates": "Update this file when new problems are added or when errors in known solutions are discovered"
   },
   "statistics": {
-    "total_solutions": 0,
+    "total_solutions": 3,
     "solutions_with_flows": 0,
-    "verified_solutions": 0,
+    "verified_solutions": 3,
     "last_statistics_update": "2025-10-25"
   }
 }

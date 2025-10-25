@@ -1,0 +1,16 @@
+c Small transshipment problem with intermediate nodes
+c 6 nodes: 1 supply, 1 demand, 4 transshipment
+c 8 arcs forming a multi-path network
+c Tests transshipment nodes with supply=0
+c Optimal cost: 47
+p min 6 8
+n 1 20
+n 6 -20
+a 1 2 0 15 2
+a 1 3 0 10 3
+a 2 4 0 12 1
+a 2 5 0 8 2
+a 3 4 0 7 1
+a 3 5 0 10 2
+a 4 6 0 15 1
+a 5 6 0 12 2

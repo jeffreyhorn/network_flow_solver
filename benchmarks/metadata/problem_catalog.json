@@ -94,14 +94,45 @@
     "generated": {
       "name": "Locally Generated Test Instances",
       "source": "network-flow-solver project",
-      "generator": "Local test generators",
+      "generator": "Hand-crafted for testing",
       "format": "DIMACS",
       "license": "Same as project (to be determined)",
       "url": "N/A",
       "citation": "N/A",
       "local_path": "benchmarks/problems/generated/",
-      "instances": [],
-      "notes": "Small test instances for unit testing and parser validation. To be created in Phase 3."
+      "instances": [
+        {
+          "filename": "tiny_transportation.min",
+          "name": "Tiny Transportation Problem",
+          "nodes": 4,
+          "arcs": 4,
+          "description": "Minimal transportation problem: 2 supply nodes, 2 demand nodes",
+          "optimal_cost": 130,
+          "problem_type": "transportation",
+          "size_category": "small"
+        },
+        {
+          "filename": "small_transshipment.min",
+          "name": "Small Transshipment Problem",
+          "nodes": 6,
+          "arcs": 8,
+          "description": "Small transshipment with intermediate nodes (1 supply, 1 demand, 4 transshipment)",
+          "optimal_cost": 47,
+          "problem_type": "transshipment",
+          "size_category": "small"
+        },
+        {
+          "filename": "simple_assignment.min",
+          "name": "Simple 3x3 Assignment Problem",
+          "nodes": 6,
+          "arcs": 9,
+          "description": "3 workers assigned to 3 tasks (complete bipartite graph)",
+          "optimal_cost": 11,
+          "problem_type": "assignment",
+          "size_category": "small"
+        }
+      ],
+      "notes": "Small test instances for unit testing, parser validation, and solver correctness checks. Phase 3 MVP."
     }
   },
   "size_categories": {
@@ -138,8 +169,8 @@
   },
   "statistics": {
     "total_families": 8,
-    "populated_families": 0,
-    "total_instances": 0,
+    "populated_families": 1,
+    "total_instances": 3,
     "last_statistics_update": "2025-10-25"
   }
 }
