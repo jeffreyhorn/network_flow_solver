@@ -6,9 +6,10 @@ project's benchmark suite. Files are automatically downloaded, decompressed
 from gzip format, and saved as DIMACS .min files ready for parsing.
 
 Usage:
-    python benchmarks/scripts/download_dimacs.py --list   # Show available instances
-    python benchmarks/scripts/download_dimacs.py --small  # Download small instances (11 files, ~700 KB)
-    python benchmarks/scripts/download_dimacs.py --all    # Download all configured instances
+    python benchmarks/scripts/download_dimacs.py --list           # Show available instances
+    python benchmarks/scripts/download_dimacs.py --small          # Download small instances (11 files, ~700 KB)
+    python benchmarks/scripts/download_dimacs.py --all            # Download all configured instances
+    python benchmarks/scripts/download_dimacs.py --small --max-size 20  # Download only files ≤20KB (compressed)
 
 LEMON Benchmark Data:
     https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
@@ -43,7 +44,7 @@ import sys
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 # LEMON benchmark data base URL (well-maintained, accessible)
 # See: https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
@@ -99,6 +100,26 @@ DIMACS_INSTANCES = {
         "license": "LEMON: Boost 1.0 (library), GOTO instances: Public Domain",
     },
 }
+
+
+def get_file_size(url: str) -> int | None:
+    """Get the size of a file at a URL without downloading it.
+
+    Args:
+        url: URL to check.
+
+    Returns:
+        File size in bytes, or None if unable to determine.
+    """
+    try:
+        request = Request(url, method="HEAD")
+        with urlopen(request, timeout=10) as response:
+            content_length = response.headers.get("Content-Length")
+            if content_length:
+                return int(content_length)
+    except Exception:
+        pass
+    return None
 
 
 def download_file(url: str, dest_path: Path, show_progress: bool = True) -> bool:
@@ -188,16 +209,18 @@ def download_instance_family(
     family_key: str,
     family_info: dict[str, Any],
     force: bool = False,
-) -> tuple[int, int]:
+    max_size_kb: float | None = None,
+) -> tuple[int, int, int]:
     """Download all instances in a problem family.
 
     Args:
         family_key: Family identifier (e.g., 'netgen_small').
         family_info: Dictionary with family metadata and file list.
         force: If True, re-download even if file exists.
+        max_size_kb: Maximum compressed file size in KB (None for no limit).
 
     Returns:
-        Tuple of (successful_downloads, failed_downloads).
+        Tuple of (successful_downloads, failed_downloads, skipped_due_to_size).
     """
     print(f"\n{family_info['name']}:")
     print(f"  {family_info['description']}")
@@ -205,13 +228,14 @@ def download_instance_family(
     if not family_info["files"]:
         print("  ⚠ No instances configured for this family yet")
         print("  Note: Update DIMACS_INSTANCES in this script with actual file list")
-        return (0, 0)
+        return (0, 0, 0)
 
     local_dir = Path(family_info["local_dir"])
     local_dir.mkdir(parents=True, exist_ok=True)
 
     successful = 0
     failed = 0
+    skipped_size = 0
 
     for file_info in family_info["files"]:
         filename = file_info[0]
@@ -227,12 +251,24 @@ def download_instance_family(
             successful += 1
             continue
 
+        # Check file size if max_size_kb is specified
+        if max_size_kb is not None:
+            file_size_bytes = get_file_size(url)
+            if file_size_bytes is not None:
+                file_size_kb = file_size_bytes / 1024
+                if file_size_kb > max_size_kb:
+                    print(
+                        f"  ⊘ {dest_filename} (skipped: {file_size_kb:.1f} KB > {max_size_kb:.1f} KB limit)"
+                    )
+                    skipped_size += 1
+                    continue
+
         if download_file(url, dest_path, show_progress=False):
             successful += 1
         else:
             failed += 1
 
-    return (successful, failed)
+    return (successful, failed, skipped_size)
 
 
 def list_instances() -> None:
@@ -304,6 +340,12 @@ def main() -> int:
         action="store_true",
         help="Force re-download even if files exist",
     )
+    parser.add_argument(
+        "--max-size",
+        type=float,
+        metavar="KB",
+        help="Only download files smaller than KB (compressed size, e.g., --max-size 50 for 50KB limit)",
+    )
 
     args = parser.parse_args()
 
@@ -351,21 +393,31 @@ def main() -> int:
     print("  Generated instances (NETGEN, GRIDGEN, GOTO): Public Domain")
     print()
 
+    if args.max_size:
+        print(f"File size limit: {args.max_size:.1f} KB (compressed)")
+        print()
+
     # Download instances
     total_successful = 0
     total_failed = 0
+    total_skipped_size = 0
 
     for family_key in families_to_download:
         family_info = DIMACS_INSTANCES[family_key]
-        successful, failed = download_instance_family(family_key, family_info, force=args.force)
+        successful, failed, skipped_size = download_instance_family(
+            family_key, family_info, force=args.force, max_size_kb=args.max_size
+        )
         total_successful += successful
         total_failed += failed
+        total_skipped_size += skipped_size
 
     # Summary
     print("\n" + "=" * 70)
     print("Download Summary:")
     print(f"  ✓ Successful: {total_successful}")
     print(f"  ✗ Failed: {total_failed}")
+    if total_skipped_size > 0:
+        print(f"  ⊘ Skipped (size limit): {total_skipped_size}")
     print("=" * 70)
 
     # Update catalog

@@ -51,13 +51,39 @@ The download script provides access to the **LEMON Benchmark Suite**, which is a
 python benchmarks/scripts/download_dimacs.py [OPTIONS]
 
 Options:
-  --list          List all available instances without downloading
-  --all           Download all available instances
-  --small         Download small instances only (recommended)
-  --medium        Download medium instances only (future)
-  --large         Download large instances only (future)
-  --force         Force re-download even if files exist
+  --list             List all available instances without downloading
+  --all              Download all available instances
+  --small            Download small instances only (recommended)
+  --medium           Download medium instances only (future)
+  --large            Download large instances only (future)
+  --force            Force re-download even if files exist
+  --max-size KB      Only download files ≤KB (compressed size)
 ```
+
+### Size-Based Filtering
+
+You can limit downloads to files under a certain size threshold using `--max-size`:
+
+```bash
+# Download only files ≤20KB (compressed)
+python benchmarks/scripts/download_dimacs.py --small --max-size 20
+
+# This allows you to start small and expand capacity later
+python benchmarks/scripts/download_dimacs.py --all --max-size 50
+
+# No size limit (downloads everything in selected category)
+python benchmarks/scripts/download_dimacs.py --small
+```
+
+**Size limiting is based on compressed file size** (the `.min.gz` files on the server). This allows you to:
+- Start with tiny instances when disk space or bandwidth is limited
+- Gradually increase `--max-size` as capacity allows
+- Control exactly how much disk space the benchmark suite uses
+
+**Example sizes** (compressed):
+- netgen_8_08a.min.gz: ~15.6 KB → 41.4 KB decompressed
+- gridgen_8_08a.min.gz: ~12.3 KB → 35.2 KB decompressed
+- goto_8_08a.min.gz: ~10.8 KB → 30.5 KB decompressed
 
 ## Download Location
 
