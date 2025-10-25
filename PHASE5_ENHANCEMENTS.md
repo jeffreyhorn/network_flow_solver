@@ -82,7 +82,7 @@ pip install psutil
 benchmarks/results/latest/
 ├── benchmark_results_20251025_155448.json
 ├── benchmark_results_20251025_155347.json
-└── latest.json  # Symlink to most recent
+└── latest.json  # Copy of most recent results
 ```
 
 ## New Command-Line Options
