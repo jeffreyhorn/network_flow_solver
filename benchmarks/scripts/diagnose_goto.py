@@ -63,8 +63,8 @@ def analyze_problem_structure(problem) -> dict:
 
     # Analyze node degrees (using node IDs from dict keys)
     node_ids = list(problem.nodes.keys())
-    in_degree = {node_id: 0 for node_id in node_ids}
-    out_degree = {node_id: 0 for node_id in node_ids}
+    in_degree = dict.fromkeys(node_ids, 0)
+    out_degree = dict.fromkeys(node_ids, 0)
     for arc in problem.arcs:
         out_degree[arc.tail] += 1
         in_degree[arc.head] += 1
@@ -134,7 +134,7 @@ def diagnose_instance(
         result = solver.solve()
         solve_time = time.perf_counter() - solve_start
 
-        print(f"\n4. Results:")
+        print("\n4. Results:")
         print(f"   Status: {result.status}")
         print(f"   Iterations: {result.iterations}")
         print(f"   Solve time: {solve_time * 1000:.1f}ms")
@@ -144,7 +144,7 @@ def diagnose_instance(
         # Analyze convergence
         if result.iterations >= max_iterations:
             print(f"\n   ⚠ Hit iteration limit ({max_iterations})")
-            print(f"   This instance may need special handling or algorithmic improvements")
+            print("   This instance may need special handling or algorithmic improvements")
 
     except Exception as e:
         solve_time = time.perf_counter() - solve_start
