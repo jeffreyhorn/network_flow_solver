@@ -45,6 +45,14 @@ if str(project_root) not in sys.path:
 from benchmarks.parsers.dimacs import parse_dimacs_file  # noqa: E402
 from src.network_solver.solver import solve_min_cost_flow  # noqa: E402
 
+# Optional memory tracking
+try:
+    import psutil
+
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
 
 @dataclass
 class BenchmarkResult:
@@ -61,16 +69,123 @@ class BenchmarkResult:
     parse_time_ms: float
     total_time_ms: float
     error: str | None = None
+    # Validation fields
+    known_optimal: float | None = None
+    objective_error: float | None = None
+    validation_status: str | None = None
+    # Memory tracking (optional)
+    memory_mb: float | None = None
+    peak_memory_mb: float | None = None
+    # Correctness checks
+    flow_conservation_ok: bool | None = None
+    capacity_constraints_ok: bool | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
 
+def load_known_solutions() -> dict[str, float]:
+    """Load known optimal solutions from metadata file.
+
+    Returns:
+        Dictionary mapping instance filenames to known optimal costs.
+    """
+    solutions_file = Path("benchmarks/metadata/known_solutions.json")
+    if not solutions_file.exists():
+        return {}
+
+    try:
+        data = json.loads(solutions_file.read_text())
+        solutions = {}
+
+        # Extract solutions from all families
+        for _family_name, family_solutions in data.get("solutions", {}).items():
+            for solution in family_solutions:
+                filename = solution.get("problem_file")
+                optimal_cost = solution.get("optimal_cost")
+                if filename and optimal_cost is not None:
+                    solutions[filename] = optimal_cost
+
+        return solutions
+    except Exception as e:
+        print(f"Warning: Could not load known solutions: {e}")
+        return {}
+
+
+def validate_solution(
+    result,
+    problem,
+    known_optimal: float | None,
+    arc_map: dict | None = None,
+    tolerance: float = 1e-6,
+) -> tuple[str, float | None, bool, bool]:
+    """Validate solution correctness.
+
+    Args:
+        result: FlowResult from solver.
+        problem: NetworkProblem instance.
+        known_optimal: Known optimal objective value (if available).
+        arc_map: Pre-computed mapping of (tail, head) -> Arc for efficiency.
+                If None, will be created (less efficient for repeated calls).
+        tolerance: Tolerance for objective value comparison.
+
+    Returns:
+        Tuple of (validation_status, objective_error, flow_conservation_ok, capacity_ok).
+    """
+    validation_status = "unknown"
+    objective_error = None
+    flow_conservation_ok = None
+    capacity_ok = None
+
+    # Check against known optimal if available
+    if known_optimal is not None and result.objective is not None:
+        objective_error = abs(result.objective - known_optimal)
+        relative_error = objective_error / max(abs(known_optimal), 1.0)
+
+        validation_status = "correct" if relative_error <= tolerance else "incorrect_objective"
+
+    # Validate flow conservation and capacity constraints if solution exists
+    if result.status == "optimal" and result.flows:
+        # Check flow conservation at each node
+        flow_conservation_ok = True
+        node_flow_balance = {node_id: node.supply for node_id, node in problem.nodes.items()}
+
+        # result.flows maps (tail, head) tuples to flow values
+        for (tail, head), flow_value in result.flows.items():
+            node_flow_balance[tail] -= flow_value  # Outflow
+            node_flow_balance[head] += flow_value  # Inflow
+
+        # Check if all nodes are balanced (within tolerance)
+        for _node_id, balance in node_flow_balance.items():
+            if abs(balance) > tolerance:
+                flow_conservation_ok = False
+                break
+
+        # Check capacity constraints
+        # Create arc_map if not provided (for efficiency when called repeatedly)
+        capacity_ok = True
+        if arc_map is None:
+            arc_map = {(arc.tail, arc.head): arc for arc in problem.arcs}
+
+        for (tail, head), flow_value in result.flows.items():
+            if (tail, head) in arc_map:
+                arc = arc_map[(tail, head)]
+                lower = getattr(arc, "lower", 0.0)
+                upper = arc.capacity if arc.capacity is not None else float("inf")
+                if flow_value < lower - tolerance or flow_value > upper + tolerance:
+                    capacity_ok = False
+                    break
+
+    return validation_status, objective_error, flow_conservation_ok, capacity_ok
+
+
 def run_single_benchmark(
     instance_path: Path,
     timeout_seconds: float = 300.0,
     max_iterations: int | None = None,
+    known_solutions: dict[str, float] | None = None,
+    track_memory: bool = False,
 ) -> BenchmarkResult:
     """Run solver on a single benchmark instance with timeout enforcement.
 
@@ -78,6 +193,8 @@ def run_single_benchmark(
         instance_path: Path to DIMACS instance file.
         timeout_seconds: Maximum time to allow for solving (default 300s = 5 min).
         max_iterations: Maximum simplex iterations (None uses solver default: 20 * arcs).
+        known_solutions: Dictionary mapping filenames to known optimal costs.
+        track_memory: Whether to track memory usage (requires psutil).
 
     Returns:
         BenchmarkResult with performance metrics.
@@ -91,6 +208,15 @@ def run_single_benchmark(
     arcs = 0
     parse_time_ms = 0.0
     solve_time_ms = 0.0
+    memory_mb = None
+    peak_memory_mb = None
+    known_optimal = None
+    objective_error = None
+    validation_status = None
+    flow_conservation_ok = None
+    capacity_ok = None
+    problem = None
+    result = None
 
     try:
         # Parse instance
@@ -101,6 +227,16 @@ def run_single_benchmark(
 
         nodes = len(problem.nodes)
         arcs = len(problem.arcs)
+
+        # Get known optimal solution if available
+        if known_solutions:
+            known_optimal = known_solutions.get(instance_path.name)
+
+        # Track memory if requested
+        process = None
+        if track_memory and PSUTIL_AVAILABLE:
+            process = psutil.Process()
+            memory_mb = process.memory_info().rss / 1024 / 1024
 
         # Solve instance with timeout enforcement using threading
         result_container = {}
@@ -121,6 +257,10 @@ def run_single_benchmark(
         solve_end = time.perf_counter()
         solve_time_ms = (solve_end - solve_start) * 1000
 
+        # Track peak memory if requested
+        if track_memory and PSUTIL_AVAILABLE and process:
+            peak_memory_mb = process.memory_info().rss / 1024 / 1024
+
         # Check if thread completed or timed out
         if solver_thread.is_alive():
             # Timeout occurred - thread is still running
@@ -137,6 +277,13 @@ def run_single_benchmark(
             status = result.status
             objective = result.objective if result.status == "optimal" else None
             iterations = result.iterations
+
+            # Validate solution
+            if result and problem:
+                arc_map = {(arc.tail, arc.head): arc for arc in problem.arcs}
+                validation_status, objective_error, flow_conservation_ok, capacity_ok = (
+                    validate_solution(result, problem, known_optimal, arc_map)
+                )
         else:
             # Unexpected state
             error = "Solver completed without result or exception"
@@ -160,6 +307,13 @@ def run_single_benchmark(
         parse_time_ms=parse_time_ms,
         total_time_ms=total_time_ms,
         error=error,
+        known_optimal=known_optimal,
+        objective_error=objective_error,
+        validation_status=validation_status,
+        memory_mb=memory_mb,
+        peak_memory_mb=peak_memory_mb,
+        flow_conservation_ok=flow_conservation_ok,
+        capacity_constraints_ok=capacity_ok,
     )
 
 
@@ -210,6 +364,51 @@ def discover_instances(
         instances = filtered
 
     return sorted(instances)
+
+
+def archive_results(results: list[BenchmarkResult]) -> Path:
+    """Archive results to benchmarks/results/ with timestamp.
+
+    Args:
+        results: List of benchmark results.
+
+    Returns:
+        Path to archived results file.
+    """
+    # Create results directory if it doesn't exist
+    results_dir = Path("benchmarks/results")
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create latest directory
+    latest_dir = results_dir / "latest"
+    latest_dir.mkdir(exist_ok=True)
+
+    # Generate timestamp
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+
+    # Save to latest directory with timestamp
+    archive_path = latest_dir / f"benchmark_results_{timestamp}.json"
+
+    data = {
+        "metadata": {
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "total_instances": len(results),
+            "successful": sum(1 for r in results if r.status == "optimal"),
+            "failed": sum(1 for r in results if r.status == "error"),
+            "timeout": sum(1 for r in results if r.status == "timeout"),
+            "validated": sum(1 for r in results if r.validation_status == "correct"),
+            "incorrect": sum(1 for r in results if r.validation_status == "incorrect_objective"),
+        },
+        "results": [r.to_dict() for r in results],
+    }
+
+    archive_path.write_text(json.dumps(data, indent=2))
+
+    # Also save as "latest.json" for easy access
+    latest_path = latest_dir / "latest.json"
+    latest_path.write_text(json.dumps(data, indent=2))
+
+    return archive_path
 
 
 def save_results_json(results: list[BenchmarkResult], output_path: Path) -> None:
@@ -298,6 +497,8 @@ def print_summary(results: list[BenchmarkResult]) -> None:
     successful = [r for r in results if r.status == "optimal"]
     failed = [r for r in results if r.status == "error"]
     timeout = [r for r in results if r.status == "timeout"]
+    validated = [r for r in results if r.validation_status == "correct"]
+    incorrect = [r for r in results if r.validation_status == "incorrect_objective"]
 
     print("\n" + "=" * 70)
     print("BENCHMARK SUMMARY")
@@ -307,11 +508,29 @@ def print_summary(results: list[BenchmarkResult]) -> None:
     print(f"  ✗ Failed: {len(failed)}")
     print(f"  ⏱ Timeout: {len(timeout)}")
 
+    if validated or incorrect:
+        print("\nValidation (against known solutions):")
+        print(f"  ✓ Validated correct: {len(validated)}")
+        print(f"  ✗ Incorrect objective: {len(incorrect)}")
+
     if successful:
         avg_solve_time = sum(r.solve_time_ms for r in successful) / len(successful)
         avg_iterations = sum(r.iterations for r in successful) / len(successful)
-        print(f"\nAverage solve time: {avg_solve_time:.2f} ms")
-        print(f"Average iterations: {avg_iterations:.0f}")
+        print("\nPerformance:")
+        print(f"  Average solve time: {avg_solve_time:.2f} ms")
+        print(f"  Average iterations: {avg_iterations:.0f}")
+
+        # Memory stats if available
+        with_memory = [r for r in successful if r.memory_mb is not None]
+        if with_memory:
+            avg_memory = sum(r.memory_mb for r in with_memory) / len(with_memory)
+            print(f"  Average memory: {avg_memory:.1f} MB")
+
+            # Peak memory may be tracked separately
+            with_peak_memory = [r for r in with_memory if r.peak_memory_mb is not None]
+            if with_peak_memory:
+                avg_peak = sum(r.peak_memory_mb for r in with_peak_memory) / len(with_peak_memory)
+                print(f"  Average peak memory: {avg_peak:.1f} MB")
 
     print("=" * 70)
 
@@ -374,8 +593,32 @@ def main() -> int:
         metavar="N",
         help="Maximum simplex iterations (default: solver uses 20 * arcs)",
     )
+    parser.add_argument(
+        "--track-memory",
+        action="store_true",
+        help="Track memory usage (requires psutil)",
+    )
+    parser.add_argument(
+        "--no-archive",
+        action="store_true",
+        help="Disable automatic archiving to benchmarks/results/latest/",
+    )
 
     args = parser.parse_args()
+
+    # Load known solutions for validation
+    print("Loading known solutions...")
+    known_solutions = load_known_solutions()
+    if known_solutions:
+        print(f"Loaded {len(known_solutions)} known optimal solutions")
+    else:
+        print("No known solutions found (validation will be skipped)")
+
+    # Check memory tracking availability
+    if args.track_memory and not PSUTIL_AVAILABLE:
+        print("Warning: --track-memory requires psutil. Install with: pip install psutil")
+        print("Continuing without memory tracking...")
+        args.track_memory = False
 
     # Determine instances to run
     instances: list[Path] = []
@@ -417,11 +660,18 @@ def main() -> int:
             instance_path,
             timeout_seconds=args.timeout,
             max_iterations=args.max_iterations,
+            known_solutions=known_solutions,
+            track_memory=args.track_memory,
         )
         results.append(result)
 
         if result.status == "optimal":
-            print(f"✓ {result.solve_time_ms:.1f}ms, {result.iterations} iterations")
+            status_line = f"✓ {result.solve_time_ms:.1f}ms, {result.iterations} iterations"
+            if result.validation_status == "correct":
+                status_line += " [VALIDATED]"
+            elif result.validation_status == "incorrect_objective":
+                status_line += f" [ERROR: off by {result.objective_error:.2e}]"
+            print(status_line)
         elif result.status == "error":
             print(f"✗ Error: {result.error}")
         elif result.status == "timeout":
@@ -431,6 +681,12 @@ def main() -> int:
 
     # Print summary
     print_summary(results)
+
+    # Archive results automatically unless disabled
+    if not args.no_archive:
+        archive_path = archive_results(results)
+        print(f"\nResults archived to: {archive_path}")
+        print("Latest results: benchmarks/results/latest/latest.json")
 
     # Save results if requested
     if args.output:
