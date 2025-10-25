@@ -1268,8 +1268,6 @@ class NetworkSimplex:
             # Only check condition number at specified intervals to reduce overhead
             self.pivots_since_condition_check += 1
             if self.pivots_since_condition_check >= self.options.condition_check_interval:
-                self.pivots_since_condition_check = 0
-
                 # Monitor condition number for adaptive triggering
                 condition_number = self.basis.estimate_condition_number()
                 if condition_number is not None:
@@ -1280,6 +1278,9 @@ class NetworkSimplex:
                         force_rebuild = True
                         rebuild_reason = "condition_number_threshold"
                         self.adaptive_rebuild_count += 1
+
+                # Reset counter after check completes successfully
+                self.pivots_since_condition_check = 0
 
         # Also check fixed update limit
         if self.ft_updates_since_rebuild >= self.adaptive_tuner.current_ft_limit:
