@@ -129,3 +129,12 @@ test-output/
 # Temporary test files
 tmpdir/
 coverage.json
+
+# Benchmark problem files (downloaded, not committed)
+benchmarks/problems/
+!benchmarks/problems/.gitkeep
+
+# Benchmark results (not committed - too large/volatile)
+benchmarks/results/latest/
+benchmarks/results/reports/
+!benchmarks/results/.gitkeep
