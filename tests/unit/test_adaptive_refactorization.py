@@ -228,6 +228,10 @@ class TestAdaptiveRefactorizationStability:
         assert result_adaptive.objective == pytest.approx(result_fixed.objective)
 
 
+# Note: Adaptive refactorization's internal tuning logic is tested via integration tests above
+# Direct unit tests of AdaptiveTuner would be brittle due to complex initialization requirements
+
+
 class TestAdaptiveRefactorizationEdgeCases:
     """Test edge cases for adaptive refactorization."""
 
