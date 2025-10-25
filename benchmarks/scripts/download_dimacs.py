@@ -28,13 +28,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import json
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
-from urllib.error import URLError, HTTPError
-
 
 # DIMACS archive base URL
 DIMACS_BASE_URL = "http://archive.dimacs.rutgers.edu/pub/netflow"
@@ -306,7 +304,7 @@ def main() -> int:
 
     # Summary
     print("\n" + "=" * 70)
-    print(f"Download Summary:")
+    print("Download Summary:")
     print(f"  ✓ Successful: {total_successful}")
     print(f"  ✗ Failed: {total_failed}")
     print("=" * 70)

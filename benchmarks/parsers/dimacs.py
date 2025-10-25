@@ -36,9 +36,7 @@ Notes:
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
-from typing import TextIO
 
 from src.network_solver.data import NetworkProblem, build_problem
 from src.network_solver.exceptions import InvalidProblemError
@@ -264,7 +262,7 @@ def _parse_dimacs_lines(lines: list[str]) -> NetworkProblem:
         nodes.append({"id": node_id, "supply": supply})
 
     # Also check if any node IDs in arcs are outside the expected range
-    all_node_ids = set(str(i) for i in range(1, num_nodes + 1))
+    all_node_ids = {str(i) for i in range(1, num_nodes + 1)}
     arc_node_ids = set()
     for arc in arcs:
         arc_node_ids.add(arc["tail"])

@@ -1,9 +1,10 @@
 """Unit tests for DIMACS format parser."""
 
-import pytest
 from pathlib import Path
 
-from benchmarks.parsers.dimacs import parse_dimacs_string, parse_dimacs_file
+import pytest
+
+from benchmarks.parsers.dimacs import parse_dimacs_file, parse_dimacs_string
 from src.network_solver.exceptions import InvalidProblemError
 
 
