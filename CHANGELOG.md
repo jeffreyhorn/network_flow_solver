@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Automatic pricing strategy selection for grid-on-torus structures** (`simplex.py`)
+  - **Feature**: Auto-detects grid-on-torus network structures and switches to Dantzig pricing
+  - **Performance**: GOTO instances now solve in ~14s (previously timed out at 300s+ with Devex)
+  - **Implementation**:
+    - `_select_pricing_strategy()`: Detects GOTO patterns based on structural heuristics
+    - Heuristics: ≤4 supply/demand nodes, >98% transshipment, regular grid connectivity
+    - Preserves user-specified pricing strategy when explicitly set
+  - **Impact**: Enables previously unsolvable GOTO instances without affecting other problem types
+  - **Diagnostic tool**: `benchmarks/scripts/diagnose_goto.py` for analyzing convergence issues
+- **Benchmark comparison tool** (`benchmarks/scripts/compare_configurations.py`)
+  - **Feature**: Compare solver performance across different configurations
+  - **Capabilities**:
+    - Run multiple instances with different solver options (pricing strategies, scaling, etc.)
+    - Generate comparison tables showing per-instance and aggregate statistics
+    - Export results to JSON for further analysis
+  - **Usage**: `python benchmarks/scripts/compare_configurations.py --instances <files> --configs <configs>`
+  - **Configurations**: default, dantzig, devex, no_scaling
 - **Optional Numba JIT compilation for Forrest-Tomlin operations** (`forrest_tomlin.py`, `basis.py`, `data.py`, `simplex.py`)
   - **Feature**: Optional JIT (Just-In-Time) compilation for performance-critical Forrest-Tomlin update loops
   - **Installation**: `pip install 'network-flow-solver[jit]'` or `pip install numba>=0.58.0`
