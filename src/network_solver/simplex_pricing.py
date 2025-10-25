@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 import numpy as np
 
@@ -26,6 +26,9 @@ class NetworkSimplexProtocol(Protocol):
     arc_artificial: np.ndarray
     arcs: list[ArcState]
     basis: TreeBasis
+    forward_residuals: np.ndarray
+    backward_residuals: np.ndarray
+    options: Any  # SolverOptions, but avoiding circular import
 
     def _select_entering_arc_vectorized(
         self,
@@ -59,7 +62,7 @@ class PricingStrategy(ABC):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
-        solver: NetworkSimplexProtocol | None = None,
+        solver: NetworkSimplexProtocol,
     ) -> tuple[int, int] | None:
         """Select an entering arc for the next pivot.
 
@@ -69,7 +72,7 @@ class PricingStrategy(ABC):
             actual_arc_count: Number of real (non-artificial) arcs.
             allow_zero: Whether to allow zero reduced cost arcs.
             tolerance: Numerical tolerance for comparisons.
-            solver: Optional NetworkSimplex solver instance for vectorized operations.
+            solver: NetworkSimplex solver instance providing cached residuals.
 
         Returns:
             Tuple of (arc_index, direction) where direction is +1 for forward
@@ -98,7 +101,7 @@ class DantzigPricing(PricingStrategy):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
-        solver: NetworkSimplexProtocol | None = None,
+        solver: NetworkSimplexProtocol,
     ) -> tuple[int, int] | None:
         """Find arc with most negative reduced cost."""
         best: tuple[int, int] | None = None
@@ -110,8 +113,10 @@ class DantzigPricing(PricingStrategy):
                 continue
 
             rc = arc.cost + basis.potential[arc.tail] - basis.potential[arc.head]
-            forward_res = arc.forward_residual()
-            backward_res = arc.backward_residual()
+
+            # Use cached residuals (always available)
+            forward_res = solver.forward_residuals[idx]
+            backward_res = solver.backward_residuals[idx]
 
             # Check forward direction (rc < 0 and forward residual > 0)
             if forward_res > tolerance and rc < -tolerance:
@@ -186,16 +191,18 @@ class DevexPricing(PricingStrategy):
         actual_arc_count: int,
         allow_zero: bool,
         tolerance: float,
-        solver: NetworkSimplexProtocol | None = None,
+        solver: NetworkSimplexProtocol,
     ) -> tuple[int, int] | None:
         """Find entering arc using Devex pricing with block search."""
-        # Use vectorized implementation if solver is available
-        if solver is not None:
+        # Use vectorized implementation if enabled in solver options
+        # Note: solver.options.use_vectorized_pricing determines which path to use
+        # Both paths use cached residuals from solver
+        if solver.options.use_vectorized_pricing:
             return self._select_entering_arc_vectorized(
                 solver, actual_arc_count, allow_zero, tolerance
             )
 
-        # Fall back to original loop-based implementation
+        # Loop-based implementation (uses cached residuals)
         zero_candidates: list[tuple[int, int]] = []
         best: tuple[int, int] | None = None
         best_merit = -math.inf
@@ -217,8 +224,10 @@ class DevexPricing(PricingStrategy):
                     continue
 
                 rc = arc.cost + basis.potential[arc.tail] - basis.potential[arc.head]
-                forward_res = arc.forward_residual()
-                backward_res = arc.backward_residual()
+
+                # Use cached residuals (always available)
+                forward_res = solver.forward_residuals[idx]
+                backward_res = solver.backward_residuals[idx]
 
                 # Check forward direction
                 if forward_res > tolerance and rc < -tolerance:

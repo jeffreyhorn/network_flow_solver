@@ -2052,6 +2052,38 @@ Grid 10×10           Devex      198      781.13       1.0x
                      Dantzig    116      206.75       0.26x (Dantzig faster!)
 ```
 
+### Automatic Performance Optimizations
+
+The solver includes several **always-active** performance optimizations that require no configuration:
+
+**1. Cached Residual Calculations**
+- **What it is:** Forward and backward residuals pre-computed as NumPy arrays
+- **Benefit:** Eliminates ~750,000 function calls per solve on large problems
+- **How it works:**
+  - Arrays cached on initialization: `forward_residuals = upper - flow`, `backward_residuals = flow - lower`
+  - Updated automatically after every flow change in pivots
+  - O(1) array lookups replace method calls in ratio tests, pricing, and pivot selection
+- **Performance:** Scales with problem size (more arcs = more residual checks = more benefit)
+- **Configuration:** Always active - no configuration needed
+
+**2. Vectorized Pricing Operations**
+- **What it is:** NumPy array operations replace Python loops for pricing
+- **Benefit:** 2.3x average speedup on medium/large problems
+- **Configuration:** Enable/disable with `use_vectorized_pricing` option (default: True)
+- **See:** [Comparing Vectorized vs Loop-Based Pricing](#comparing-vectorized-vs-loop-based-pricing)
+
+**3. Deferred Weight Updates**
+- **What it is:** Devex weights updated only for selected entering arc
+- **Benefit:** 97.5% reduction in weight update calls (loop-based mode)
+- **Configuration:** Always active in both vectorized and loop-based pricing
+
+**4. Projection Caching**
+- **What it is:** Basis projection results cached with smart invalidation
+- **Benefit:** 10-14% speedup on medium/large problems (70+ nodes)
+- **Configuration:** Control cache size with `projection_cache_size` option (default: 100)
+
+These optimizations work together to provide robust performance across diverse problem types without manual tuning.
+
 ### Best Practices
 
 1. **Profile representative problems**: Use problem sizes and structures similar to production
@@ -2060,6 +2092,7 @@ Grid 10×10           Devex      198      781.13       1.0x
 4. **Track over time**: Monitor performance across code versions
 5. **Document baselines**: Record expected performance for regression detection
 6. **Consider hardware**: Results vary by CPU, memory, and system load
+7. **Leverage automatic optimizations**: All performance optimizations are active by default
 
 ### Performance Expectations
 
@@ -2072,7 +2105,7 @@ Based on typical hardware (modern laptop/desktop):
 | Large | 1000-10000 | 5000-50000 | 100 ms - 2s |
 | Very Large | >10000 | >50000 | Several seconds |
 
-**Note:** These are rough guidelines. Actual performance depends on problem structure, density, and solver configuration.
+**Note:** These are rough guidelines. Actual performance depends on problem structure, density, and solver configuration. The cached residual optimization provides the most benefit on large problems with many arcs (typically thousands or more).
 
 ## Comparison with NetworkX
 

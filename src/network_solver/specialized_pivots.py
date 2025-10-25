@@ -102,13 +102,13 @@ class TransportationPivotStrategy:
             )
 
             # Check forward direction
-            forward_res = arc.forward_residual()
+            forward_res = self.solver.forward_residuals[idx]
             if forward_res > self.solver.tolerance and rc < -self.solver.tolerance and rc < best_rc:
                 best_rc = rc
                 best_arc = (idx, 1)
 
             # Check backward direction
-            backward_res = arc.backward_residual()
+            backward_res = self.solver.backward_residuals[idx]
             if (
                 backward_res > self.solver.tolerance
                 and rc > self.solver.tolerance
@@ -203,7 +203,7 @@ class AssignmentPivotStrategy(TransportationPivotStrategy):
 
             # For assignment, we typically only care about forward direction
             # since all lower bounds are 0 and all capacities are 1
-            forward_res = arc.forward_residual()
+            forward_res = self.solver.forward_residuals[idx]
             if forward_res > self.solver.tolerance and rc < best_rc - self.solver.tolerance:
                 best_rc = rc
                 best_arc = (idx, 1)
@@ -267,7 +267,7 @@ class BipartiteMatchingPivotStrategy:
         for node_idx in unmatched_left:
             for idx, arc in enumerate(self.solver.arcs):
                 if arc.tail == node_idx and not arc.in_tree:
-                    forward_res = arc.forward_residual()
+                    forward_res = self.solver.forward_residuals[idx]
                     if forward_res > self.solver.tolerance:
                         return (idx, 1)
 
@@ -321,7 +321,7 @@ class MaxFlowPivotStrategy:
             )
 
             # Check forward direction
-            forward_res = arc.forward_residual()
+            forward_res = self.solver.forward_residuals[idx]
             if forward_res > self.solver.tolerance and rc < -self.solver.tolerance:
                 # Merit = capacity * |reduced_cost| (prefer high capacity arcs)
                 merit = forward_res * abs(rc)
@@ -330,7 +330,7 @@ class MaxFlowPivotStrategy:
                     best_arc = (idx, 1)
 
             # Check backward direction
-            backward_res = arc.backward_residual()
+            backward_res = self.solver.backward_residuals[idx]
             if backward_res > self.solver.tolerance and rc > self.solver.tolerance:
                 merit = backward_res * abs(rc)
                 if merit > best_merit:
@@ -396,7 +396,7 @@ class ShortestPathPivotStrategy:
             )
 
             # Check forward direction
-            forward_res = arc.forward_residual()
+            forward_res = self.solver.forward_residuals[idx]
             if forward_res > self.solver.tolerance and rc < -self.solver.tolerance:
                 # Prefer arcs that extend paths closer to sink
                 # Use distance labels as tie-breaker
@@ -412,7 +412,7 @@ class ShortestPathPivotStrategy:
                     self.distance_labels[arc.head] = min(head_dist, tail_dist + arc.cost)
 
             # Check backward direction
-            backward_res = arc.backward_residual()
+            backward_res = self.solver.backward_residuals[idx]
             if (
                 backward_res > self.solver.tolerance
                 and rc > self.solver.tolerance

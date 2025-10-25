@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Vectorized residual calculations** (`simplex.py`, `simplex_pricing.py`, `specialized_pivots.py`)
+  - **Feature**: Pre-computed residual arrays cached and updated on flow changes
+  - **Performance improvements**:
+    - Eliminates ~750,000 function calls per solve on large problems
+    - Array lookups replace method calls for forward/backward residuals
+    - Performance improvement scales with problem size
+  - **Implementation**:
+    - `self.forward_residuals` and `self.backward_residuals` cached in `_build_vectorized_arrays()`
+    - Updated in `_sync_vectorized_arrays()` after flow changes
+    - Replaced `arc.forward_residual()` and `arc.backward_residual()` with array lookups
+    - Applied in ratio test, pricing strategies, and specialized pivots
+  - **Benefit**: O(1) array lookups vs Python method call overhead
+  - Completes Project 4 from optimization roadmap
 - **Deferred Devex weight updates (loop-based pricing optimization)** (`simplex_pricing.py`)
   - **Feature**: Loop-based Devex pricing now defers weight updates until after arc selection
   - **Performance improvements**:

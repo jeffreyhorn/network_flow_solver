@@ -344,6 +344,12 @@ class NetworkSimplex:
         # Potentials array will be updated from basis.potential each iteration
         self.node_potentials = np.zeros(self.node_count, dtype=np.float64)
 
+        # Pre-compute residuals (updated after flow changes)
+        self.forward_residuals = np.where(
+            np.isinf(self.arc_uppers), np.inf, self.arc_uppers - self.arc_flows
+        )
+        self.backward_residuals = self.arc_flows - self.arc_lowers
+
     def _sync_vectorized_arrays(self) -> None:
         """Sync vectorized arrays with current ArcState list.
 
@@ -365,6 +371,12 @@ class NetworkSimplex:
 
         # Update node potentials from basis
         self.node_potentials[:] = self.basis.potential
+
+        # Update residuals after flow changes
+        self.forward_residuals = np.where(
+            np.isinf(self.arc_uppers), np.inf, self.arc_uppers - self.arc_flows
+        )
+        self.backward_residuals = self.arc_flows - self.arc_lowers
 
     def _compute_reduced_costs_vectorized(self) -> np.ndarray:
         """Compute reduced costs for all arcs using vectorized operations.
@@ -919,15 +931,15 @@ class NetworkSimplex:
             if result is not None:
                 return result
 
-        # Delegate to pricing strategy (pass self if vectorization enabled)
-        solver = self if self.options.use_vectorized_pricing else None
+        # Delegate to pricing strategy (always pass self for cached residuals)
+        # Note: Cached residuals are always available regardless of vectorization setting
         return self.pricing_strategy.select_entering_arc(
             self.arcs,
             self.basis,
             self.actual_arc_count,
             allow_zero,
             self.tolerance,
-            solver=solver,
+            solver=self,
         )
 
     # ============================================================================
@@ -1039,9 +1051,8 @@ class NetworkSimplex:
         best_residual = -math.inf
 
         for idx, sign in cycle:
-            arc = self.arcs[idx]
             if sign == 1:
-                residual = arc.forward_residual()
+                residual = self.forward_residuals[idx]
                 if residual < theta - self.tolerance:
                     theta = residual
                     leaving_idx = idx
@@ -1053,7 +1064,7 @@ class NetworkSimplex:
                         leaving_idx = idx
                         best_residual = residual
             else:
-                residual = arc.backward_residual()
+                residual = self.backward_residuals[idx]
                 if residual < theta - self.tolerance:
                     theta = residual
                     leaving_idx = idx
