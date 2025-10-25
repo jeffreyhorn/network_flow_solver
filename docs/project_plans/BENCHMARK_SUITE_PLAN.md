@@ -90,7 +90,7 @@ This document outlines a phased plan to establish a comprehensive benchmark suit
    - Implement parser for DIMACS minimum cost flow format
    - Support both standard and extended formats
    - Location: `src/network_solver/io/dimacs_parser.py`
-   - Reference: http://lpsolve.sourceforge.net/5.5/DIMACS_mcf.htm
+   - Reference: http://lpsolve.sourceforge.net/5.5/DIMACS_mcf.htm (HTTP only)
 
    DIMACS format structure:
    ```
@@ -410,7 +410,7 @@ Complete all phases 1-8
 
 4. LEMON Library Benchmark Data: https://lemon.cs.elte.hu/trac/lemon/wiki/MinCostFlowData
 
-5. DIMACS Min-Cost Flow Problems: http://lpsolve.sourceforge.net/5.5/DIMACS_mcf.htm
+5. DIMACS Min-Cost Flow Problems: http://lpsolve.sourceforge.net/5.5/DIMACS_mcf.htm (HTTP only - HTTPS not available)
 
 6. CommaLAB Multicommodity Flow Problems: https://commalab.di.unipi.it/datasets/mmcf/
 
