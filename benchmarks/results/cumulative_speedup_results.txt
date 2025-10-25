@@ -1,0 +1,17 @@
+Cumulative Speedup Benchmark Results
+================================================================================
+
+Problem size: 130 nodes, 4225 arcs
+Baseline: 65.9s (160 nodes, 4,267 arcs, 356 iterations)
+
+Current Performance:
+  Average runtime: 2.056s ± 0.103s
+  Min/Max: 1.947s / 2.158s
+  Average iterations: 90.0
+  Individual run times: 2.144s, 2.084s, 2.158s, 1.949s, 1.947s
+  Individual iterations: 90, 90, 90, 90, 90
+
+Speedup: 32.05x (+3104.7%)
+Time saved: 63.8s
+Predicted speedup: 1.26x (20-30%)
+Actual vs predicted: 25.43x
