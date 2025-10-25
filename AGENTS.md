@@ -62,7 +62,7 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e ".[dev,umfpack]"
 
 # Verify installation
-python verify_install.py
+python scripts/verify_install.py
 ```
 
 ## Development Workflow
@@ -248,7 +248,7 @@ def test_feature():
 - Enable debug logging: `logging.getLogger("network_solver.simplex").setLevel(logging.DEBUG)`
 - Check `ft_rebuilds` counter for numerical issues
 - Verify basis tree connectivity in `basis.rebuild()`
-- Use `verify_install.py` to test installation
+- Use `scripts/verify_install.py` to test installation
 
 ## Commit Guidelines
 

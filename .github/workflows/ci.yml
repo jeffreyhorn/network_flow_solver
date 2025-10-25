@@ -228,7 +228,7 @@ jobs:
 
       - name: Verify installation
         run: |
-          python verify_install.py
+          python scripts/verify_install.py
 
   build:
     name: Build Package
