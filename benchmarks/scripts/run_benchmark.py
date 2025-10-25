@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import threading
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -67,7 +68,7 @@ class BenchmarkResult:
 
 
 def run_single_benchmark(instance_path: Path, timeout_seconds: float = 300.0) -> BenchmarkResult:
-    """Run solver on a single benchmark instance.
+    """Run solver on a single benchmark instance with timeout enforcement.
 
     Args:
         instance_path: Path to DIMACS instance file.
@@ -96,20 +97,45 @@ def run_single_benchmark(instance_path: Path, timeout_seconds: float = 300.0) ->
         nodes = len(problem.nodes)
         arcs = len(problem.arcs)
 
-        # Solve instance
+        # Solve instance with timeout enforcement using threading
+        result_container = {}
+        exception_container = {}
+
+        def solve_with_timeout():
+            """Run solver in a separate thread."""
+            try:
+                solve_result = solve_min_cost_flow(problem)
+                result_container["result"] = solve_result
+            except Exception as e:
+                exception_container["exception"] = e
+
         solve_start = time.perf_counter()
-        result = solve_min_cost_flow(problem)
+        solver_thread = threading.Thread(target=solve_with_timeout, daemon=True)
+        solver_thread.start()
+        solver_thread.join(timeout=timeout_seconds)
         solve_end = time.perf_counter()
         solve_time_ms = (solve_end - solve_start) * 1000
 
-        # Check for timeout
-        if solve_time_ms > timeout_seconds * 1000:
-            error = f"Timeout after {timeout_seconds}s"
+        # Check if thread completed or timed out
+        if solver_thread.is_alive():
+            # Timeout occurred - thread is still running
+            error = f"Timeout after {timeout_seconds:.1f}s"
             status = "timeout"
-        else:
+            # Note: We cannot force-kill the thread, but we stop waiting for it
+        elif "exception" in exception_container:
+            # Solver raised an exception
+            error = str(exception_container["exception"])
+            status = "error"
+        elif "result" in result_container:
+            # Solver completed successfully
+            result = result_container["result"]
             status = result.status
             objective = result.objective if result.status == "optimal" else None
             iterations = result.iterations
+        else:
+            # Unexpected state
+            error = "Solver completed without result or exception"
+            status = "error"
 
     except Exception as e:
         error = str(e)
