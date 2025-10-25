@@ -37,6 +37,7 @@ Notes:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from src.network_solver.data import NetworkProblem, build_problem
 from src.network_solver.exceptions import InvalidProblemError
@@ -116,7 +117,7 @@ def _parse_dimacs_lines(lines: list[str]) -> NetworkProblem:
     num_nodes: int | None = None
     num_arcs: int | None = None
     node_supplies: dict[str, float] = {}
-    arcs: list[dict[str, any]] = []
+    arcs: list[dict[str, Any]] = []
 
     problem_line_seen = False
 
