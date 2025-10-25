@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Modified `PricingStrategy.select_entering_arc()` to accept optional solver parameter
     - `DevexPricing._select_entering_arc_vectorized()` leverages solver's vectorized infrastructure
     - Called automatically from `NetworkSimplex._find_entering_arc()` when enabled
-  - **Benchmark script**: `benchmark_vectorized_pricing.py` demonstrates performance improvements
+  - **Benchmark script**: `benchmarks/benchmark_vectorized_pricing.py` demonstrates performance improvements
   - **Documentation**: Updated README.md and docs/api.md with enabled-by-default status and performance metrics
   - All core optimality tests passing with vectorization **enabled** (default)
 
@@ -76,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - 50% reduction in array copying vs initial implementation
   - **Configuration**: `SolverOptions(projection_cache_size=100)` (enabled by default)
   - **Memory usage**: ~800 bytes per cached projection (negligible)
-  - **Optimization details**: See `CACHE_OPTIMIZATION_RESULTS.md` for analysis
+  - **Optimization details**: See `docs/project_plans/CACHE_OPTIMIZATION_RESULTS.md` for analysis
   - **Documentation**: Updated docs/api.md, docs/examples.md with cache configuration options
 - **Preprocessing result translation to original problem structure** (`preprocessing.py`)
   - **Feature**: Solutions from preprocessed problems are automatically translated back to original problem structure
