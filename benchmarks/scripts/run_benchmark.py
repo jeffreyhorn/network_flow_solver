@@ -170,7 +170,10 @@ def validate_solution(
             # Build map that handles parallel arcs correctly
             from collections import defaultdict
 
-            parallel_arc_bounds = defaultdict(lambda: {"lower": 0.0, "upper": 0.0})
+            def arc_bounds_factory():
+                return {"lower": 0.0, "upper": 0.0}
+
+            parallel_arc_bounds = defaultdict(arc_bounds_factory)
             for arc in problem.arcs:
                 key = (arc.tail, arc.head)
                 parallel_arc_bounds[key]["lower"] += getattr(arc, "lower", 0.0)
