@@ -17,15 +17,10 @@ except ImportError:
     _HAS_NUMBA = False
 
     # Provide a no-op decorator when Numba is not available
-    from collections.abc import Callable
-    from typing import Any, TypeVar
-
-    _F = TypeVar("_F", bound=Callable[..., Any])
-
-    def njit(*args: Any, **kwargs: Any) -> Callable[[_F], _F]:
+    def njit(*args, **kwargs):  # type: ignore[no-untyped-def]
         """No-op decorator fallback when Numba is not available."""
 
-        def decorator(func: _F) -> _F:
+        def decorator(func):  # type: ignore[no-untyped-def]
             return func
 
         return decorator
