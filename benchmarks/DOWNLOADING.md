@@ -8,6 +8,9 @@ This guide explains how to download DIMACS minimum cost flow benchmark instances
 # Download small instances (recommended - downloads 11 instances, ~700 KB total)
 python benchmarks/scripts/download_dimacs.py --small
 
+# Download medium instances (24 instances, ~10 MB compressed)
+python benchmarks/scripts/download_dimacs.py --medium
+
 # List all available instances
 python benchmarks/scripts/download_dimacs.py --list
 
@@ -45,6 +48,23 @@ The download script provides access to the **LEMON Benchmark Suite**, which is a
 - **Problem Type**: Toroidal grid networks (no boundary effects)
 - **Download size**: ~65 KB compressed → ~160 KB decompressed
 
+### Medium Instances (Phase 5)
+
+**NETGEN Medium** (`netgen_medium`):
+- **Size**: 4K-16K nodes, 32K-128K arcs per instance
+- **Count**: 8 instances (netgen_8_12a/b/c, 13a/b/c, 14a/b)
+- **Download size**: ~3 MB compressed → ~10 MB decompressed
+
+**GRIDGEN Medium** (`gridgen_medium`):
+- **Size**: 4K-16K nodes, 32K-128K arcs per instance
+- **Count**: 8 instances (gridgen_8_12a/b/c, 13a/b/c, 14a/b)
+- **Download size**: ~3 MB compressed → ~10 MB decompressed
+
+**GOTO Medium** (`goto_medium`):
+- **Size**: 4K-16K nodes, 32K-128K arcs per instance
+- **Count**: 8 instances (goto_8_12a/b/c, 13a/b/c, 14a/b)
+- **Download size**: ~3 MB compressed → ~10 MB decompressed
+
 ## Command-Line Options
 
 ```bash
@@ -53,8 +73,8 @@ python benchmarks/scripts/download_dimacs.py [OPTIONS]
 Options:
   --list             List all available instances without downloading
   --all              Download all available instances
-  --small            Download small instances only (recommended)
-  --medium           Download medium instances only (future)
+  --small            Download small instances only (11 instances, ~700 KB)
+  --medium           Download medium instances only (24 instances, ~10 MB compressed)
   --large            Download large instances only (future)
   --force            Force re-download even if files exist
   --max-size KB      Only download files ≤KB (compressed size)
@@ -192,17 +212,20 @@ See `docs/benchmarks/BENCHMARK_SOURCES.md` for other potential sources:
 - CommaLAB multicommodity instances
 - Network Repository datasets
 
-## Phase 4 Status
+## Status
 
-**Current**: MVP implementation with 11 small instances (256-512 nodes each)
+**Current (Phase 5)**: 
+- ✅ 11 small instances (256-512 nodes)
+- ✅ 24 medium instances (4K-16K nodes)
+- ✅ Automated download with gzip decompression
+- ✅ Size-based filtering support
 
 **Future Phases**:
-- Phase 5: Add medium instances (10K-50K nodes)
-- Phase 6: Add large instances (>50K nodes)
+- Phase 6: Add large instances (>16K nodes) and performance comparison tools
 - Phase 7: Real-world road network instances
 - Phase 8: Computer vision maximum flow instances
 
 ---
 
 **Last Updated**: 2025-10-25  
-**Phase**: Phase 4 - Problem Acquisition
+**Phase**: Phase 5 - Medium Instances & Benchmark Runner

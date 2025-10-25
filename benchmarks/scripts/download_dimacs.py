@@ -99,6 +99,65 @@ DIMACS_INSTANCES = {
         "local_dir": "benchmarks/problems/lemon/goto",
         "license": "LEMON: Boost 1.0 (library), GOTO instances: Public Domain",
     },
+    "netgen_medium": {
+        "name": "NETGEN Medium Instances",
+        "description": "Medium NETGEN minimum cost flow problems (gzip compressed)",
+        "size_category": "medium",
+        "url_base": f"{LEMON_BASE_URL}/netgen",
+        "files": [
+            # Format: (filename, description)
+            # NETGEN-8 family: 4K-16K nodes, varying density (12=medium to 14=denser)
+            # Files are gzip compressed (.min.gz), will be decompressed to .min
+            ("netgen_8_12a.min.gz", "NETGEN-8 network (4K nodes, variant a)"),
+            ("netgen_8_12b.min.gz", "NETGEN-8 network (4K nodes, variant b)"),
+            ("netgen_8_12c.min.gz", "NETGEN-8 network (4K nodes, variant c)"),
+            ("netgen_8_13a.min.gz", "NETGEN-8 denser network (8K nodes, variant a)"),
+            ("netgen_8_13b.min.gz", "NETGEN-8 denser network (8K nodes, variant b)"),
+            ("netgen_8_13c.min.gz", "NETGEN-8 denser network (8K nodes, variant c)"),
+            ("netgen_8_14a.min.gz", "NETGEN-8 dense network (16K nodes, variant a)"),
+            ("netgen_8_14b.min.gz", "NETGEN-8 dense network (16K nodes, variant b)"),
+        ],
+        "local_dir": "benchmarks/problems/lemon/netgen",
+        "license": "LEMON: Boost 1.0 (library), NETGEN instances: Public Domain",
+    },
+    "gridgen_medium": {
+        "name": "GRIDGEN Medium Instances",
+        "description": "Medium GRIDGEN grid-based network problems (gzip compressed)",
+        "size_category": "medium",
+        "url_base": f"{LEMON_BASE_URL}/gridgen",
+        "files": [
+            # GRIDGEN-8 family: Grid networks with 4K-16K nodes
+            ("gridgen_8_12a.min.gz", "GRIDGEN-8 grid network (4K nodes, variant a)"),
+            ("gridgen_8_12b.min.gz", "GRIDGEN-8 grid network (4K nodes, variant b)"),
+            ("gridgen_8_12c.min.gz", "GRIDGEN-8 grid network (4K nodes, variant c)"),
+            ("gridgen_8_13a.min.gz", "GRIDGEN-8 grid network (8K nodes, variant a)"),
+            ("gridgen_8_13b.min.gz", "GRIDGEN-8 grid network (8K nodes, variant b)"),
+            ("gridgen_8_13c.min.gz", "GRIDGEN-8 grid network (8K nodes, variant c)"),
+            ("gridgen_8_14a.min.gz", "GRIDGEN-8 grid network (16K nodes, variant a)"),
+            ("gridgen_8_14b.min.gz", "GRIDGEN-8 grid network (16K nodes, variant b)"),
+        ],
+        "local_dir": "benchmarks/problems/lemon/gridgen",
+        "license": "LEMON: Boost 1.0 (library), GRIDGEN instances: Public Domain",
+    },
+    "goto_medium": {
+        "name": "GOTO Medium Instances",
+        "description": "Medium grid-on-torus network problems (gzip compressed)",
+        "size_category": "medium",
+        "url_base": f"{LEMON_BASE_URL}/goto",
+        "files": [
+            # GOTO-8 family: Grid-on-torus networks with 4K-16K nodes
+            ("goto_8_12a.min.gz", "GOTO-8 grid-on-torus (4K nodes, variant a)"),
+            ("goto_8_12b.min.gz", "GOTO-8 grid-on-torus (4K nodes, variant b)"),
+            ("goto_8_12c.min.gz", "GOTO-8 grid-on-torus (4K nodes, variant c)"),
+            ("goto_8_13a.min.gz", "GOTO-8 grid-on-torus (8K nodes, variant a)"),
+            ("goto_8_13b.min.gz", "GOTO-8 grid-on-torus (8K nodes, variant b)"),
+            ("goto_8_13c.min.gz", "GOTO-8 grid-on-torus (8K nodes, variant c)"),
+            ("goto_8_14a.min.gz", "GOTO-8 grid-on-torus (16K nodes, variant a)"),
+            ("goto_8_14b.min.gz", "GOTO-8 grid-on-torus (16K nodes, variant b)"),
+        ],
+        "local_dir": "benchmarks/problems/lemon/goto",
+        "license": "LEMON: Boost 1.0 (library), GOTO instances: Public Domain",
+    },
 }
 
 
