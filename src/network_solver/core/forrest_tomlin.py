@@ -17,10 +17,10 @@ except ImportError:
     _HAS_NUMBA = False
 
     # Provide a no-op decorator when Numba is not available
-    def njit(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def njit(*args, **kwargs):  # type: ignore
         """No-op decorator fallback when Numba is not available."""
 
-        def decorator(func):  # type: ignore[no-untyped-def]
+        def decorator(func):  # type: ignore
             return func
 
         return decorator
