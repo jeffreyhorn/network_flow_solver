@@ -34,14 +34,14 @@ This directory is for storing DIMACS minimum cost flow benchmark instances from 
 
 ## Using Downloaded Instances
 
-Once you have downloaded `.dmx` files (DIMACS format), you can parse and solve them:
+Once you have downloaded `.min` files (DIMACS format), you can parse and solve them:
 
 ```python
 from benchmarks.parsers.dimacs import parse_dimacs_file
 from src.network_solver.solver import solve_min_cost_flow
 
 # Parse instance
-problem = parse_dimacs_file('benchmarks/problems/lemon/netgen/some-instance.dmx')
+problem = parse_dimacs_file('benchmarks/problems/lemon/netgen/netgen_8_08a.min')
 
 # Solve
 result = solve_min_cost_flow(problem)
