@@ -117,6 +117,7 @@ def validate_solution(
     result,
     problem,
     known_optimal: float | None,
+    arc_map: dict | None = None,
     tolerance: float = 1e-6,
 ) -> tuple[str, float | None, bool, bool]:
     """Validate solution correctness.
@@ -125,6 +126,8 @@ def validate_solution(
         result: FlowResult from solver.
         problem: NetworkProblem instance.
         known_optimal: Known optimal objective value (if available).
+        arc_map: Pre-computed mapping of (tail, head) -> Arc for efficiency.
+                If None, will be created (less efficient for repeated calls).
         tolerance: Tolerance for objective value comparison.
 
     Returns:
@@ -160,9 +163,11 @@ def validate_solution(
                 break
 
         # Check capacity constraints
-        # Need to find arcs by (tail, head) tuple
+        # Create arc_map if not provided (for efficiency when called repeatedly)
         capacity_ok = True
-        arc_map = {(arc.tail, arc.head): arc for arc in problem.arcs}
+        if arc_map is None:
+            arc_map = {(arc.tail, arc.head): arc for arc in problem.arcs}
+
         for (tail, head), flow_value in result.flows.items():
             if (tail, head) in arc_map:
                 arc = arc_map[(tail, head)]
@@ -275,8 +280,9 @@ def run_single_benchmark(
 
             # Validate solution
             if result and problem:
+                arc_map = {(arc.tail, arc.head): arc for arc in problem.arcs}
                 validation_status, objective_error, flow_conservation_ok, capacity_ok = (
-                    validate_solution(result, problem, known_optimal)
+                    validate_solution(result, problem, known_optimal, arc_map)
                 )
         else:
             # Unexpected state
