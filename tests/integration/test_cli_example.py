@@ -50,8 +50,15 @@ def test_example_cli_script_produces_solution(tmp_path: Path):
         cwd=tmp_path,
         capture_output=True,
         text=True,
-        check=True,
     )
+
+    # If the script failed, show the error output for debugging
+    if proc.returncode != 0:
+        pytest.fail(
+            f"Script failed with exit code {proc.returncode}\n"
+            f"STDOUT:\n{proc.stdout}\n"
+            f"STDERR:\n{proc.stderr}"
+        )
 
     assert "Solved sample_problem.json" in proc.stdout
     assert proc.stderr == ""
@@ -80,8 +87,15 @@ def test_dimacs_cli_script_produces_solution(tmp_path: Path):
         cwd=tmp_path,
         capture_output=True,
         text=True,
-        check=True,
     )
+
+    # If the script failed, show the error output for debugging
+    if proc.returncode != 0:
+        pytest.fail(
+            f"Script failed with exit code {proc.returncode}\n"
+            f"STDOUT:\n{proc.stdout}\n"
+            f"STDERR:\n{proc.stderr}"
+        )
 
     assert "Solved dimacs_small_problem.json" in proc.stdout
     assert proc.stderr == ""
@@ -113,8 +127,15 @@ def test_textbook_cli_script_produces_solution(tmp_path: Path):
         cwd=tmp_path,
         capture_output=True,
         text=True,
-        check=True,
     )
+
+    # If the script failed, show the error output for debugging
+    if proc.returncode != 0:
+        pytest.fail(
+            f"Script failed with exit code {proc.returncode}\n"
+            f"STDOUT:\n{proc.stdout}\n"
+            f"STDERR:\n{proc.stderr}"
+        )
 
     assert "Solved textbook_transport_problem.json" in proc.stdout
     assert proc.stderr == ""
@@ -143,8 +164,15 @@ def test_large_transport_cli_script(tmp_path: Path):
         cwd=tmp_path,
         capture_output=True,
         text=True,
-        check=True,
     )
+
+    # If the script failed, show the error output for debugging
+    if proc.returncode != 0:
+        pytest.fail(
+            f"Script failed with exit code {proc.returncode}\n"
+            f"STDOUT:\n{proc.stdout}\n"
+            f"STDERR:\n{proc.stderr}"
+        )
 
     assert "Solved large_transport_problem.json" in proc.stdout
     assert proc.stderr == ""
