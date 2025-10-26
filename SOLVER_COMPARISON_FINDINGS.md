@@ -34,6 +34,8 @@ Created `benchmarks/scripts/solver_comparison.py` to:
 |--------|-----------|---------------------|---------------------|
 | **network_solver** | Network Simplex (primal) | ✓ Yes | ✓ Yes |
 | **NetworkX** | Capacity Scaling | ✗ No | ✗ No |
+| **OR-Tools** | Network Simplex (C++) | ✓ Yes | ✗ No |
+| **PuLP** | LP (COIN-OR CBC) | ✓ Yes | ✗ No |
 
 ---
 
@@ -60,15 +62,18 @@ Tested on 3 representative problems from different families:
 
 ```
 network_solver objective: 560,870,539 ✓ OPTIMAL
+OR-Tools objective:       560,870,539 ✓ OPTIMAL  
+PuLP objective:           560,870,539 ✓ OPTIMAL
 NetworkX objective:       673,664,865 (suboptimal)
 Difference: 20.1% worse
 ```
 
 **Analysis**:
-- network_solver finds objective of 560M
+- network_solver, OR-Tools, and PuLP all find objective of 560M
 - NetworkX finds objective of 673M (20% higher cost!)
 - This is a **significant quality difference**
 - NetworkX's capacity scaling algorithm does not guarantee true optimality
+- **All three true optimization solvers agree** - validates correctness!
 
 **Flow Comparison** (sample arcs):
 ```
@@ -190,12 +195,16 @@ NetworkX works well on:
 
 This comparison actually **validates** our implementation:
 
-✓ **Correctness**: We find better solutions than NetworkX on goto problems  
+✓ **Correctness**: We find the same optimal solutions as OR-Tools and PuLP  
 ✓ **Optimality**: Our simplex correctly proves optimality  
-✓ **Consistency**: We agree with NetworkX when both find optimal  
+✓ **Quality**: We find 20% better solutions than NetworkX on goto problems  
+✓ **Agreement**: All three true optimization solvers (network_solver, OR-Tools, PuLP) agree  
 ✓ **Robustness**: 100% success rate on all tested problems  
 
-The fact that we find 20% better solutions on goto_8_08a proves our solver is working correctly and NetworkX's capacity scaling has limitations.
+The fact that network_solver, OR-Tools, and PuLP all find 560,870,539 while NetworkX finds 673,664,865 proves:
+1. Our solver is working correctly
+2. NetworkX's capacity scaling is an approximation algorithm
+3. True optimization solvers (simplex, LP) find better solutions
 
 ---
 

@@ -56,7 +56,8 @@ class PuLPAdapter(SolverAdapter):
 
             # Constraints: flow conservation at each node
             for node_id, node in problem.nodes.items():
-                # Inflow - outflow = supply
+                # outflow - inflow = supply
+                # (positive supply = source, negative supply = sink)
                 inflow = pulp.lpSum(
                     [
                         flow_vars[(arc.tail, arc.head, i)]
@@ -72,7 +73,7 @@ class PuLPAdapter(SolverAdapter):
                     ]
                 )
 
-                lp_prob += inflow - outflow == node.supply, f"flow_conservation_{node_id}"
+                lp_prob += outflow - inflow == node.supply, f"flow_conservation_{node_id}"
 
             # Solve
             start = time.perf_counter()
