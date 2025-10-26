@@ -201,8 +201,8 @@ The framework automatically detects when solvers disagree on the objective value
 | Solver | Speed | Solution Quality | Notes |
 |--------|-------|------------------|-------|
 | network_solver | Baseline | ✓ Optimal | Our implementation (Python) |
-| NetworkX | ~14x faster | ⚠️ Sometimes suboptimal | Fast approximation |
-| OR-Tools | 150-300x faster | ✓ Optimal | Highly optimized C++ |
+| NetworkX | ~14x faster (vs network_solver) | ⚠️ Sometimes suboptimal | Fast approximation |
+| OR-Tools | 150-300x faster (vs network_solver) | ✓ Optimal | Highly optimized C++ |
 | PuLP | Varies | ✓ Optimal | LP formulation (general solver) |
 
 ## Interpreting Performance Differences
