@@ -116,8 +116,9 @@ jobs:
           pip install "numpy<2.0" "scipy>=1.11"
           # Install build dependencies for scikit-umfpack
           pip install "meson-python" "ninja" "Cython>=3.0.0"
-          # Install scikit-umfpack without build isolation to use our numpy 1.x
-          pip install --no-build-isolation "scikit-umfpack>=0.4.2"
+          # Try to install scikit-umfpack from GitHub master (has newer fixes)
+          # Use --no-build-isolation to ensure we use numpy 1.x
+          pip install --no-build-isolation "git+https://github.com/scikit-umfpack/scikit-umfpack.git@master"
           # Now install the rest
           pip install -e ".[dev]"
 
