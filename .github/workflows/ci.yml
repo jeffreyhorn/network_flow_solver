@@ -87,11 +87,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install SuiteSparse (Ubuntu only - required for umfpack)
+      - name: Install SuiteSparse (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libsuitesparse-dev
+
+      - name: Install SuiteSparse (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install suite-sparse swig
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -103,22 +108,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-v2-${{ matrix.python-version }}-
 
-      - name: Install dependencies (Linux with umfpack)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev,umfpack]"
-        # Note: umfpack is an optional performance enhancement for sparse LU factorization
-        # Only install on Linux where scikit-umfpack builds reliably
-        # macOS: scikit-umfpack 0.4.2 incompatible with SuiteSparse 7.11+ and numpy 2.x
-        # Windows: scikit-umfpack not available (requires Unix build tools)
+        # Note: scikit-umfpack may fail on Windows, that's expected
+        continue-on-error: ${{ matrix.os == 'windows-latest' }}
 
-      - name: Install dependencies (macOS/Windows without umfpack)
-        if: matrix.os != 'ubuntu-latest'
+      - name: Install without umfpack on Windows
+        if: matrix.os == 'windows-latest'
         run: |
-          python -m pip install --upgrade pip
           pip install -e ".[dev]"
-        # Note: Solver works without umfpack using scipy's default sparse LU solver
 
       - name: Run unit tests
         run: |
