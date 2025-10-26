@@ -214,11 +214,31 @@ The framework automatically detects when solvers disagree on the objective value
 4. **Newer implementation** - Less profiling and optimization time
 
 ### Performance Context
-- **150-300x gap** is typical for Python vs highly-optimized C++ on algorithmic code
+
+**Honest Assessment:**
+- **150-300x gap is NOT typical** - expected Python/C++ gap is 10-50x
+- The larger gap indicates network_solver has room for further optimization
+- However, fundamental limits of pure Python mean it will never match C++ performance
 - **Solution quality**: Both find identical optimal solutions ✓
-- **Trade-off**: Python readability/maintainability vs C++ performance
-- **Use case**: network_solver prioritizes correctness, debuggability, and educational clarity
-- **When to use OR-Tools**: Production systems requiring maximum performance
+
+**When to Use Each Solver:**
+
+**Use OR-Tools when:**
+- Speed is critical (production systems, large-scale problems)
+- You need maximum performance (150-300x faster)
+- You're willing to use a black-box solver
+
+**Use network_solver when:**
+- Learning and understanding network simplex algorithm
+- Prototyping and Python ecosystem integration
+- Code clarity and debuggability are priorities
+- Research requiring customization
+- Small-to-medium problems (1-2 second solve times acceptable)
+- Educational purposes where implementation transparency matters
+
+**Trade-off Summary:**
+- **OR-Tools**: Fast ✓✓✓, Optimal ✓, Black box ✗, C++ only
+- **network_solver**: Fast ✗, Optimal ✓, Transparent ✓, Pure Python ✓, Educational ✓
 
 ## Programmatic Usage
 
@@ -296,14 +316,23 @@ except ImportError:
 - Use `--solvers network_solver ortools` to test exact solvers only
 - Exclude slow solvers: `--solvers network_solver networkx ortools`
 
-## Performance Optimization Tips
+## Performance Recommendations
 
-Based on comparison results, consider:
+**Be realistic about performance needs:**
 
-1. **If you need speed**: Use OR-Tools for production
-2. **If you need control**: Use network_solver (dual values, diagnostics)
-3. **If you need quick approximation**: Use NetworkX
-4. **For validation**: Compare against multiple solvers
+1. **Need maximum speed?** → Use OR-Tools (150-300x faster, production-ready)
+2. **Learning/research?** → Use network_solver (clear, customizable, debuggable)
+3. **Need quick approximation?** → Use NetworkX (fast but may be suboptimal)
+4. **Validation/testing?** → Compare network_solver vs OR-Tools for correctness
+
+**Don't expect:**
+- network_solver to match OR-Tools on speed (fundamental Python limitations)
+- NetworkX to always find optimal solutions (approximation algorithm)
+
+**Do expect:**
+- All optimization solvers (network_solver, OR-Tools, PuLP) to agree on optimal solutions
+- network_solver to be useful for problems where 1-2 second solves are acceptable
+- Clear trade-offs between speed, transparency, and ease of use
 
 ## References
 

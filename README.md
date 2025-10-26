@@ -115,10 +115,21 @@ Winner (Fastest Solver) per Problem:
 **Key Findings:**
 - All optimization solvers (network_solver, OR-Tools, PuLP) find identical optimal solutions ✓
 - NetworkX sometimes returns suboptimal solutions (20% worse on some problems)
-- OR-Tools is 150-300x faster (highly optimized C++ vs Python)
+- **OR-Tools is 150-300x faster** (highly optimized C++ vs Python)
   - Example: gridgen_8_08a - network_solver: 1843ms, OR-Tools: 12ms (158x speedup)
-- This performance gap is typical for Python vs highly-optimized C++ implementations
 - PuLP is generally slower than OR-Tools but faster than network_solver
+
+**Performance Context:**
+- **network_solver is NOT competitive on speed** with production C++ solvers
+- The 150-300x gap is larger than typical Python/C++ differences (usually 10-50x)
+- This indicates room for further optimization, but fundamental limits of pure Python remain
+- **Use OR-Tools for production** when speed is critical
+- **Use network_solver for:**
+  - Learning and understanding network simplex algorithm
+  - Prototyping and Python ecosystem integration
+  - Educational purposes where code clarity matters
+  - Research requiring customization and debugging capabilities
+  - Small-to-medium problems where 1-2 second solve times are acceptable
 
 **Use Cases:**
 - **Correctness validation**: Verify network_solver finds true optimal solutions

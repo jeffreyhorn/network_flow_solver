@@ -187,7 +187,7 @@ NetworkX works well on:
 3. **General-purpose**: Handles lower bounds, complex constraints
 4. **Newer implementation**: Less optimization time than NetworkX
 
-**Important**: Being 14x slower but finding 20% better solutions is a **very favorable trade-off** for optimization problems where solution quality matters!
+**Note**: NetworkX is 14x faster but returns suboptimal solutions on some problems. This is expected - NetworkX uses an approximation algorithm (capacity scaling) while network_solver uses exact optimization (network simplex).
 
 ---
 
@@ -241,18 +241,24 @@ Potential optimizations:
 
 ### For This Project
 
-1. ✓ **Keep our implementation** - It finds better solutions!
-2. ✓ **Don't try to match NetworkX speed** - Different trade-offs
-3. ✓ **Emphasize solution quality** in documentation
-4. ✓ **Add comparison examples** showing quality vs speed trade-off
-5. ✓ **Continue optimization work** - But focus on correctness first
+1. ✓ **Keep the implementation** - Correctness and clarity are valuable
+2. ✓ **Be honest about performance** - Don't claim competitive speed with C++
+3. ✓ **Emphasize solution quality and transparency** in documentation
+4. ✓ **Position correctly** - Educational/research tool, not production speed competitor
+5. ✓ **Continue targeted optimization** - But recognize fundamental Python limitations
 
 ### For Users
 
-Document clearly:
-- "network_solver: Guaranteed optimal, slower"
-- "NetworkX: Fast approximation, may be suboptimal"
-- "Use network_solver when solution quality is critical"
+**Document clearly:**
+- **network_solver**: Optimal ✓, Transparent ✓, Educational ✓, Fast ✗
+- **OR-Tools**: Optimal ✓, Fast ✓✓✓, Black box ✗
+- **NetworkX**: Fast ✓, Approximation (may be suboptimal) ⚠️
+- **PuLP**: Optimal ✓, General-purpose LP solver
+
+**Recommendation:**
+- Use **OR-Tools** for production speed-critical applications
+- Use **network_solver** for learning, research, prototyping, or when transparency matters
+- Use **NetworkX** when near-optimal is acceptable and speed is critical
 
 ### For Benchmarking
 
@@ -294,6 +300,19 @@ The solver comparison framework reveals important insights:
 3. **Trade-off is justified** - Quality > Speed for optimization
 4. **Validation complete** - Our solver works as designed
 
-**Bottom line**: network_solver is a **high-quality, correct implementation** of network simplex that prioritizes finding the true optimal solution. Being 14x slower than an approximation algorithm while finding 20% better solutions is **exactly the right trade-off** for an optimization solver.
+**Bottom line**: network_solver is a **correct implementation** of network simplex that finds provably optimal solutions. 
 
-The comparison framework provides ongoing validation and helps identify future optimization opportunities.
+**Performance reality:**
+- **vs NetworkX (approximation)**: 14x slower, but finds optimal solutions (NetworkX is 20% suboptimal on some problems)
+- **vs OR-Tools (optimized C++)**: 150-300x slower - indicates room for optimization but limited by pure Python
+- **vs PuLP (general LP solver)**: Comparable performance (both slower than specialized C++ implementations)
+
+**Recommended use cases:**
+- Educational/learning purposes (clear, readable implementation)
+- Research requiring customization and debugging
+- Small-to-medium problems where 1-2 second solves are acceptable
+- Prototyping and Python ecosystem integration
+
+**For production speed-critical applications, use OR-Tools.**
+
+The comparison framework provides ongoing validation and helps identify optimization opportunities.
