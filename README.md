@@ -36,12 +36,32 @@ pip install -e ".[visualization]"
 # Or install with JIT compilation support (optional performance boost)
 pip install -e ".[jit]"
 
+# Or install with solver comparison framework (compare vs OR-Tools, NetworkX, PuLP)
+pip install -e ".[comparison]"
+
 # Or install everything
 pip install -e ".[all]"
 
 # Or install runtime only
 pip install -e .
 ```
+
+### Solver Comparison Framework
+
+Compare network_solver against other implementations (OR-Tools, NetworkX, PuLP):
+
+```bash
+# Install comparison dependencies
+pip install -e ".[comparison]"
+
+# List available solvers
+python benchmarks/scripts/solver_comparison.py --list-solvers
+
+# Compare on benchmark problems
+python benchmarks/scripts/solver_comparison.py --limit 10
+```
+
+See [docs/SOLVER_COMPARISON.md](docs/SOLVER_COMPARISON.md) for detailed usage and results.
 
 ### Optional Performance Features
 

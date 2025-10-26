@@ -2,9 +2,12 @@
 """
 Solver Comparison Framework
 
-Compares the performance and correctness of different network simplex implementations:
-- network_solver (this implementation)
-- NetworkX (capacity scaling algorithm)
+Compares the performance and correctness of different network flow implementations:
+- network_solver (this implementation - always available)
+- NetworkX (capacity scaling - always available)
+- Google OR-Tools (optional: pip install ortools)
+- PuLP (optional: pip install pulp)
+- LEMON (optional: requires manual C++ compilation - not available via pip)
 
 The framework runs the same problems through each solver and measures:
 - Solve time
@@ -12,33 +15,20 @@ The framework runs the same problems through each solver and measures:
 - Correctness (flow conservation, capacity constraints)
 - Success rate
 
-This helps validate our implementation and identify performance gaps.
+Optional solvers are automatically detected and included if installed.
 """
 
-import json
-import time
-from dataclasses import dataclass
+import sys
 from pathlib import Path
-from typing import Any
 
-import networkx as nx
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from benchmarks.parsers.dimacs import parse_dimacs_file
-from src.network_solver.data import FlowResult, NetworkProblem
-from src.network_solver.solver import solve_min_cost_flow
-
-
-@dataclass
-class SolverResult:
-    """Results from a single solver run."""
-
-    solver_name: str
-    problem_name: str
-    status: str  # 'optimal', 'infeasible', 'timeout', 'error'
-    objective: float | None
-    solve_time_ms: float
-    iterations: int | None  # None if solver doesn't report
-    error_message: str | None = None
+from benchmarks.solvers import get_available_solvers, get_solver_names
+from benchmarks.solvers.base import SolverResult
+from src.network_solver.data import NetworkProblem
+from dataclasses import dataclass
 
 
 @dataclass
@@ -71,103 +61,6 @@ class ComparisonResult:
 
 
 # ==============================================================================
-# Solver Adapters
-# ==============================================================================
-
-
-class NetworkSolverAdapter:
-    """Adapter for our network_solver implementation."""
-
-    name = "network_solver"
-
-    @staticmethod
-    def solve(problem: NetworkProblem, timeout_s: float = 60.0) -> SolverResult:
-        """Solve using network_solver."""
-        try:
-            start = time.perf_counter()
-            result = solve_min_cost_flow(problem, max_iterations=100000)
-            elapsed_ms = (time.perf_counter() - start) * 1000
-
-            return SolverResult(
-                solver_name="network_solver",
-                problem_name="",  # Will be set by caller
-                status=result.status,
-                objective=result.objective if result.status == "optimal" else None,
-                solve_time_ms=elapsed_ms,
-                iterations=result.iterations,
-            )
-        except Exception as e:
-            return SolverResult(
-                solver_name="network_solver",
-                problem_name="",
-                status="error",
-                objective=None,
-                solve_time_ms=0.0,
-                iterations=None,
-                error_message=str(e),
-            )
-
-
-class NetworkXAdapter:
-    """Adapter for NetworkX min_cost_flow."""
-
-    name = "networkx"
-
-    @staticmethod
-    def solve(problem: NetworkProblem, timeout_s: float = 60.0) -> SolverResult:
-        """Solve using NetworkX."""
-        try:
-            # Convert problem to NetworkX format
-            G = nx.DiGraph()
-
-            # Add nodes with demand (NetworkX uses opposite sign)
-            for node_id, node in problem.nodes.items():
-                G.add_node(node_id, demand=-node.supply)
-
-            # Add arcs
-            expanded_arcs = problem.undirected_expansion()
-            for arc in expanded_arcs:
-                capacity = arc.capacity if arc.capacity is not None else float("inf")
-                G.add_edge(arc.tail, arc.head, weight=arc.cost, capacity=capacity)
-
-            # Solve
-            start = time.perf_counter()
-            flow_dict = nx.min_cost_flow(G)
-            elapsed_ms = (time.perf_counter() - start) * 1000
-
-            # Calculate objective
-            objective = nx.cost_of_flow(G, flow_dict)
-
-            return SolverResult(
-                solver_name="networkx",
-                problem_name="",
-                status="optimal",
-                objective=objective,
-                solve_time_ms=elapsed_ms,
-                iterations=None,  # NetworkX doesn't report iterations
-            )
-        except nx.NetworkXUnfeasible:
-            return SolverResult(
-                solver_name="networkx",
-                problem_name="",
-                status="infeasible",
-                objective=None,
-                solve_time_ms=0.0,
-                iterations=None,
-            )
-        except Exception as e:
-            return SolverResult(
-                solver_name="networkx",
-                problem_name="",
-                status="error",
-                objective=None,
-                solve_time_ms=0.0,
-                iterations=None,
-                error_message=str(e),
-            )
-
-
-# ==============================================================================
 # Comparison Framework
 # ==============================================================================
 
@@ -175,11 +68,25 @@ class NetworkXAdapter:
 class SolverComparison:
     """Framework for comparing network flow solvers."""
 
-    def __init__(self, solvers: list[Any] | None = None):
-        """Initialize with list of solver adapters."""
+    def __init__(self, solvers: list | None = None):
+        """Initialize with list of solver adapters.
+
+        Args:
+            solvers: List of solver adapter classes. If None, uses all available solvers.
+        """
         if solvers is None:
-            solvers = [NetworkSolverAdapter, NetworkXAdapter]
+            solvers = get_available_solvers()
         self.solvers = solvers
+
+    def print_available_solvers(self):
+        """Print information about available solvers."""
+        print("Available solvers:")
+        for solver_class in self.solvers:
+            version = solver_class.get_version()
+            version_str = f"v{version}" if version else "(version unknown)"
+            print(f"  - {solver_class.display_name} ({solver_class.name}) {version_str}")
+            print(f"    {solver_class.description}")
+        print()
 
     def compare_problem(self, problem_path: str, timeout_s: float = 60.0) -> ComparisonResult:
         """Run all solvers on a single problem and compare results."""
@@ -359,7 +266,28 @@ def main():
     """Run solver comparison on benchmark problems."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Compare network flow solvers")
+    parser = argparse.ArgumentParser(
+        description="Compare network flow solvers",
+        epilog="""
+Examples:
+  # List available solvers
+  python solver_comparison.py --list-solvers
+
+  # Compare on 10 problems
+  python solver_comparison.py --limit 10
+
+  # Compare specific problems
+  python solver_comparison.py --problems benchmarks/problems/lemon/goto/*.min
+
+  # Install optional solvers:
+  pip install ortools pulp
+        """,
+    )
+    parser.add_argument(
+        "--list-solvers",
+        action="store_true",
+        help="List available solvers and exit",
+    )
     parser.add_argument(
         "--problems",
         nargs="+",
@@ -385,8 +313,30 @@ def main():
         type=int,
         help="Limit number of problems to test",
     )
+    parser.add_argument(
+        "--solvers",
+        nargs="+",
+        help="Specific solvers to use (default: all available)",
+    )
 
     args = parser.parse_args()
+
+    # Create comparison framework
+    comparison = SolverComparison()
+
+    # Handle --list-solvers
+    if args.list_solvers:
+        print("\n" + "=" * 70)
+        print("AVAILABLE NETWORK FLOW SOLVERS")
+        print("=" * 70 + "\n")
+        comparison.print_available_solvers()
+        print("To install optional solvers:")
+        print("  pip install 'network-flow-solver[comparison]'")
+        print("  # or individually:")
+        print("  pip install ortools")
+        print("  pip install pulp")
+        print()
+        return
 
     # Get problem list
     if args.problems:
@@ -403,7 +353,6 @@ def main():
         return
 
     # Run comparison
-    comparison = SolverComparison()
     results = comparison.compare_suite(problem_paths, timeout_s=args.timeout)
 
     # Generate and print report

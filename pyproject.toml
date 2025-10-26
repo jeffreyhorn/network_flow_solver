@@ -69,9 +69,15 @@ jit = [
     "numba>=0.58.0"
 ]
 
+# Solver comparison framework - compare against other network flow implementations
+comparison = [
+    "ortools>=9.7.0",      # Google OR-Tools (highly optimized C++)
+    "pulp>=2.7.0",         # PuLP linear programming with COIN-OR
+]
+
 # All optional dependencies combined
 all = [
-    "network-flow-solver[dev,umfpack,tutorial,visualization]"
+    "network-flow-solver[dev,umfpack,tutorial,visualization,jit,comparison]"
 ]
 
 [project.urls]
