@@ -222,6 +222,8 @@ class NetworkSimplex:
         self.original_costs = [arc.cost for arc in self.arcs]
         self.perturbed_costs = [arc.cost for arc in self.arcs]
         self._apply_cost_perturbation()
+        # Rebuild vectorized arrays to include perturbed costs
+        self._build_vectorized_arrays()
         self._initialize_tree()
         self._rebuild_tree_structure()
         self._reset_devex_weights()
