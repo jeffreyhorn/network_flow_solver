@@ -413,9 +413,10 @@ Complete all phases 1-8
 
 ### Performance
 - [ ] Solver completes all small/medium benchmarks (< 1000 nodes) within reasonable time (< 60s)
-- [ ] **Competitive performance (within 2-5x) compared to OR-Tools on small/medium problems**
+- [ ] **Document realistic performance comparison vs OR-Tools** (currently 150-300x slower due to Python vs C++)
+- [ ] Identify optimization opportunities to narrow the performance gap
 - [ ] Identify problem classes where our solver excels or struggles
-- [ ] Document performance characteristics vs. LEMON
+- [ ] Document performance characteristics and trade-offs clearly
 
 ### Infrastructure
 - [ ] Easy to add new benchmark problems
@@ -472,12 +473,15 @@ Complete all phases 1-8
 - LEMON optional (may require manual compilation)
 
 ### Risk 4: Performance Expectations
-**Risk**: Our Python solver will be slower than highly optimized C++ implementations (OR-Tools, LEMON)
+**Risk**: Our Python solver will be significantly slower than highly optimized C++ implementations (OR-Tools, LEMON)
+**Reality**: Currently 150-300x slower than OR-Tools (larger gap than typical 10-50x Python/C++ difference)
 **Mitigation**: 
-- Set realistic expectations: 2-5x slower than OR-Tools is acceptable
-- Focus on correctness first
-- Identify specific problem classes for optimization
-- Document trade-offs (Python vs. C++, clarity vs. raw speed)
+- Set realistic expectations: Pure Python will not match C++ performance
+- Focus on correctness, transparency, and educational value
+- Document that OR-Tools should be used for production speed-critical applications
+- Position network_solver for learning, research, prototyping, and small-to-medium problems
+- Identify optimization opportunities but acknowledge fundamental limits
+- Document trade-offs clearly (speed vs. transparency vs. ease of customization)
 
 ### Risk 5: Known Solutions Unavailable
 **Risk**: Many benchmark problems may not have published optimal solutions

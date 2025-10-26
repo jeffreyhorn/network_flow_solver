@@ -6,9 +6,9 @@ if degeneracy is a significant factor limiting performance.
 """
 
 import time
+
 from benchmarks.parsers.dimacs import parse_dimacs_file
 from src.network_solver.solver import solve_min_cost_flow
-from src.network_solver.data import SolverOptions
 
 
 def measure_degeneracy(problem_file: str, problem_name: str):

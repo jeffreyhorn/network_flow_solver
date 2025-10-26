@@ -3,6 +3,7 @@
 
 import logging
 import sys
+
 from benchmarks.parsers.dimacs import parse_dimacs_file
 from src.network_solver.solver import solve_min_cost_flow
 

@@ -2,9 +2,10 @@
 """Simple test script to measure performance with different rebuild parameters."""
 
 import time
+
 from benchmarks.parsers.dimacs import parse_dimacs_file
-from src.network_solver.solver import solve_min_cost_flow
 from src.network_solver.data import SolverOptions
+from src.network_solver.solver import solve_min_cost_flow
 
 
 def test_config(problem_file: str, config_name: str, **options):
