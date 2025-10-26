@@ -279,13 +279,13 @@ def validate_numeric_properties(
         if high_warnings:
             msg = "High-severity numeric issues detected:\n"
             for w in high_warnings:
-                msg += f"  - {w.message}\n    → {w.recommendation}\n"
+                msg += f"  - {w.message}\n    > {w.recommendation}\n"
             warnings.warn(msg, UserWarning, stacklevel=2)
 
         if medium_warnings:
             msg = "Medium-severity numeric issues detected:\n"
             for w in medium_warnings:
-                msg += f"  - {w.message}\n    → {w.recommendation}\n"
+                msg += f"  - {w.message}\n    > {w.recommendation}\n"
             warnings.warn(msg, UserWarning, stacklevel=2)
 
         if low_warnings and len(low_warnings) > 0:
@@ -302,5 +302,5 @@ def validate_numeric_properties(
         if high_warnings:
             error_msg = "Problem has high-severity numeric issues:\n"
             for w in high_warnings:
-                error_msg += f"  - {w.message}\n    → {w.recommendation}\n"
+                error_msg += f"  - {w.message}\n    > {w.recommendation}\n"
             raise ValueError(error_msg)

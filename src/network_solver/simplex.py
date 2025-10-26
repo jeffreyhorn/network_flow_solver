@@ -1623,7 +1623,7 @@ class NetworkSimplex:
 
         # Print degeneracy stats for analysis (visible even with default logging)
         print(
-            f"  → Degeneracy: {self.degenerate_pivots}/{total_iterations} pivots ({degeneracy_rate:.1f}%)"
+            f"  > Degeneracy: {self.degenerate_pivots}/{total_iterations} pivots ({degeneracy_rate:.1f}%)"
         )
 
         # Determine final status
