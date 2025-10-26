@@ -1619,6 +1619,11 @@ class NetworkSimplex:
             },
         )
 
+        # Print degeneracy stats for analysis (visible even with default logging)
+        print(
+            f"  → Degeneracy: {self.degenerate_pivots}/{total_iterations} pivots ({degeneracy_rate:.1f}%)"
+        )
+
         # Determine final status
         # If we hit the iteration limit, check if the solution is actually optimal
         if total_iterations >= max_iterations:
