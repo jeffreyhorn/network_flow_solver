@@ -114,6 +114,8 @@ jobs:
           python -m pip install --upgrade pip
           # Install numpy<2.0 and scipy first for scikit-umfpack build
           pip install "numpy<2.0" "scipy>=1.11"
+          # Install build dependencies for scikit-umfpack
+          pip install "meson-python" "ninja" "Cython>=3.0.0"
           # Install scikit-umfpack without build isolation to use our numpy 1.x
           pip install --no-build-isolation "scikit-umfpack>=0.4.2"
           # Now install the rest
