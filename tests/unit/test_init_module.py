@@ -40,9 +40,11 @@ class TestVisualizationStubs:
         # Test the fallback behavior by simulating ImportError during module load
         import importlib
 
-        # Save references to modules we'll be manipulating
-        network_solver_backup = sys.modules.get("network_solver")
-        viz_backup = sys.modules.get("network_solver.visualization")
+        # Save ALL network_solver submodules before manipulating
+        saved_modules = {}
+        for module_name in list(sys.modules.keys()):
+            if module_name.startswith("network_solver"):
+                saved_modules[module_name] = sys.modules[module_name]
 
         try:
             # Clear module cache to allow fresh import
@@ -92,11 +94,9 @@ class TestVisualizationStubs:
                 if module_name.startswith("network_solver"):
                     del sys.modules[module_name]
 
-            # Restore original modules
-            if network_solver_backup is not None:
-                sys.modules["network_solver"] = network_solver_backup
-            if viz_backup is not None:
-                sys.modules["network_solver.visualization"] = viz_backup
+            # Restore ALL original modules in the correct order
+            for module_name, module_obj in saved_modules.items():
+                sys.modules[module_name] = module_obj
 
     def test_version_is_defined(self):
         """Test that __version__ is defined."""
