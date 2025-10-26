@@ -11,6 +11,7 @@ import time
 from ortools.graph.python import min_cost_flow
 
 from src.network_solver.data import NetworkProblem
+
 from .base import SolverAdapter, SolverResult
 
 
@@ -109,7 +110,7 @@ class ORToolsAdapter(SolverAdapter):
     def is_available(cls) -> bool:
         """Check if OR-Tools is installed."""
         try:
-            import ortools.graph.python.min_cost_flow
+            import ortools.graph.python.min_cost_flow  # noqa: F401
 
             return True
         except ImportError:

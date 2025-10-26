@@ -16,6 +16,7 @@ See: https://lemon.cs.elte.hu/
 """
 
 from src.network_solver.data import NetworkProblem
+
 from .base import SolverAdapter, SolverResult
 
 

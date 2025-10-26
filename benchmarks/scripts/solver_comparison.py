@@ -24,11 +24,11 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from benchmarks.parsers.dimacs import parse_dimacs_file
-from benchmarks.solvers import get_available_solvers, get_solver_names
-from benchmarks.solvers.base import SolverResult
-from src.network_solver.data import NetworkProblem
 from dataclasses import dataclass
+
+from benchmarks.parsers.dimacs import parse_dimacs_file
+from benchmarks.solvers import get_available_solvers
+from benchmarks.solvers.base import SolverResult
 
 
 @dataclass

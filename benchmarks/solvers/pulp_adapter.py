@@ -11,6 +11,7 @@ import time
 import pulp
 
 from src.network_solver.data import NetworkProblem
+
 from .base import SolverAdapter, SolverResult
 
 
@@ -129,7 +130,7 @@ class PuLPAdapter(SolverAdapter):
     def is_available(cls) -> bool:
         """Check if PuLP is installed."""
         try:
-            import pulp
+            import pulp  # noqa: F401
 
             return True
         except ImportError:

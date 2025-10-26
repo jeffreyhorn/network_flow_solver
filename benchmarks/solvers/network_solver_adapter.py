@@ -4,6 +4,7 @@ import time
 
 from src.network_solver.data import NetworkProblem
 from src.network_solver.solver import solve_min_cost_flow
+
 from .base import SolverAdapter, SolverResult
 
 

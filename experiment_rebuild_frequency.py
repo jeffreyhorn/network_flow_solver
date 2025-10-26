@@ -6,9 +6,10 @@ to find the optimal balance between rebuild frequency and performance.
 """
 
 import time
+
 from benchmarks.parsers.dimacs import parse_dimacs_file
-from src.network_solver.solver import solve_min_cost_flow
 from src.network_solver.data import SolverOptions
+from src.network_solver.solver import solve_min_cost_flow
 
 
 def test_configuration(problem_file: str, options: SolverOptions, config_name: str):

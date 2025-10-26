@@ -5,6 +5,7 @@ import time
 import networkx as nx
 
 from src.network_solver.data import NetworkProblem
+
 from .base import SolverAdapter, SolverResult
 
 
@@ -25,25 +26,25 @@ class NetworkXAdapter(SolverAdapter):
         """Solve using NetworkX."""
         try:
             # Convert problem to NetworkX format
-            G = nx.DiGraph()
+            graph = nx.DiGraph()
 
             # Add nodes with demand (NetworkX uses opposite sign)
             for node_id, node in problem.nodes.items():
-                G.add_node(node_id, demand=-node.supply)
+                graph.add_node(node_id, demand=-node.supply)
 
             # Add arcs
             expanded_arcs = problem.undirected_expansion()
             for arc in expanded_arcs:
                 capacity = arc.capacity if arc.capacity is not None else float("inf")
-                G.add_edge(arc.tail, arc.head, weight=arc.cost, capacity=capacity)
+                graph.add_edge(arc.tail, arc.head, weight=arc.cost, capacity=capacity)
 
             # Solve
             start = time.perf_counter()
-            flow_dict = nx.min_cost_flow(G)
+            flow_dict = nx.min_cost_flow(graph)
             elapsed_ms = (time.perf_counter() - start) * 1000
 
             # Calculate objective
-            objective = nx.cost_of_flow(G, flow_dict)
+            objective = nx.cost_of_flow(graph, flow_dict)
 
             return SolverResult(
                 solver_name=cls.name,
