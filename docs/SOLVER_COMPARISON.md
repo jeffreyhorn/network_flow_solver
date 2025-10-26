@@ -145,17 +145,17 @@ Success Rate:
 
 Performance Comparison (3 problems both solved):
 
-  Average speedup (network_solver / ortools): 4.2x
-  ortools is faster on average
+  Average speedup (network_solver / ortools): 150-300x
+  ortools is significantly faster on average
 
 Detailed Results:
 
 ┌─────────────────────────┬────────┬────────┬───────────────────────────────────────┐
 │ Problem                 │ Nodes  │ Arcs   │ Solve Time (ms)                       │
 ├─────────────────────────┼────────┼────────┼───────────────────────────────────────┤
-│ gridgen_8_08a           │    257 │   2056 │ network_solver:1720  ortools:412      │
-│ netgen_8_08a            │    256 │   2048 │ network_solver:1381  ortools:328      │
-│ goto_8_08a              │    256 │   2048 │ network_solver:7548  ortools:1842     │
+│ gridgen_8_08a           │    257 │   2056 │ network_solver:1843  ortools:12       │
+│ netgen_8_08a            │    256 │   2048 │ network_solver:~1500 ortools:~10      │
+│ goto_8_08a              │    256 │   2048 │ network_solver:~8000 ortools:~50      │
 └─────────────────────────┴────────┴────────┴───────────────────────────────────────┘
 
 Winner (Fastest Solver) per Problem:
@@ -194,27 +194,31 @@ The framework automatically detects when solvers disagree on the objective value
 
 | Solver | Speed | Solution Quality | Notes |
 |--------|-------|------------------|-------|
-| network_solver | Baseline | ✓ Optimal | Our implementation |
+| network_solver | Baseline | ✓ Optimal | Our implementation (Python) |
 | NetworkX | ~14x faster | ⚠️ Sometimes suboptimal | Fast approximation |
-| OR-Tools | ~4x faster | ✓ Optimal | Highly optimized C++ |
-| PuLP | ~2x slower | ✓ Optimal | LP formulation (general solver) |
+| OR-Tools | 150-300x faster | ✓ Optimal | Highly optimized C++ |
+| PuLP | Varies | ✓ Optimal | LP formulation (general solver) |
 
 ## Interpreting Performance Differences
 
 ### Why is OR-Tools faster?
-1. **C++ implementation** - Compiled vs Python
-2. **Years of optimization** - Google's production-quality code
-3. **Low-level optimizations** - Memory layout, vectorization
+1. **C++ implementation** - Compiled native code vs Python interpreted
+2. **Years of optimization** - Google's production-quality code with extensive profiling
+3. **Low-level optimizations** - Memory layout, SIMD vectorization, cache optimization
+4. **Specialized data structures** - Highly-tuned sparse matrix operations
 
-### Why is network_solver competitive?
-1. **Good algorithms** - Devex pricing, adaptive tuning
-2. **Efficient Python** - NumPy vectorization, smart data structures
-3. **Recent optimizations** - 5.17x speedup from Phases 1-3
+### Why is network_solver slower?
+1. **Python overhead** - Interpreted language with dynamic typing
+2. **NumPy abstraction** - While fast, still slower than hand-optimized C++
+3. **General-purpose design** - Supports diagnostics, logging, rich features
+4. **Newer implementation** - Less profiling and optimization time
 
-### Being 4x slower than OR-Tools is excellent!
-- **Python vs C++**: Typical gap is 10-100x
-- **Solution quality**: Both find true optimal
+### Performance Context
+- **150-300x gap** is typical for Python vs highly-optimized C++ on algorithmic code
+- **Solution quality**: Both find identical optimal solutions ✓
 - **Trade-off**: Python readability/maintainability vs C++ performance
+- **Use case**: network_solver prioritizes correctness, debuggability, and educational clarity
+- **When to use OR-Tools**: Production systems requiring maximum performance
 
 ## Programmatic Usage
 

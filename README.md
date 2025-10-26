@@ -105,8 +105,8 @@ Success Rate:
   pulp                : 3/3 (100.0%)
 
 Performance Comparison:
-  Average speedup (network_solver / ortools): 4.2x
-  ortools is faster on average
+  Average speedup (network_solver / ortools): 150-300x
+  ortools is significantly faster on average
   
 Winner (Fastest Solver) per Problem:
   ortools             : 3 wins
@@ -115,9 +115,10 @@ Winner (Fastest Solver) per Problem:
 **Key Findings:**
 - All optimization solvers (network_solver, OR-Tools, PuLP) find identical optimal solutions ✓
 - NetworkX sometimes returns suboptimal solutions (20% worse on some problems)
-- OR-Tools is ~4x faster (highly optimized C++ vs Python)
-- Being 4x slower than OR-Tools is excellent for Python implementation (typical gap is 10-100x)
-- PuLP is ~2x slower (general LP solver vs specialized network simplex)
+- OR-Tools is 150-300x faster (highly optimized C++ vs Python)
+  - Example: gridgen_8_08a - network_solver: 1843ms, OR-Tools: 12ms (158x speedup)
+- This performance gap is typical for Python vs highly-optimized C++ implementations
+- PuLP is generally slower than OR-Tools but faster than network_solver
 
 **Use Cases:**
 - **Correctness validation**: Verify network_solver finds true optimal solutions
