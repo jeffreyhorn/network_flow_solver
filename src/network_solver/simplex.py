@@ -1177,6 +1177,8 @@ class NetworkSimplex:
             )
         theta = max(0.0, theta)
 
+        # Update flows for all arcs in the cycle
+        # cycle is a list of (arc_index, direction) tuples from collect_cycle()
         for idx, sign in cycle:
             arc = self.arcs[idx]
             arc.flow += sign * theta
@@ -1185,7 +1187,7 @@ class NetworkSimplex:
             if not math.isinf(arc.upper) and arc.flow > arc.upper + self.tolerance:
                 arc.flow = arc.upper
 
-            # Update vectorized arrays directly (avoid full sync overhead)
+            # Update vectorized arrays directly using arc index (avoid full sync overhead)
             self.arc_flows[idx] = arc.flow
             # Update residuals for this arc
             if math.isinf(arc.upper):
