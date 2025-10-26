@@ -1,14 +1,9 @@
 """Additional tests to improve forrest_tomlin.py coverage to >90%."""
 
-import sys
-from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 import pytest
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from network_solver.core.forrest_tomlin import ForrestTomlin
 

@@ -2,8 +2,6 @@
 
 import logging
 
-import pytest
-
 from network_solver.data import SolverOptions
 from network_solver.simplex_adaptive import AdaptiveTuner
 

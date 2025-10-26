@@ -1,16 +1,8 @@
 """Additional tests to improve basis.py coverage to >90%."""
 
-import sys
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
 import numpy as np
-import pytest
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
-
-from network_solver.data import Arc, NetworkProblem, Node, SolverOptions, build_problem
+from network_solver.data import SolverOptions, build_problem
 from network_solver.simplex import NetworkSimplex
 
 
@@ -123,7 +115,7 @@ class TestRebuildEdgeCases:
         assert basis.ft_engine is None
 
         # Restore original arc states
-        for idx, (tail, head, in_tree) in enumerate(original_arcs):
+        for idx, (_tail, _head, in_tree) in enumerate(original_arcs):
             solver.arcs[idx].in_tree = in_tree
 
 
