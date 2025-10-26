@@ -76,6 +76,29 @@ python benchmarks/scripts/solver_comparison.py \
   --pattern "benchmarks/problems/lemon/**/*_8_08a.min"
 ```
 
+### Compare Specific Solvers
+```bash
+# Compare only exact optimization solvers (exclude approximation algorithms)
+python benchmarks/scripts/solver_comparison.py --solvers network_solver ortools pulp --limit 10
+
+# Compare just OR-Tools vs PuLP (both C++ backends)
+python benchmarks/scripts/solver_comparison.py --solvers ortools pulp --limit 10
+
+# Benchmark single solver
+python benchmarks/scripts/solver_comparison.py --solvers network_solver --limit 10
+
+# Compare network_solver vs OR-Tools only
+python benchmarks/scripts/solver_comparison.py --solvers network_solver ortools --limit 10
+```
+
+The `--solvers` argument accepts a list of solver names:
+- `network_solver` - Our network simplex implementation
+- `networkx` - NetworkX capacity scaling
+- `ortools` - Google OR-Tools network simplex
+- `pulp` - PuLP LP formulation with COIN-OR
+
+If `--solvers` is not specified, all available solvers are used.
+
 ### Compare on Limited Set
 ```bash
 # First 10 problems
@@ -266,7 +289,8 @@ except ImportError:
 
 ### Memory issues on large problems
 - Limit concurrent solvers
-- Use `--solvers network_solver networkx` to test subset
+- Use `--solvers network_solver ortools` to test exact solvers only
+- Exclude slow solvers: `--solvers network_solver networkx ortools`
 
 ## Performance Optimization Tips
 
