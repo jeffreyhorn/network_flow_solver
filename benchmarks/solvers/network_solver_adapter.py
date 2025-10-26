@@ -47,6 +47,15 @@ class NetworkSolverAdapter(SolverAdapter):
             )
 
     @classmethod
+    def is_available(cls) -> bool:
+        """Check if network_solver is available.
+
+        network_solver is the core package, so this always returns True.
+        This method exists for consistency with other adapter classes.
+        """
+        return True
+
+    @classmethod
     def get_version(cls) -> str | None:
         """Get version of network_solver."""
         try:

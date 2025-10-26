@@ -79,6 +79,16 @@ class NetworkXAdapter(SolverAdapter):
             )
 
     @classmethod
+    def is_available(cls) -> bool:
+        """Check if NetworkX is available.
+
+        NetworkX is installed as a core dependency (required for visualization),
+        so this always returns True. This method exists for consistency with
+        other adapter classes.
+        """
+        return True
+
+    @classmethod
     def get_version(cls) -> str | None:
         """Get NetworkX version."""
         try:
