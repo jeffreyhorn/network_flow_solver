@@ -123,6 +123,9 @@ class NetworkSimplex:
         self.adaptive_rebuild_count = 0
         self.pivots_since_condition_check = 0  # Track pivots for interval checking
 
+        # Artificial arc tracking (avoid scanning all arcs every iteration)
+        self.artificial_arcs_with_flow = 0  # Count of artificial arcs with flow > tolerance
+
         # Detect network specializations for potential optimizations
         from .specializations import analyze_network_structure, get_specialization_info
         from .specialized_pivots import select_pivot_strategy
@@ -685,6 +688,11 @@ class NetworkSimplex:
         # Sync vectorized arrays after adding artificial arcs
         self._sync_vectorized_arrays()
 
+        # Initialize artificial arc flow counter
+        self.artificial_arcs_with_flow = sum(
+            1 for arc in self.arcs if arc.artificial and arc.flow > self.tolerance
+        )
+
     # ============================================================================
     # Basis Management and Warm-Start
     # ============================================================================
@@ -1083,9 +1091,8 @@ class NetworkSimplex:
                 )
                 progress_callback(progress_info)
 
-            if phase_one and not any(
-                arc.artificial and arc.flow > self.tolerance for arc in self.arcs
-            ):
+            # Check if Phase 1 is complete (use counter instead of scanning all arcs)
+            if phase_one and self.artificial_arcs_with_flow == 0:
                 # All artificial arcs are zero again, so Phase 1 is complete.
                 break
         return iterations
@@ -1181,11 +1188,24 @@ class NetworkSimplex:
         # cycle is a list of (arc_index, direction) tuples from collect_cycle()
         for idx, sign in cycle:
             arc = self.arcs[idx]
+
+            # Track artificial arc flow changes for counter update
+            old_flow = arc.flow
+            had_flow = arc.artificial and old_flow > self.tolerance
+
             arc.flow += sign * theta
             if arc.flow < arc.lower - self.tolerance:
                 arc.flow = arc.lower
             if not math.isinf(arc.upper) and arc.flow > arc.upper + self.tolerance:
                 arc.flow = arc.upper
+
+            # Update artificial arc counter if flow crossed tolerance threshold
+            if arc.artificial:
+                has_flow = arc.flow > self.tolerance
+                if had_flow and not has_flow:
+                    self.artificial_arcs_with_flow -= 1
+                elif not had_flow and has_flow:
+                    self.artificial_arcs_with_flow += 1
 
             # Update vectorized arrays directly using arc index (avoid full sync overhead)
             self.arc_flows[idx] = arc.flow
@@ -1485,7 +1505,8 @@ class NetworkSimplex:
             self.logger.info("Phase 1 skipped (warm-start basis is feasible)")
 
         # Check for infeasibility: artificial arcs have flow
-        has_artificial_flow = any(arc.artificial and arc.flow > self.tolerance for arc in self.arcs)
+        # Use counter instead of scanning all arcs (performance optimization)
+        has_artificial_flow = self.artificial_arcs_with_flow > 0
 
         # Verify flow conservation for ALL cases after Phase 1 (not just warm-start)
         # This catches cases where Phase 1 terminates prematurely with zero artificial flow
