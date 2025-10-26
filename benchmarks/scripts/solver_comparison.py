@@ -321,8 +321,28 @@ Examples:
 
     args = parser.parse_args()
 
-    # Create comparison framework
-    comparison = SolverComparison()
+    # Filter solvers if specified
+    if args.solvers:
+        all_solvers = get_available_solvers()
+        available_names = {s.name: s for s in all_solvers}
+
+        selected_solvers = []
+        for name in args.solvers:
+            if name in available_names:
+                selected_solvers.append(available_names[name])
+            else:
+                print(
+                    f"Warning: Solver '{name}' not available. Available: {list(available_names.keys())}"
+                )
+
+        if not selected_solvers:
+            print("Error: No valid solvers specified!")
+            return
+
+        comparison = SolverComparison(solvers=selected_solvers)
+    else:
+        # Use all available solvers
+        comparison = SolverComparison()
 
     # Handle --list-solvers
     if args.list_solvers:
