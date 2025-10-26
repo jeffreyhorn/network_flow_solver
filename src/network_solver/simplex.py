@@ -608,6 +608,9 @@ class NetworkSimplex:
             arc.in_tree = False
             arc.flow = 0.0
 
+        # Initialize counter for artificial arcs with flow (tracked during creation)
+        self.artificial_arcs_with_flow = 0
+
         for node_idx, supply in enumerate(self.node_supply):
             if node_idx == self.root:
                 continue
@@ -625,6 +628,7 @@ class NetworkSimplex:
                     artificial=True,
                     key=(self.ROOT_NODE, node_id),
                 )
+                # Zero flow, don't increment counter
             elif supply > 0:
                 arc = ArcState(
                     tail=node_idx,
@@ -637,6 +641,8 @@ class NetworkSimplex:
                     artificial=True,
                     key=(node_id, self.ROOT_NODE),
                 )
+                # Has flow, increment counter
+                self.artificial_arcs_with_flow += 1
             else:
                 demand = -supply
                 arc = ArcState(
@@ -650,6 +656,8 @@ class NetworkSimplex:
                     artificial=True,
                     key=(self.ROOT_NODE, node_id),
                 )
+                # Has flow, increment counter
+                self.artificial_arcs_with_flow += 1
             arc_idx = len(self.arcs)
             self.arcs.append(arc)
             self.original_costs.append(arc.cost)
@@ -688,10 +696,7 @@ class NetworkSimplex:
         # Sync vectorized arrays after adding artificial arcs
         self._sync_vectorized_arrays()
 
-        # Initialize artificial arc flow counter
-        self.artificial_arcs_with_flow = sum(
-            1 for arc in self.arcs if arc.artificial and arc.flow > self.tolerance
-        )
+        # Counter already initialized and incremented during arc creation above
 
     # ============================================================================
     # Basis Management and Warm-Start
