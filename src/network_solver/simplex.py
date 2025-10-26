@@ -126,6 +126,9 @@ class NetworkSimplex:
         # Artificial arc tracking (avoid scanning all arcs every iteration)
         self.artificial_arcs_with_flow = 0  # Count of artificial arcs with flow > tolerance
 
+        # Degeneracy tracking (for iteration count analysis)
+        self.degenerate_pivots = 0  # Count of pivots where theta ≈ 0
+
         # Detect network specializations for potential optimizations
         from .specializations import analyze_network_structure, get_specialization_info
         from .specialized_pivots import select_pivot_strategy
@@ -1194,6 +1197,10 @@ class NetworkSimplex:
             )
         theta = max(0.0, theta)
 
+        # Track degenerate pivots (theta ≈ 0 means no flow change)
+        if theta <= self.tolerance:
+            self.degenerate_pivots += 1
+
         # Update flows for all arcs in the cycle
         # cycle is a list of (arc_index, direction) tuples from collect_cycle()
         for idx, sign in cycle:
@@ -1595,6 +1602,11 @@ class NetworkSimplex:
             if not arc.artificial
         )
 
+        # Calculate degeneracy rate
+        degeneracy_rate = (
+            (self.degenerate_pivots / total_iterations * 100) if total_iterations > 0 else 0.0
+        )
+
         self.logger.info(
             "Phase 2 complete",
             extra={
@@ -1602,6 +1614,8 @@ class NetworkSimplex:
                 "total_iterations": total_iterations,
                 "objective": preliminary_objective,
                 "elapsed_ms": elapsed_ms,
+                "degenerate_pivots": self.degenerate_pivots,
+                "degeneracy_rate": f"{degeneracy_rate:.1f}%",
             },
         )
 
