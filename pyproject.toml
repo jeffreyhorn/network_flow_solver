@@ -47,8 +47,11 @@ dev = [
 ]
 
 # Platform-specific optional dependency for better sparse solver performance
+# Note: scikit-umfpack 0.4.2 has compatibility issues with SuiteSparse 7.11+ on macOS
+# Pinning numpy<2.0 for umfpack due to build compatibility issues
 umfpack = [
-    "scikit-umfpack>=0.3.7; platform_system != 'Windows'"
+    "numpy<2.0",  # scikit-umfpack 0.4.2 not yet compatible with numpy 2.x
+    "scikit-umfpack>=0.4.2; platform_system != 'Windows'"
 ]
 
 # Tutorial and interactive notebook support
