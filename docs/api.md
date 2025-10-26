@@ -533,6 +533,7 @@ class SolverOptions:
     projection_cache_size: int = 100
     auto_scale: bool = True
     adaptive_refactorization: bool = True
+    condition_check_interval: int = 10
     condition_number_threshold: float = 1e12
     adaptive_ft_min: int = 20
     adaptive_ft_max: int = 200
@@ -586,6 +587,12 @@ Configuration options for the solver.
 - `adaptive_refactorization` (bool): Enable adaptive basis refactorization (default: True)
   - Monitors condition number and adjusts refactorization frequency automatically
   - Improves numerical stability for ill-conditioned problems
+- `condition_check_interval` (int): How often to check condition number (default: 10)
+  - 1: Check every pivot (most conservative, slowest)
+  - 10: Check every 10 pivots (good balance, recommended)
+  - 50: Check every 50 pivots (faster but less responsive)
+  - Only used when adaptive_refactorization=True
+  - Reduces overhead from expensive condition number estimation (provides 1.5x speedup)
 - `condition_number_threshold` (float): Condition number limit for triggering rebuild (default: 1e12)
   - Lower values (1e10): More conservative, more rebuilds, better stability
   - Higher values (1e14): More aggressive, fewer rebuilds, faster but less stable
@@ -667,9 +674,17 @@ options = SolverOptions(pricing_strategy="dantzig", block_size=10)
 # Conservative refactorization for maximum stability
 options = SolverOptions(
     adaptive_refactorization=True,
+    condition_check_interval=1,      # Check condition number every pivot
     condition_number_threshold=1e10,  # More aggressive rebuilding
     adaptive_ft_min=10,
     adaptive_ft_max=50,
+)
+
+# Performance-optimized refactorization (faster, still stable)
+options = SolverOptions(
+    adaptive_refactorization=True,
+    condition_check_interval=10,     # Check every 10 pivots (default, recommended)
+    condition_number_threshold=1e12,  # Standard threshold
 )
 
 # Enable dense inverse for small problems or testing

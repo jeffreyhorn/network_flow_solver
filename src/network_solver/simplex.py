@@ -121,6 +121,7 @@ class NetworkSimplex:
         # Adaptive refactorization tracking
         self.condition_number_history: list[float] = []
         self.adaptive_rebuild_count = 0
+        self.pivots_since_condition_check = 0  # Track pivots for interval checking
 
         # Detect network specializations for potential optimizations
         from .specializations import analyze_network_structure, get_specialization_info
@@ -420,11 +421,23 @@ class NetworkSimplex:
         )
         self.backward_residuals = self.arc_flows - self.arc_lowers
 
+    def _sync_node_potentials(self) -> None:
+        """Sync only node potentials from basis (lightweight operation).
+
+        This is much faster than _sync_vectorized_arrays() since it only copies
+        node potentials, not arc data. Use this after pivots where arc arrays
+        are updated incrementally.
+        """
+        self.node_potentials[:] = self.basis.potential
+
     def _sync_vectorized_arrays(self) -> None:
         """Sync vectorized arrays with current ArcState list.
 
         Call this after operations that modify arcs (e.g., adding artificial arcs,
         updating flows/tree status). Only syncs fields that can change.
+
+        Note: After pivots, use _sync_node_potentials() instead since arc data
+        is now updated incrementally in _pivot().
         """
         n = len(self.arcs)
 
@@ -1042,9 +1055,9 @@ class NetworkSimplex:
             arc_idx, direction = entering
             self._pivot(arc_idx, direction)
 
-            # Sync vectorized arrays after pivot (flows and tree status changed)
+            # Sync node potentials after pivot (arc arrays updated incrementally in _pivot)
             if self.options.use_vectorized_pricing:
-                self._sync_vectorized_arrays()
+                self._sync_node_potentials()
 
             iterations += 1
 
@@ -1164,6 +1177,8 @@ class NetworkSimplex:
             )
         theta = max(0.0, theta)
 
+        # Update flows for all arcs in the cycle
+        # cycle is a list of (arc_index, direction) tuples from collect_cycle()
         for idx, sign in cycle:
             arc = self.arcs[idx]
             arc.flow += sign * theta
@@ -1172,7 +1187,17 @@ class NetworkSimplex:
             if not math.isinf(arc.upper) and arc.flow > arc.upper + self.tolerance:
                 arc.flow = arc.upper
 
+            # Update vectorized arrays directly using arc index (avoid full sync overhead)
+            self.arc_flows[idx] = arc.flow
+            # Update residuals for this arc
+            if math.isinf(arc.upper):
+                self.forward_residuals[idx] = math.inf
+            else:
+                self.forward_residuals[idx] = arc.upper - arc.flow
+            self.backward_residuals[idx] = arc.flow - arc.lower
+
         entering.in_tree = True
+        self.arc_in_tree[arc_idx] = True  # Update vectorized array directly
         projection = self.basis.project_column(entering)
         if projection is not None:
             entering_weight = float(np.dot(projection, projection))
@@ -1208,6 +1233,7 @@ class NetworkSimplex:
 
         if leaving_idx == arc_idx:
             entering.in_tree = False
+            self.arc_in_tree[arc_idx] = False  # Update vectorized array directly
             # Degenerate pivot: tree unchanged but flows adjusted.
             # Record degenerate pivot to prevent immediate reselection (anti-cycling)
             if self.options.use_vectorized_pricing and isinstance(
@@ -1222,6 +1248,7 @@ class NetworkSimplex:
             return
         leaving_arc = self.arcs[leaving_idx]
         leaving_arc.in_tree = False
+        self.arc_in_tree[leaving_idx] = False  # Update vectorized array directly
         self.devex_weights[leaving_idx] = 1.0
 
         if self.logger.isEnabledFor(logging.DEBUG):
@@ -1240,16 +1267,22 @@ class NetworkSimplex:
         condition_number = None
 
         if self.options.adaptive_refactorization:
-            # Monitor condition number for adaptive triggering
-            condition_number = self.basis.estimate_condition_number()
-            if condition_number is not None:
-                self.condition_number_history.append(condition_number)
+            # Only check condition number at specified intervals to reduce overhead
+            self.pivots_since_condition_check += 1
+            if self.pivots_since_condition_check >= self.options.condition_check_interval:
+                # Monitor condition number for adaptive triggering
+                condition_number = self.basis.estimate_condition_number()
+                if condition_number is not None:
+                    self.condition_number_history.append(condition_number)
 
-                # Trigger rebuild if condition number exceeds threshold
-                if condition_number > self.options.condition_number_threshold:
-                    force_rebuild = True
-                    rebuild_reason = "condition_number_threshold"
-                    self.adaptive_rebuild_count += 1
+                    # Trigger rebuild if condition number exceeds threshold
+                    if condition_number > self.options.condition_number_threshold:
+                        force_rebuild = True
+                        rebuild_reason = "condition_number_threshold"
+                        self.adaptive_rebuild_count += 1
+
+                # Reset counter after check completes successfully
+                self.pivots_since_condition_check = 0
 
         # Also check fixed update limit
         if self.ft_updates_since_rebuild >= self.adaptive_tuner.current_ft_limit:
