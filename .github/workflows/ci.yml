@@ -112,9 +112,12 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           python -m pip install --upgrade pip
-          # Install numpy<2.0 first to ensure scikit-umfpack builds with compatible version
-          pip install "numpy<2.0"
-          pip install -e ".[dev,umfpack]"
+          # Install numpy<2.0 and scipy first for scikit-umfpack build
+          pip install "numpy<2.0" "scipy>=1.11"
+          # Install scikit-umfpack without build isolation to use our numpy 1.x
+          pip install --no-build-isolation "scikit-umfpack>=0.4.2"
+          # Now install the rest
+          pip install -e ".[dev]"
 
       - name: Install dependencies (Windows without umfpack)
         if: matrix.os == 'windows-latest'
