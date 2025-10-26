@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -33,6 +34,69 @@ class TestVisualizationStubs:
             assert callable(network_solver.visualize_network)
             assert callable(network_solver.visualize_flows)
             assert callable(network_solver.visualize_bottlenecks)
+
+    def test_visualization_stub_behavior_when_imports_fail(self):
+        """Test stub functions are created when visualization import fails."""
+        # Test the fallback behavior by simulating ImportError during module load
+        import importlib
+
+        # Save references to modules we'll be manipulating
+        network_solver_backup = sys.modules.get("network_solver")
+        viz_backup = sys.modules.get("network_solver.visualization")
+
+        try:
+            # Clear module cache to allow fresh import
+            for module_name in list(sys.modules.keys()):
+                if module_name.startswith("network_solver"):
+                    del sys.modules[module_name]
+
+            # Create a mock that raises ImportError for visualization module
+            def mock_import(name, *args, **kwargs):
+                if "visualization" in name:
+                    raise ImportError("Mocked visualization import failure")
+                # For all other imports, use the original __import__
+                return importlib.__import__(name, *args, **kwargs)
+
+            # Patch __import__ to fail on visualization
+            with patch("builtins.__import__", side_effect=mock_import):
+                # Import the module - should create stubs due to ImportError
+                import network_solver
+
+                # Should have stub functions
+                assert hasattr(network_solver, "visualize_network")
+                assert hasattr(network_solver, "visualize_flows")
+                assert hasattr(network_solver, "visualize_bottlenecks")
+
+                # _has_visualization should be False
+                assert network_solver._has_visualization is False
+
+                # All three stubs should raise ImportError with helpful message
+                with pytest.raises(
+                    ImportError, match="Visualization requires optional dependencies"
+                ):
+                    network_solver.visualize_network({}, {})
+
+                with pytest.raises(
+                    ImportError, match="Visualization requires optional dependencies"
+                ):
+                    network_solver.visualize_flows({}, {}, {})
+
+                with pytest.raises(
+                    ImportError, match="Visualization requires optional dependencies"
+                ):
+                    network_solver.visualize_bottlenecks({}, {}, {})
+
+        finally:
+            # Clean up: remove all network_solver modules from cache
+            for module_name in list(sys.modules.keys()):
+                if module_name.startswith("network_solver"):
+                    del sys.modules[module_name]
+
+            # Restore original modules
+            if network_solver_backup is not None:
+                sys.modules["network_solver"] = network_solver_backup
+            if viz_backup is not None:
+                sys.modules["network_solver.visualization"] = viz_backup
 
     def test_version_is_defined(self):
         """Test that __version__ is defined."""
