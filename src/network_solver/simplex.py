@@ -859,6 +859,11 @@ class NetworkSimplex:
             )
             return False
 
+        # Re-initialize artificial arc flow counter after warm start
+        self.artificial_arcs_with_flow = sum(
+            1 for arc in self.arcs if arc.artificial and arc.flow > self.tolerance
+        )
+
         # Log success
         self.logger.info(
             f"Successfully applied warm-start basis with {len(tree_arc_indices)} basis arcs",
