@@ -104,8 +104,14 @@ If `--solvers` is not specified, all available solvers are used.
 # First 10 problems
 python benchmarks/scripts/solver_comparison.py --limit 10
 
-# With timeout
+# With timeout (default: 60 seconds per problem per solver)
 python benchmarks/scripts/solver_comparison.py --limit 10 --timeout 30
+
+# Note: Timeout behavior varies by solver:
+#   - PuLP: Enforces timeout strictly
+#   - network_solver: Uses max_iterations limit instead
+#   - OR-Tools: Uses internal heuristics
+#   - NetworkX: Fast enough that timeout rarely matters
 ```
 
 ### Save Report
@@ -308,8 +314,13 @@ except ImportError:
 - Check with `--list-solvers` to see which are available
 
 ### Timeout issues
-- Increase timeout: `--timeout 120`
+- Increase timeout: `--timeout 120` (default is 60 seconds)
 - Test on smaller problems first: `--limit 5`
+- Note: Not all solvers honor the timeout parameter
+  - PuLP: Respects timeout
+  - network_solver: Controlled by max_iterations instead
+  - OR-Tools: Very fast, rarely times out
+  - NetworkX: Very fast, rarely times out
 
 ### Memory issues on large problems
 - Limit concurrent solvers

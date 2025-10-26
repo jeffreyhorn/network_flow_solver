@@ -279,6 +279,12 @@ Examples:
   # Compare specific problems
   python solver_comparison.py --problems benchmarks/problems/lemon/goto/*.min
 
+  # Set timeout for slow problems (default: 60 seconds)
+  python solver_comparison.py --limit 10 --timeout 120
+
+  # Compare specific solvers with timeout
+  python solver_comparison.py --solvers network_solver ortools --limit 5 --timeout 30
+
   # Install optional solvers:
   pip install ortools pulp
         """,
@@ -302,7 +308,8 @@ Examples:
         "--timeout",
         type=float,
         default=60.0,
-        help="Timeout per problem in seconds",
+        help="Timeout per problem per solver in seconds (default: 60). "
+        "Note: Only PuLP enforces this; other solvers use iteration limits.",
     )
     parser.add_argument(
         "--output",
