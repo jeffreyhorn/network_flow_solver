@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))  # noqa: E402
 
 from benchmarks.parsers.dimacs import parse_dimacs_file  # noqa: E402
-from src.network_solver.solver import solve_min_cost_flow  # noqa: E402
+from network_solver.solver import solve_min_cost_flow  # noqa: E402
 
 
 def format_bytes(bytes_val):
@@ -59,18 +59,18 @@ def profile_memory_usage(problem_file: str):
     snapshot_after = tracemalloc.take_snapshot()
     mem_after, mem_peak = tracemalloc.get_traced_memory()
 
-    print(f"\n4. Results:")
+    print("\n4. Results:")
     print(f"   Status: {result.status}")
     print(f"   Objective: {result.objective}")
     print(f"   Iterations: {result.iterations}")
 
-    print(f"\n5. Memory Usage:")
+    print("\n5. Memory Usage:")
     print(f"   Memory after solve: {format_bytes(mem_after)}")
     print(f"   Peak memory: {format_bytes(mem_peak)}")
     print(f"   Memory increase: {format_bytes(mem_after - mem_before)}")
 
     # Compare snapshots to see what allocated memory
-    print(f"\n6. Top 20 Memory Allocations:")
+    print("\n6. Top 20 Memory Allocations:")
     print("   " + "-" * 66)
 
     top_stats = snapshot_after.compare_to(snapshot_before, "lineno")
@@ -79,7 +79,7 @@ def profile_memory_usage(problem_file: str):
         print(f"   #{i:2d} {stat}")
 
     # Show statistics by file
-    print(f"\n7. Memory by File:")
+    print("\n7. Memory by File:")
     print("   " + "-" * 66)
 
     file_stats = snapshot_after.compare_to(snapshot_before, "filename")
@@ -87,7 +87,7 @@ def profile_memory_usage(problem_file: str):
         print(f"   #{i:2d} {stat}")
 
     # Show current memory breakdown
-    print(f"\n8. Current Memory Snapshot (Top 20):")
+    print("\n8. Current Memory Snapshot (Top 20):")
     print("   " + "-" * 66)
 
     current_stats = snapshot_after.statistics("lineno")

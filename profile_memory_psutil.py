@@ -8,11 +8,12 @@ Usage:
     python profile_memory_psutil.py <problem_file>
 """
 
+import os
 import sys
 import time
 from pathlib import Path
+
 import psutil
-import os
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))  # noqa: E402
@@ -59,9 +60,6 @@ def profile_with_psutil(problem_file: str):
     print("\n3. Solving problem...")
     mem_before_solve = get_memory_usage()
 
-    # Track memory during solve by polling
-    max_memory = mem_before_solve
-
     # Start solve
     start_time = time.time()
     result = solve_min_cost_flow(problem)
@@ -72,19 +70,19 @@ def profile_with_psutil(problem_file: str):
 
     # Note: We can't perfectly track peak during solve without threading,
     # but we can get before/after and a rough estimate
-    print(f"\n4. Results:")
+    print("\n4. Results:")
     print(f"   Status: {result.status}")
     print(f"   Objective: {result.objective}")
     print(f"   Iterations: {result.iterations}")
     print(f"   Time: {elapsed:.2f}s")
 
-    print(f"\n5. Memory Usage (Process RSS):")
+    print("\n5. Memory Usage (Process RSS):")
     print(f"   Memory before solve: {format_bytes(mem_before_solve)}")
     print(f"   Memory after solve: {format_bytes(mem_after_solve)}")
     print(f"   Memory increase: {format_bytes(mem_after_solve - mem_before_solve)}")
-    print(f"   ")
-    print(f"   Note: This shows residual memory. Peak memory during solve")
-    print(f"   may have been higher (garbage collected after solve).")
+    print("   ")
+    print("   Note: This shows residual memory. Peak memory during solve")
+    print("   may have been higher (garbage collected after solve).")
 
     print("\n" + "=" * 70)
     print("Memory profiling complete!")

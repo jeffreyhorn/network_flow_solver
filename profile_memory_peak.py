@@ -8,18 +8,19 @@ Usage:
     python profile_memory_peak.py <problem_file>
 """
 
-import sys
-import time
-import threading
-from pathlib import Path
-import psutil
 import os
+import sys
+import threading
+import time
+from pathlib import Path
+
+import psutil
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))  # noqa: E402
 
 from benchmarks.parsers.dimacs import parse_dimacs_file  # noqa: E402
-from src.network_solver.solver import solve_min_cost_flow  # noqa: E402
+from network_solver.solver import solve_min_cost_flow  # noqa: E402
 
 
 def format_bytes(bytes_val):
@@ -122,20 +123,20 @@ def profile_with_peak_tracking(problem_file: str):
     mem_after = process.memory_info().rss
     stats = monitor.get_stats()
 
-    print(f"\n5. Results:")
+    print("\n5. Results:")
     print(f"   Status: {result.status}")
     print(f"   Objective: {result.objective}")
     print(f"   Iterations: {result.iterations}")
     print(f"   Time: {elapsed:.2f}s")
 
-    print(f"\n6. Memory Usage (Process RSS):")
+    print("\n6. Memory Usage (Process RSS):")
     print(f"   Memory before solve: {format_bytes(mem_before)}")
     print(f"   Memory after solve:  {format_bytes(mem_after)}")
     print(f"   Peak memory:         {format_bytes(peak_memory)}")
     print(f"   Memory increase:     {format_bytes(mem_after - mem_before)}")
 
     if stats:
-        print(f"\n7. Memory Statistics:")
+        print("\n7. Memory Statistics:")
         print(f"   Min memory:    {format_bytes(stats['min'])}")
         print(f"   Mean memory:   {format_bytes(stats['mean'])}")
         print(f"   Median memory: {format_bytes(stats['median'])}")
