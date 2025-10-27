@@ -11,15 +11,6 @@ import numpy as np
 from .basis_lu import LUFactors, build_lu, reconstruct_matrix, solve_lu
 from .core.forrest_tomlin import ForrestTomlin
 
-# Sparse matrix support for memory optimization
-try:
-    from scipy.sparse import csc_matrix
-
-    _HAS_SCIPY_SPARSE = True
-except ImportError:
-    csc_matrix = None
-    _HAS_SCIPY_SPARSE = False
-
 if TYPE_CHECKING:
     from .simplex import ArcState
 
@@ -52,8 +43,7 @@ class TreeBasis:
         self.potential: list[float] = [0.0] * node_count
         self.depth: list[int] = [0] * node_count
         self.tree_arc_indices: list[int] = []
-        self.basis_matrix: np.ndarray | None = None
-        self.basis_matrix_dense: np.ndarray | None = None  # Dense copy for operations
+        self.basis_matrix: np.ndarray | None = None  # Dense matrix for all operations
         self.basis_inverse: np.ndarray | None = None
 
         # Projection cache (Optimized: simple dict, no LRU overhead)
@@ -257,7 +247,6 @@ class TreeBasis:
         expected = self.node_count - 1
         if len(tree_arcs) != expected:
             self.basis_matrix = None
-            self.basis_matrix_dense = None
             self.basis_inverse = None
             self.lu_factors = None
             self.ft_engine = None
@@ -269,8 +258,8 @@ class TreeBasis:
         self.node_to_row = node_to_row
         self.arc_to_pos = {}
 
-        # Build basis matrix - always build dense for operations
-        # Store sparse version for memory-efficient LU factorization
+        # Build dense basis matrix
+        # build_lu() will convert to sparse internally for memory-efficient factorization
         matrix = np.zeros((expected, expected), dtype=float)
         for col, arc_idx in enumerate(tree_arcs):
             arc = arcs[arc_idx]
@@ -280,39 +269,12 @@ class TreeBasis:
             if arc.head != self.root:
                 matrix[node_to_row[arc.head], col] = -1.0
 
-        self.basis_matrix_dense = matrix
-
-        # Create sparse version for LU factorization (memory optimization)
-        if _HAS_SCIPY_SPARSE:
-            row_indices = []
-            col_indices = []
-            data = []
-
-            for col, arc_idx in enumerate(tree_arcs):
-                arc = arcs[arc_idx]
-                if arc.tail != self.root:
-                    row_indices.append(node_to_row[arc.tail])
-                    col_indices.append(col)
-                    data.append(1.0)
-                if arc.head != self.root:
-                    row_indices.append(node_to_row[arc.head])
-                    col_indices.append(col)
-                    data.append(-1.0)
-
-            from scipy.sparse import coo_matrix
-
-            sparse_matrix = coo_matrix(
-                (data, (row_indices, col_indices)), shape=(expected, expected), dtype=float
-            )
-            self.basis_matrix = sparse_matrix.tocsc()
-        else:
-            # No scipy - just reference the dense matrix
-            self.basis_matrix = matrix
+        self.basis_matrix = matrix
 
         # Only compute dense inverse if explicitly requested (expensive O(n³) operation)
         if self.use_dense_inverse:
             try:
-                self.basis_inverse = np.linalg.inv(self.basis_matrix_dense)
+                self.basis_inverse = np.linalg.inv(self.basis_matrix)
             except np.linalg.LinAlgError:
                 self.basis_inverse = None
         else:
@@ -320,13 +282,13 @@ class TreeBasis:
 
         # ForrestTomlin uses dense matrix for column updates
         self.ft_engine = ForrestTomlin(
-            self.basis_matrix_dense,
+            self.basis_matrix,
             tolerance=self.tolerance,
             max_updates=self.ft_update_limit,
             norm_growth_limit=self.ft_norm_limit,
             use_jit=self.use_jit,
         )
-        # Pass sparse matrix to build_lu for memory-efficient factorization
+        # Pass dense matrix to build_lu - it will convert to sparse internally for memory efficiency
         self.lu_factors = build_lu(self.basis_matrix)
 
     def _column_vector(self, arc: ArcState) -> np.ndarray:
@@ -398,11 +360,11 @@ class TreeBasis:
             When dense inverse is not available, estimates A^-1 norm by solving
             with several random vectors and taking the maximum ratio.
         """
-        if self.basis_matrix_dense is None:
+        if self.basis_matrix is None:
             return None
 
-        # Compute 1-norm of basis matrix (use dense version)
-        norm_a = np.linalg.norm(self.basis_matrix_dense, ord=1)
+        # Compute 1-norm of basis matrix
+        norm_a = np.linalg.norm(self.basis_matrix, ord=1)
 
         # If we have dense inverse, use it directly
         if self.basis_inverse is not None:
@@ -415,7 +377,7 @@ class TreeBasis:
             return None
 
         # Estimate ||A^-1||_1 by solving A*x = e_i for canonical basis vectors
-        n = self.basis_matrix_dense.shape[0]
+        n = self.basis_matrix.shape[0]
         max_col_sum = 0.0
 
         # Sample a few columns to estimate (not all n, for performance)
@@ -444,7 +406,7 @@ class TreeBasis:
     def replace_arc(
         self, leaving_idx: int, entering_idx: int, arcs: Sequence[ArcState], tol: float
     ) -> bool:
-        if self.basis_matrix_dense is None or self.arc_to_pos is None:
+        if self.basis_matrix is None or self.arc_to_pos is None:
             return False
 
         pos = self.arc_to_pos.get(leaving_idx)
@@ -463,11 +425,7 @@ class TreeBasis:
             except ValueError:
                 updated = False
             if updated:
-                self.basis_matrix_dense[:, pos] = new_col
-                # Update sparse matrix if available
-                if _HAS_SCIPY_SPARSE and hasattr(self.basis_matrix, "toarray"):
-                    # Sparse matrix needs full rebuild after column change
-                    self.basis_matrix = None  # Mark for rebuild
+                self.basis_matrix[:, pos] = new_col
                 self.arc_to_pos.pop(leaving_idx, None)
                 self.arc_to_pos[entering_idx] = pos
                 self.tree_arc_indices[pos] = entering_idx
@@ -478,12 +436,10 @@ class TreeBasis:
                 return True
             # If FT failed, fall through to other methods (Sherman-Morrison or LU)
 
-        old_col = self.basis_matrix_dense[:, pos]
+        old_col = self.basis_matrix[:, pos]
         u = new_col - old_col
         if np.allclose(u, 0.0, atol=tol):
-            self.basis_matrix_dense[:, pos] = new_col
-            if _HAS_SCIPY_SPARSE and hasattr(self.basis_matrix, "toarray"):
-                self.basis_matrix = None
+            self.basis_matrix[:, pos] = new_col
             self.arc_to_pos.pop(leaving_idx, None)
             self.arc_to_pos[entering_idx] = pos
             self.tree_arc_indices[pos] = entering_idx
@@ -497,9 +453,7 @@ class TreeBasis:
                 return False
             b_u = b_inv @ u
             self.basis_inverse = b_inv - np.outer(b_u, row) / denom
-            self.basis_matrix_dense[:, pos] = new_col
-            if _HAS_SCIPY_SPARSE and hasattr(self.basis_matrix, "toarray"):
-                self.basis_matrix = None
+            self.basis_matrix[:, pos] = new_col
             self.arc_to_pos.pop(leaving_idx, None)
             self.arc_to_pos[entering_idx] = pos
             self.tree_arc_indices[pos] = entering_idx
@@ -515,9 +469,7 @@ class TreeBasis:
             if factors.lu is None:
                 return False
             self.lu_factors = factors
-            self.basis_matrix_dense = reconstructed
-            if _HAS_SCIPY_SPARSE:
-                self.basis_matrix = None
+            self.basis_matrix = reconstructed
             self.arc_to_pos.pop(leaving_idx, None)
             self.arc_to_pos[entering_idx] = pos
             self.tree_arc_indices[pos] = entering_idx

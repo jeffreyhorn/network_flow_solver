@@ -91,7 +91,6 @@ class TestConditionNumberEstimation:
         solver = NetworkSimplex(problem)
         # Before numeric basis is built
         solver.basis.basis_matrix = None
-        solver.basis.basis_matrix_dense = None
         solver.basis.basis_inverse = None
         condition_number = solver.basis.estimate_condition_number()
 

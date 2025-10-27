@@ -21,29 +21,26 @@ class LUFactors:
     lu: splu | None
 
 
-def build_lu(matrix: np.ndarray | csc_matrix) -> LUFactors:
+def build_lu(matrix: np.ndarray) -> LUFactors:
     """Construct sparse LU factors for the given reduced incidence matrix.
 
     Args:
-        matrix: Either a dense numpy array or a scipy sparse matrix (CSC format)
+        matrix: Dense numpy array representing the basis matrix
 
     Returns:
-        LUFactors object containing both dense and sparse representations
+        LUFactors object containing both dense and sparse representations.
+        The sparse representation is used internally for memory-efficient factorization.
     """
-    # If already sparse, use it directly; otherwise convert
-    if csc_matrix is not None and isinstance(matrix, csc_matrix):
-        sparse_mat = matrix
-        dense_matrix = matrix.toarray()
-    else:
-        dense_matrix = np.array(matrix, dtype=float, copy=True)
-        sparse_mat = None
-        if csc_matrix is not None and splu is not None:
-            # Convert dense to sparse for SciPy
-            sparse_mat = csc_matrix(dense_matrix)
+    # Always make a copy of the dense matrix
+    dense_matrix = np.array(matrix, dtype=float, copy=True)
 
-    # Build sparse LU factorization
+    # Convert to sparse for memory-efficient LU factorization
+    sparse_mat = None
     lu = None
-    if sparse_mat is not None and splu is not None:
+    if csc_matrix is not None and splu is not None:
+        # SciPy path: convert to sparse and factorize
+        # This saves memory during factorization (sparse LU uses less memory than dense)
+        sparse_mat = csc_matrix(dense_matrix)
         try:
             lu = splu(sparse_mat)
         except Exception:
