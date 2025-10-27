@@ -120,34 +120,57 @@ class TreeBasis:
         if build_numeric:
             self._build_numeric_basis(arcs)
 
-    def _build_jit_arrays(
+    def _update_jit_arrays(
         self, tree_adj: Sequence[Sequence[int]], arcs: Sequence[ArcState]
     ) -> None:
-        """Build NumPy array representations for JIT functions."""
+        """Update NumPy array representations for JIT functions.
+
+        Optimized to minimize overhead by converting tree_adj directly to CSR
+        instead of calling build_tree_adj_csr which rebuilds from scratch.
+        """
         num_arcs = len(arcs)
 
-        # Build arc arrays if not cached
+        # Build arc arrays once (immutable)
         if self._arc_tails_cache is None or len(self._arc_tails_cache) != num_arcs:
             self._arc_tails_cache = np.array([arc.tail for arc in arcs], dtype=np.int32)
             self._arc_heads_cache = np.array([arc.head for arc in arcs], dtype=np.int32)
 
-        # Update in_tree flags (changes every pivot)
+        # Allocate in_tree array if needed
         if self._in_tree_cache is None or len(self._in_tree_cache) != num_arcs:
-            self._in_tree_cache = np.empty(num_arcs, dtype=np.bool_)
+            self._in_tree_cache = np.zeros(num_arcs, dtype=np.bool_)
+        else:
+            self._in_tree_cache.fill(False)
 
-        for i, arc in enumerate(arcs):
-            self._in_tree_cache[i] = arc.in_tree
+        # Mark tree arcs as True using tree_adj (already filtered)
+        for node_arcs in tree_adj:
+            for arc_idx in node_arcs:
+                self._in_tree_cache[arc_idx] = True
 
-        # Build CSR tree adjacency
-        indices, offsets = build_tree_adj_csr(
-            self._arc_tails_cache,
-            self._arc_heads_cache,
-            self._in_tree_cache,
-            self.node_count,
-        )
-        self._tree_adj_indices_cache = indices
-        self._tree_adj_offsets_cache = offsets
-        self._cache_valid = True
+        # Build CSR tree adjacency directly from tree_adj (much faster!)
+        total_entries = sum(len(node_arcs) for node_arcs in tree_adj)
+
+        # Allocate or reuse arrays
+        if (
+            self._tree_adj_indices_cache is None
+            or len(self._tree_adj_indices_cache) != total_entries
+        ):
+            self._tree_adj_indices_cache = np.empty(total_entries, dtype=np.int32)
+
+        if (
+            self._tree_adj_offsets_cache is None
+            or len(self._tree_adj_offsets_cache) != self.node_count + 1
+        ):
+            self._tree_adj_offsets_cache = np.empty(self.node_count + 1, dtype=np.int32)
+
+        # Fill CSR structure directly from tree_adj
+        offset = 0
+        for node in range(self.node_count):
+            self._tree_adj_offsets_cache[node] = offset
+            node_arcs = tree_adj[node]
+            for i, arc_idx in enumerate(node_arcs):
+                self._tree_adj_indices_cache[offset + i] = arc_idx
+            offset += len(node_arcs)
+        self._tree_adj_offsets_cache[self.node_count] = offset
 
     def collect_cycle(
         self, tree_adj: Sequence[Sequence[int]], arcs: Sequence[ArcState], tail: int, head: int
@@ -162,8 +185,8 @@ class TreeBasis:
 
         # Use JIT version if enabled
         if self._jit_collect_cycle is not None:
-            # Build array representations
-            self._build_jit_arrays(tree_adj, arcs)
+            # Update array representations
+            self._update_jit_arrays(tree_adj, arcs)
 
             # Call JIT function
             return self._jit_collect_cycle(
