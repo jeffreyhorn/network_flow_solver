@@ -462,11 +462,16 @@ def build_tree_adj_jit(
     indices, offsets = _build_tree_adj_jit(arc_tails, arc_heads, in_tree, num_nodes)
 
     # Convert CSR back to list-of-lists for compatibility
-    tree_adj = []
+    # Optimized: create Python list directly without tolist() overhead
+    tree_adj = [None] * num_nodes
     for node in range(num_nodes):
-        start = offsets[node]
-        end = offsets[node + 1]
-        tree_adj.append(indices[start:end].tolist())
+        start = int(offsets[node])
+        end = int(offsets[node + 1])
+        # Create Python list directly from indices
+        node_arcs = []
+        for i in range(start, end):
+            node_arcs.append(int(indices[i]))
+        tree_adj[node] = node_arcs
 
     return tree_adj
 
