@@ -10,6 +10,7 @@ import numpy as np
 
 from .basis_lu import LUFactors, build_lu, reconstruct_matrix, solve_lu
 from .core.forrest_tomlin import ForrestTomlin
+from .jit_tree_ops import build_tree_adj_csr, get_collect_cycle_function
 
 if TYPE_CHECKING:
     from .simplex import ArcState
@@ -65,6 +66,15 @@ class TreeBasis:
         self.node_to_row: dict[int, int] = {}
         self.arc_to_pos: dict[int, int] = {}
 
+        # JIT optimization: cache array-based representations
+        self._jit_collect_cycle = get_collect_cycle_function() if use_jit else None
+        self._arc_tails_cache: np.ndarray | None = None
+        self._arc_heads_cache: np.ndarray | None = None
+        self._in_tree_cache: np.ndarray | None = None
+        self._tree_adj_indices_cache: np.ndarray | None = None
+        self._tree_adj_offsets_cache: np.ndarray | None = None
+        self._cache_valid = False
+
     def rebuild(
         self,
         tree_adj: Sequence[Sequence[int]],
@@ -110,13 +120,64 @@ class TreeBasis:
         if build_numeric:
             self._build_numeric_basis(arcs)
 
+    def _build_jit_arrays(
+        self, tree_adj: Sequence[Sequence[int]], arcs: Sequence[ArcState]
+    ) -> None:
+        """Build NumPy array representations for JIT functions."""
+        num_arcs = len(arcs)
+
+        # Build arc arrays if not cached
+        if self._arc_tails_cache is None or len(self._arc_tails_cache) != num_arcs:
+            self._arc_tails_cache = np.array([arc.tail for arc in arcs], dtype=np.int32)
+            self._arc_heads_cache = np.array([arc.head for arc in arcs], dtype=np.int32)
+
+        # Update in_tree flags (changes every pivot)
+        if self._in_tree_cache is None or len(self._in_tree_cache) != num_arcs:
+            self._in_tree_cache = np.empty(num_arcs, dtype=np.bool_)
+
+        for i, arc in enumerate(arcs):
+            self._in_tree_cache[i] = arc.in_tree
+
+        # Build CSR tree adjacency
+        indices, offsets = build_tree_adj_csr(
+            self._arc_tails_cache,
+            self._arc_heads_cache,
+            self._in_tree_cache,
+            self.node_count,
+        )
+        self._tree_adj_indices_cache = indices
+        self._tree_adj_offsets_cache = offsets
+        self._cache_valid = True
+
     def collect_cycle(
         self, tree_adj: Sequence[Sequence[int]], arcs: Sequence[ArcState], tail: int, head: int
     ) -> list[tuple[int, int]]:
-        """Return tree arcs forming the unique path between tail and head."""
+        """Return tree arcs forming the unique path between tail and head.
+
+        Uses JIT-compiled implementation if use_jit=True, otherwise falls back
+        to pure Python implementation.
+        """
         if tail == head:
             return []
 
+        # Use JIT version if enabled
+        if self._jit_collect_cycle is not None:
+            # Build array representations
+            self._build_jit_arrays(tree_adj, arcs)
+
+            # Call JIT function
+            return self._jit_collect_cycle(
+                self._arc_tails_cache,
+                self._arc_heads_cache,
+                self._in_tree_cache,
+                self._tree_adj_indices_cache,
+                self._tree_adj_offsets_cache,
+                tail,
+                head,
+                self.node_count,
+            )
+
+        # Fallback: Original Python implementation
         prev: dict[int, tuple[int, int]] = {head: (head, -1)}
         queue = deque([head])
 
