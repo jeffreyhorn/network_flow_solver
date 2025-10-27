@@ -258,18 +258,16 @@ class TreeBasis:
         self.node_to_row = node_to_row
         self.arc_to_pos = {}
 
-        # Build dense basis matrix
-        # build_lu() will convert to sparse internally for memory-efficient factorization
-        matrix = np.zeros((expected, expected), dtype=float)
+        # Build dense basis matrix for Forrest-Tomlin updates and inverse computation
+        # (build_lu() will convert to sparse internally for memory-efficient factorization)
+        self.basis_matrix = np.zeros((expected, expected), dtype=float)
         for col, arc_idx in enumerate(tree_arcs):
             arc = arcs[arc_idx]
             self.arc_to_pos[arc_idx] = col
             if arc.tail != self.root:
-                matrix[node_to_row[arc.tail], col] = 1.0
+                self.basis_matrix[node_to_row[arc.tail], col] = 1.0
             if arc.head != self.root:
-                matrix[node_to_row[arc.head], col] = -1.0
-
-        self.basis_matrix = matrix
+                self.basis_matrix[node_to_row[arc.head], col] = -1.0
 
         # Only compute dense inverse if explicitly requested (expensive O(n³) operation)
         if self.use_dense_inverse:

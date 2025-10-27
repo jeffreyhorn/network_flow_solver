@@ -16,8 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))  # noqa: E402
 
 from benchmarks.parsers.dimacs import parse_dimacs_file  # noqa: E402
-from src.network_solver.solver import solve_min_cost_flow  # noqa: E402
-from src.network_solver.data import build_problem  # noqa: E402
+from network_solver.solver import solve_min_cost_flow  # noqa: E402
+from network_solver.data import build_problem  # noqa: E402
 
 
 def format_bytes(bytes_val):
