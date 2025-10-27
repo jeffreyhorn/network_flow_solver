@@ -182,6 +182,15 @@ class NetworkSimplex:
         )
         self.tree_adj: list[list[int]] = [[] for _ in range(self.node_count)]
 
+        # JIT optimization for tree operations
+        # DISABLED: Conversion overhead (CSR→list-of-lists) exceeds JIT benefit
+        # JIT build: fast, but CSR→list conversion: 186s overhead!
+        # Original Python: 123s total (no conversion needed)
+        # See PHASE5_JIT_FINDINGS.md for details
+        self._build_tree_adj_jit = (
+            None  # get_build_tree_adj_function() if self.options.use_jit else None
+        )
+
         # Initialize adaptive tuner for runtime parameter adjustment
         auto_tune = (
             self.options.block_size is None
@@ -1053,11 +1062,32 @@ class NetworkSimplex:
     # ============================================================================
 
     def _update_tree_sets(self) -> None:
-        self.tree_adj = [[] for _ in range(self.node_count)]
-        for idx, arc in enumerate(self.arcs):
-            if arc.in_tree:
-                self.tree_adj[arc.tail].append(idx)
-                self.tree_adj[arc.head].append(idx)
+        """Update tree adjacency list.
+
+        Uses JIT-compiled version if use_jit=True, which is much faster because
+        it works directly with the pre-existing NumPy arrays (arc_tails, arc_heads,
+        arc_in_tree) instead of iterating over ArcState objects.
+        """
+        if self._build_tree_adj_jit is not None:
+            # Update in_tree array from ArcState objects
+            # This is fast: just copying boolean flags
+            for idx, arc in enumerate(self.arcs):
+                self.arc_in_tree[idx] = arc.in_tree
+
+            # Call JIT function (works with NumPy arrays, no conversion overhead)
+            self.tree_adj = self._build_tree_adj_jit(
+                self.arc_tails,
+                self.arc_heads,
+                self.arc_in_tree,
+                self.node_count,
+            )
+        else:
+            # Fallback: Original Python implementation
+            self.tree_adj = [[] for _ in range(self.node_count)]
+            for idx, arc in enumerate(self.arcs):
+                if arc.in_tree:
+                    self.tree_adj[arc.tail].append(idx)
+                    self.tree_adj[arc.head].append(idx)
 
     def _run_simplex_iterations(
         self,

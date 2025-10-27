@@ -65,6 +65,20 @@ class TreeBasis:
         self.node_to_row: dict[int, int] = {}
         self.arc_to_pos: dict[int, int] = {}
 
+        # JIT optimization: DISABLED for now due to conversion overhead
+        # Original collect_cycle: 55s, JIT version: 3s, but conversion: 106s
+        # Net effect: 167s vs 55s = 3x SLOWER
+        # Root cause: Data in wrong format (Python objects vs NumPy arrays)
+        # TODO: Either refactor solver to use NumPy arrays throughout, or
+        #       focus JIT efforts on bigger bottlenecks (rebuild, _update_tree_sets)
+        self._jit_collect_cycle = None  # get_collect_cycle_function() if use_jit else None
+        self._arc_tails_cache: np.ndarray | None = None
+        self._arc_heads_cache: np.ndarray | None = None
+        self._in_tree_cache: np.ndarray | None = None
+        self._tree_adj_indices_cache: np.ndarray | None = None
+        self._tree_adj_offsets_cache: np.ndarray | None = None
+        self._cache_valid = False
+
     def rebuild(
         self,
         tree_adj: Sequence[Sequence[int]],
@@ -110,13 +124,86 @@ class TreeBasis:
         if build_numeric:
             self._build_numeric_basis(arcs)
 
+    def _update_jit_arrays(
+        self, tree_adj: Sequence[Sequence[int]], arcs: Sequence[ArcState]
+    ) -> None:
+        """Update NumPy array representations for JIT functions.
+
+        Optimized to minimize overhead by converting tree_adj directly to CSR
+        instead of calling build_tree_adj_csr which rebuilds from scratch.
+        """
+        num_arcs = len(arcs)
+
+        # Build arc arrays once (immutable)
+        if self._arc_tails_cache is None or len(self._arc_tails_cache) != num_arcs:
+            self._arc_tails_cache = np.array([arc.tail for arc in arcs], dtype=np.int32)
+            self._arc_heads_cache = np.array([arc.head for arc in arcs], dtype=np.int32)
+
+        # Allocate in_tree array if needed
+        if self._in_tree_cache is None or len(self._in_tree_cache) != num_arcs:
+            self._in_tree_cache = np.zeros(num_arcs, dtype=np.bool_)
+        else:
+            self._in_tree_cache.fill(False)
+
+        # Pre-allocate CSR offsets array
+        if (
+            self._tree_adj_offsets_cache is None
+            or len(self._tree_adj_offsets_cache) != self.node_count + 1
+        ):
+            self._tree_adj_offsets_cache = np.empty(self.node_count + 1, dtype=np.int32)
+
+        # Single pass: count entries, mark in_tree, and fill offsets
+        offset = 0
+        for node in range(self.node_count):
+            self._tree_adj_offsets_cache[node] = offset
+            offset += len(tree_adj[node])
+        self._tree_adj_offsets_cache[self.node_count] = offset
+        total_entries = offset
+
+        # Allocate indices array if needed
+        if (
+            self._tree_adj_indices_cache is None
+            or len(self._tree_adj_indices_cache) != total_entries
+        ):
+            self._tree_adj_indices_cache = np.empty(total_entries, dtype=np.int32)
+
+        # Single pass: fill CSR indices and mark in_tree
+        idx = 0
+        for node_arcs in tree_adj:
+            for arc_idx in node_arcs:
+                self._in_tree_cache[arc_idx] = True
+                self._tree_adj_indices_cache[idx] = arc_idx
+                idx += 1
+
     def collect_cycle(
         self, tree_adj: Sequence[Sequence[int]], arcs: Sequence[ArcState], tail: int, head: int
     ) -> list[tuple[int, int]]:
-        """Return tree arcs forming the unique path between tail and head."""
+        """Return tree arcs forming the unique path between tail and head.
+
+        Uses JIT-compiled implementation if use_jit=True, otherwise falls back
+        to pure Python implementation.
+        """
         if tail == head:
             return []
 
+        # Use JIT version if enabled
+        if self._jit_collect_cycle is not None:
+            # Update array representations
+            self._update_jit_arrays(tree_adj, arcs)
+
+            # Call JIT function
+            return self._jit_collect_cycle(
+                self._arc_tails_cache,
+                self._arc_heads_cache,
+                self._in_tree_cache,
+                self._tree_adj_indices_cache,
+                self._tree_adj_offsets_cache,
+                tail,
+                head,
+                self.node_count,
+            )
+
+        # Fallback: Original Python implementation
         prev: dict[int, tuple[int, int]] = {head: (head, -1)}
         queue = deque([head])
 
