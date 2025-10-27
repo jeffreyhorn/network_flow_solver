@@ -9,7 +9,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from network_solver.data import build_problem  # noqa: E402
+from network_solver.data import build_problem, SolverOptions  # noqa: E402
 from network_solver.exceptions import InvalidProblemError, SolverConfigurationError  # noqa: E402
 from network_solver.simplex import NetworkSimplex  # noqa: E402
 from network_solver.solver import solve_min_cost_flow  # noqa: E402
@@ -19,8 +19,6 @@ from network_solver.solver import solve_min_cost_flow  # noqa: E402
 
 def _make_pricing_solver(costs):
     """Construct a solver with deterministic costs for pricing logic coverage."""
-    from network_solver import SolverOptions
-
     nodes = [
         {"id": "a", "supply": 0.0},
         {"id": "b", "supply": 0.0},
@@ -78,8 +76,6 @@ def test_iteration_limit_preserves_current_flow_state():
     # This problem requires 5 iterations to reach optimality with vectorized pricing;
     # max_iterations=4 will hit the limit but still have a feasible solution.
     # Use devex explicitly to ensure consistent arc selection in this test
-    from network_solver import SolverOptions
-
     options = SolverOptions(max_iterations=4, pricing_strategy="devex")
     limited = solve_min_cost_flow(problem, options=options)
     assert limited.status == "iteration_limit"
@@ -354,8 +350,6 @@ def test_pricing_clamps_large_projection_weight(monkeypatch):
 
 
 def test_pivot_clamps_flow_to_bounds():
-    from network_solver import SolverOptions
-
     nodes = [
         {"id": "s", "supply": 2.0},
         {"id": "m", "supply": 0.0},
@@ -498,8 +492,6 @@ def test_flow_post_processing_removes_and_rounds_near_zero():
         {"tail": "n", "head": "m", "capacity": 2.0, "cost": 2.0},
     ]
     # Disable auto_scale to test raw post-processing behavior
-    from network_solver import SolverOptions
-
     options = SolverOptions(auto_scale=False)
     result = NetworkSimplex(
         build_problem(nodes, arcs, directed=True, tolerance=1e-6), options
