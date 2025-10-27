@@ -250,34 +250,138 @@ From the `GETTING_TO_50X_PLAN.md`, we'll investigate:
 
 - [x] Phase 7 branch created
 - [x] Memory profiling script created
-- [ ] Baseline profiling (in progress)
-- [ ] Bottleneck identification
-- [ ] Optimizations implementation
+- [x] Baseline profiling completed
+- [x] Bottleneck identification completed
+- [x] Detailed analysis document created (`PHASE7_PROFILING_ANALYSIS.md`)
+- [ ] Phase 7.1: Sparse basis matrix implementation
 - [ ] Performance validation
 - [ ] Documentation
 
 ---
 
+## Profiling Results Summary
+
+**Problem**: `gridgen_8_12a.min` (4,097 nodes, 32,776 arcs)
+
+### Key Metrics
+- **Peak Memory**: 1.02 GB ⚠️
+- **Residual Memory**: 17 MB
+- **Iterations**: 8,903
+- **Status**: Optimal (783,027,844.0)
+
+### Critical Finding: Dense Basis Matrix
+
+The **1.02 GB peak** is dominated by dense basis matrix storage:
+- Each basis matrix: `(n-1)² × 8 bytes = 134 MB` for n=4,097
+- Basis is 99.9% sparse (only 2 nonzeros per column)
+- **Wasting 133+ MB per matrix**
+- With LU factors and temporaries: **400-800 MB per rebuild**
+
+### Top Memory Consumers (Our Code)
+1. Line 1713 (`simplex.py`): 1.28 MB - flows dict
+2. Line 1728 (`simplex.py`): 197 KB - duals dict  
+3. Line 1037 (`simplex.py`): 144 KB - tree_arcs set
+4. Line 426 (`simplex.py`): 246 KB - arc objects
+5. **Total from simplex.py**: 2.3 MB (only 0.2% of peak!)
+
+**Conclusion**: The problem is NOT in simplex.py - it's in **basis matrix storage**.
+
+See `PHASE7_PROFILING_ANALYSIS.md` for complete analysis.
+
+---
+
+## Implementation Plan
+
+Based on profiling results, we've identified three high-impact optimizations:
+
+### Phase 7.1: Sparse Basis Matrix ⭐ HIGH PRIORITY
+**Expected Impact**: 80% memory reduction (1.02 GB → 200 MB)
+
+**Problem**: Dense storage wastes 99.9% of space
+```python
+# Current (basis.py:254)
+matrix = np.zeros((n, n), dtype=float)  # 134 MB for n=4,097
+```
+
+**Solution**: Use scipy.sparse CSC/CSR format
+```python
+from scipy.sparse import csc_matrix
+# Only store nonzeros: 267 KB for n=4,097
+```
+
+**Implementation**:
+1. Update `basis.py` to build sparse matrices
+2. Update `basis_lu.py` to use sparse LU factorization
+3. Verify all basis operations work with sparse
+4. Run full test suite
+
+**Risk**: Medium (need to ensure numerical stability)
+
+### Phase 7.2: In-Place Basis Updates
+**Expected Impact**: 40% additional reduction (200 MB → 120 MB)
+
+**Problem**: Forrest-Tomlin updates may create copies
+
+**Solution**: Ensure all updates modify matrices in-place
+- Audit basis update code for `.copy()` calls
+- Use in-place operations where possible
+
+**Risk**: Low
+
+### Phase 7.3: Reuse Temporary Arrays
+**Expected Impact**: 20% additional reduction (120 MB → 100 MB)
+
+**Problem**: Temporary arrays allocated per pivot
+
+**Solution**: Pre-allocate and reuse buffers
+```python
+class TreeBasis:
+    def __init__(self):
+        self._temp_vector = np.zeros(n)  # Reuse this
+```
+
+**Risk**: Very low
+
+---
+
+## Success Criteria
+
+### Memory Targets (gridgen_8_12a.min)
+
+| Phase | Peak Memory | Reduction | Status |
+|-------|-------------|-----------|--------|
+| Baseline | 1.02 GB | - | ✅ Measured |
+| After 7.1 | ~200 MB | 80% | 🎯 Target |
+| After 7.2 | ~120 MB | 88% | 🎯 Target |
+| After 7.3 | ~100 MB | 90% | 🎯 Target |
+
+### Correctness
+- All 576 tests must pass
+- Identical objective values (±1e-6)
+- No performance regression
+
+---
+
 ## Next Steps
 
-1. **Wait for baseline profiling** to complete (~3-5 minutes)
-2. **Analyze results** - identify top memory consumers
-3. **Create optimization plan** based on actual findings
-4. **Implement optimizations** incrementally
-5. **Measure impact** of each change
-6. **Document findings** for Phase 7 completion
+1. **Implement Phase 7.1** - Sparse basis matrix
+2. **Run memory profiling** - Measure improvement
+3. **Validate tests** - Ensure correctness
+4. **Benchmark performance** - Check for speedup
+5. **Implement Phase 7.2** - In-place updates
+6. **Continue iteratively**
 
 ---
 
 ## Notes
 
-- Memory optimization is inherently exploratory
-- Actual optimizations will depend on profiling results
-- May discover unexpected bottlenecks
-- Success = understanding + targeted improvements
+- Dense basis matrix is the smoking gun (80% of memory)
+- Network simplex basis is naturally sparse (2 nonzeros per column)
+- Using sparse storage is the obvious optimization
+- Should also improve performance (sparse operations faster)
 
 ---
 
-**Status**: 🟡 In Progress - Profiling Phase  
+**Status**: 🟢 Ready to Implement - Analysis Complete  
 **Branch**: `optimization/phase7-memory-optimization`  
-**Next Milestone**: Baseline profiling results
+**Next Milestone**: Phase 7.1 sparse basis implementation
