@@ -66,8 +66,13 @@ class TreeBasis:
         self.node_to_row: dict[int, int] = {}
         self.arc_to_pos: dict[int, int] = {}
 
-        # JIT optimization: cache array-based representations
-        self._jit_collect_cycle = get_collect_cycle_function() if use_jit else None
+        # JIT optimization: DISABLED for now due to conversion overhead
+        # Original collect_cycle: 55s, JIT version: 3s, but conversion: 106s
+        # Net effect: 167s vs 55s = 3x SLOWER
+        # Root cause: Data in wrong format (Python objects vs NumPy arrays)
+        # TODO: Either refactor solver to use NumPy arrays throughout, or
+        #       focus JIT efforts on bigger bottlenecks (rebuild, _update_tree_sets)
+        self._jit_collect_cycle = None  # get_collect_cycle_function() if use_jit else None
         self._arc_tails_cache: np.ndarray | None = None
         self._arc_heads_cache: np.ndarray | None = None
         self._in_tree_cache: np.ndarray | None = None
