@@ -9,7 +9,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from network_solver.data import build_problem, SolverOptions  # noqa: E402
+from network_solver.data import SolverOptions, build_problem  # noqa: E402
 from network_solver.exceptions import InvalidProblemError, SolverConfigurationError  # noqa: E402
 from network_solver.simplex import NetworkSimplex  # noqa: E402
 from network_solver.solver import solve_min_cost_flow  # noqa: E402
