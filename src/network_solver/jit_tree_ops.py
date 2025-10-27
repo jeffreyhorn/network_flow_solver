@@ -14,6 +14,8 @@ All functions have NumPy fallbacks if Numba is unavailable.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -26,11 +28,16 @@ except ImportError:
     HAS_NUMBA = False
 
     # Create dummy decorator for when Numba is unavailable
-    def njit(*args, **kwargs):
+    from collections.abc import Callable
+    from typing import Any, TypeVar
+
+    F = TypeVar("F", bound=Callable[..., Any])
+
+    def njit(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         """Dummy decorator when Numba is unavailable."""
         if len(args) == 1 and callable(args[0]):
             # @njit without arguments
-            return args[0]
+            return args[0]  # type: ignore[no-any-return]
         # @njit(...) with arguments
         return lambda f: f
 
@@ -40,7 +47,7 @@ except ImportError:
 # =============================================================================
 
 
-@njit(cache=True)
+@njit(cache=True)  # type: ignore[misc]
 def _collect_cycle_bfs_jit(
     arc_tails: NDArray[np.int32],
     arc_heads: NDArray[np.int32],
@@ -135,7 +142,7 @@ def _collect_cycle_bfs_jit(
     return prev_nodes, prev_arcs, path_length
 
 
-@njit(cache=True)
+@njit(cache=True)  # type: ignore[misc]
 def _reconstruct_cycle_path_jit(
     prev_nodes: NDArray[np.int32],
     prev_arcs: NDArray[np.int32],
@@ -377,7 +384,7 @@ def collect_cycle_numpy(
 # =============================================================================
 
 
-@njit(cache=True)
+@njit(cache=True)  # type: ignore[misc]
 def _build_tree_adj_jit(
     arc_tails: NDArray[np.int32],
     arc_heads: NDArray[np.int32],
@@ -450,15 +457,15 @@ def build_tree_adj_jit(
 
     # Convert CSR back to list-of-lists for compatibility
     # Optimized: create Python list directly without tolist() overhead
-    tree_adj = [None] * num_nodes
+    tree_adj: list[list[int]] = []
     for node in range(num_nodes):
         start = int(offsets[node])
         end = int(offsets[node + 1])
         # Create Python list directly from indices
-        node_arcs = []
+        node_arcs: list[int] = []
         for i in range(start, end):
             node_arcs.append(int(indices[i]))
-        tree_adj[node] = node_arcs
+        tree_adj.append(node_arcs)
 
     return tree_adj
 
@@ -470,7 +477,7 @@ def build_tree_adj_numpy(
     num_nodes: int,
 ) -> list[list[int]]:
     """NumPy fallback for build_tree_adj (when Numba unavailable)."""
-    tree_adj = [[] for _ in range(num_nodes)]
+    tree_adj: list[list[int]] = [[] for _ in range(num_nodes)]
 
     for i in range(len(arc_tails)):
         if in_tree[i]:
@@ -485,7 +492,19 @@ def build_tree_adj_numpy(
 # =============================================================================
 
 
-def get_collect_cycle_function():
+def get_collect_cycle_function() -> Callable[
+    [
+        NDArray[np.int32],
+        NDArray[np.int32],
+        NDArray[np.bool_],
+        NDArray[np.int32],
+        NDArray[np.int32],
+        int,
+        int,
+        int,
+    ],
+    list[tuple[int, int]],
+]:
     """Return the best available collect_cycle implementation."""
     if HAS_NUMBA:
         return collect_cycle_jit
@@ -493,7 +512,9 @@ def get_collect_cycle_function():
         return collect_cycle_numpy
 
 
-def get_build_tree_adj_function():
+def get_build_tree_adj_function() -> Callable[
+    [NDArray[np.int32], NDArray[np.int32], NDArray[np.bool_], int], list[list[int]]
+]:
     """Return the best available build_tree_adj implementation."""
     if HAS_NUMBA:
         return build_tree_adj_jit
