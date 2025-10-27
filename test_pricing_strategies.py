@@ -23,7 +23,7 @@ def test_strategy(problem_file: str, strategy_name: str) -> dict:
     print(f"Problem: {len(problem.nodes)} nodes, {len(problem.arcs)} arcs")
 
     # Configure solver options
-    from src.network_solver.options import SolverOptions
+    from src.network_solver.data import SolverOptions
 
     options = SolverOptions()
 
