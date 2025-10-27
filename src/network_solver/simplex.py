@@ -184,7 +184,13 @@ class NetworkSimplex:
         self.tree_adj: list[list[int]] = [[] for _ in range(self.node_count)]
 
         # JIT optimization for tree operations
-        self._build_tree_adj_jit = get_build_tree_adj_function() if self.options.use_jit else None
+        # DISABLED: Conversion overhead (CSR→list-of-lists) exceeds JIT benefit
+        # JIT build: fast, but CSR→list conversion: 186s overhead!
+        # Original Python: 123s total (no conversion needed)
+        # See PHASE5_JIT_FINDINGS.md for details
+        self._build_tree_adj_jit = (
+            None  # get_build_tree_adj_function() if self.options.use_jit else None
+        )
 
         # Initialize adaptive tuner for runtime parameter adjustment
         auto_tune = (

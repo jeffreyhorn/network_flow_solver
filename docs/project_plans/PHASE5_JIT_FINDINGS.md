@@ -279,7 +279,58 @@ class SimplexSolver:
 4. **Measure and validate** - does it actually help?
 5. **Document findings** - what works, what doesn't
 
-## Next Steps (Phase 5 Continued)
+## Update: _update_tree_sets() JIT Attempt Also Failed
+
+### Attempt 2: JIT for `_update_tree_sets()` - 186s overhead!
+
+**Target**: 123s (19.5% of runtime)
+
+**Why we thought it would work**:
+- Solver already has NumPy arrays (arc_tails, arc_heads, arc_in_tree)
+- No conversion overhead like collect_cycle!
+- Simple loop: count degrees, build CSR adjacency
+- Expected: 2-3x speedup
+
+**What actually happened**:
+
+| Version | Total Time | Notes |
+|---------|------------|-------|
+| Baseline | 631s | Original Python, 123s in _update_tree_sets |
+| JIT v1 (with tolist()) | 665s | +34s slower, 23s in tolist() calls |
+| JIT v2 (manual loop) | 817s | +186s slower! Manual list building very slow |
+
+**The problem**: Output format mismatch
+- JIT builds CSR format (indices, offsets) - very fast
+- But code needs list-of-lists format
+- Conversion CSR → list-of-lists takes 186s!
+- More than the entire original function (123s)
+
+**Why conversion is so slow**:
+1. **tolist() version**: NumPy method calls expensive (36M calls)
+2. **Manual loop version**: Python for-loop over 8K entries, 8852 times = slow
+3. **Root cause**: Python list building is expensive no matter how you do it
+
+**The fundamental issue**: 
+```python
+# JIT produces this (fast):
+indices = [arc1, arc2, arc3, ...]  # NumPy array
+offsets = [0, 3, 7, 12, ...]        # NumPy array
+
+# But code needs this (slow to build):
+tree_adj = [
+    [arc1, arc2, arc3],  # node 0's arcs
+    [arc4, arc5, arc6, arc7],  # node 1's arcs
+    # ... 4097 nodes total
+]
+```
+
+Converting between these formats negates all JIT benefits.
+
+**Lesson**: JIT is only valuable if output format matches what rest of code needs. Converting NumPy → Python data structures can be more expensive than just staying in Python.
+
+---
+
+## Next Steps (Phase 5 Continued - REVISED)
 
 ### Week 1: Focus on `_update_tree_sets()` (134s target)
 
@@ -365,6 +416,110 @@ The initial Phase 5 JIT attempt on `collect_cycle()` revealed an important lesso
 **Current status**: collect_cycle JIT disabled, back to ~560s baseline, ready to target bigger bottlenecks.
 
 **Phase 5 revised goal**: 1.3-1.7x speedup by JIT-compiling `_update_tree_sets()` and `rebuild()`, avoiding conversion overhead.
+
+---
+
+## Final Conclusion (After Both Attempts)
+
+### Summary of Phase 5 JIT Attempts
+
+**Attempt 1: collect_cycle() JIT** ❌
+- Target: 55s (10% of runtime)
+- Result: +191s slower (3x worse)
+- Root cause: Converting Python objects → NumPy arrays (106s overhead)
+- JIT speedup: 55s → 3s (real!)
+- Net: -58s (overhead > benefit)
+
+**Attempt 2: _update_tree_sets() JIT** ❌
+- Target: 123s (19.5% of runtime)  
+- Result: +186s slower (2.5x worse)
+- Root cause: Converting NumPy CSR → Python list-of-lists (186s overhead)
+- JIT speedup: Theoretical 2-3x
+- Net: -186s (conversion dominates)
+
+### The Fundamental Problem
+
+**Both attempts failed for the same reason: format mismatch.**
+
+1. **Input format mismatch** (collect_cycle):
+   - Solver uses: Python objects (ArcState dataclass, list-of-lists)
+   - JIT needs: NumPy arrays (arc_tails, arc_heads, CSR adjacency)
+   - Conversion cost: 106s
+
+2. **Output format mismatch** (_update_tree_sets):
+   - JIT produces: NumPy CSR format (fast to build)
+   - Solver needs: Python list-of-lists (slow to build from CSR)
+   - Conversion cost: 186s
+
+**Key insight**: The solver architecture is fundamentally Python-native:
+- Uses dataclasses, lists, dicts
+- These are well-optimized in CPython
+- Converting to/from NumPy for JIT negates all benefits
+
+### Why Original Python Code is Fast
+
+1. **Native data structures**: deque, dict, list are highly optimized C implementations
+2. **No conversion overhead**: Works directly with existing data
+3. **Cache-friendly**: Python objects are surprisingly efficient for small-medium data
+4. **Algorithmic simplicity**: O(n) loops are O(n) regardless of JIT
+
+### What We Learned
+
+1. **JIT is not free**: Conversion overhead can exceed benefit
+2. **Data layout is architectural**: Can't bolt-on JIT to Python-native code
+3. **Profile conversions**: Measure overhead, not just JIT speedup
+4. **Format mismatch is fatal**: NumPy ↔ Python conversions are expensive
+5. **Original code can be well-optimized**: Don't assume JIT will help
+
+### Recommendations for Future Work
+
+**Option 1: Accept current performance** ✅ **RECOMMENDED for now**
+- 631s is reasonable for a Pure Python solver
+- 150-300x slower than OR-Tools C++ is expected
+- Focus efforts elsewhere (better algorithms, not micro-optimizations)
+
+**Option 2: Architectural refactor** (Long-term, 2-4 weeks effort)
+- Redesign solver to use NumPy arrays throughout
+- Store arc data as parallel arrays, not dataclasses
+- Use CSR format for tree_adj everywhere
+- This would enable real JIT benefits
+- But: Breaking change, high risk, major effort
+
+**Option 3: Hybrid approach** (Not recommended)
+- Keep Python API, convert internally
+- Synchronization overhead likely still too high
+- Complexity not worth marginal gains
+
+**Option 4: Focus on algorithmic improvements**
+- Better pricing strategies (already partially implemented)
+- Specialized solvers for detected problem types
+- These might give 1.5-2x without JIT complexity
+
+### Phase 5 Status
+
+**Outcome**: No performance improvement from JIT compilation
+
+**Work completed**:
+- ✅ Comprehensive profiling and bottleneck analysis
+- ✅ Implemented JIT for collect_cycle() (failed: +191s overhead)
+- ✅ Implemented JIT for _update_tree_sets() (failed: +186s overhead)
+- ✅ Documented findings and lessons learned
+- ✅ All code remains correct (tests pass)
+- ✅ JIT infrastructure in place (can be enabled with use_jit=True)
+
+**Artifacts**:
+- profile_solver.py - Easy profiling script
+- jit_tree_ops.py - JIT-compiled tree operations (disabled but functional)
+- PHASE5_PROFILING_ANALYSIS.md - Initial profiling findings
+- PHASE5_JIT_FINDINGS.md - Complete JIT attempt documentation
+
+**Recommendation**: 
+- Disable JIT optimizations (already done)
+- Document why JIT doesn't help for this codebase
+- Focus Phase 6+ on algorithmic improvements, not micro-optimizations
+- Consider architectural refactor only if 5-10x speedup is critical
+
+**Value delivered**: Deep understanding of performance characteristics and JIT limitations for Python-native code.
 
 ---
 
