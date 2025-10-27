@@ -22,17 +22,30 @@ class LUFactors:
 
 
 def build_lu(matrix: np.ndarray) -> LUFactors:
-    """Construct sparse LU factors for the given reduced incidence matrix."""
+    """Construct sparse LU factors for the given reduced incidence matrix.
+
+    Args:
+        matrix: Dense numpy array representing the basis matrix
+
+    Returns:
+        LUFactors object containing both dense and sparse representations.
+        The sparse representation is used internally for memory-efficient factorization.
+    """
+    # Always make a copy of the dense matrix
     dense_matrix = np.array(matrix, dtype=float, copy=True)
+
+    # Convert to sparse for memory-efficient LU factorization
     sparse_mat = None
     lu = None
     if csc_matrix is not None and splu is not None:
-        # SciPy path keeps sparse structure so UMFPACK can provide fast solves.
+        # SciPy path: convert to sparse and factorize
+        # This saves memory during factorization (sparse LU uses less memory than dense)
         sparse_mat = csc_matrix(dense_matrix)
         try:
             lu = splu(sparse_mat)
         except Exception:
             lu = None
+
     return LUFactors(dense_matrix=dense_matrix, sparse_matrix=sparse_mat, lu=lu)
 
 

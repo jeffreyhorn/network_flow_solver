@@ -43,7 +43,7 @@ class TreeBasis:
         self.potential: list[float] = [0.0] * node_count
         self.depth: list[int] = [0] * node_count
         self.tree_arc_indices: list[int] = []
-        self.basis_matrix: np.ndarray | None = None
+        self.basis_matrix: np.ndarray | None = None  # Dense matrix for all operations
         self.basis_inverse: np.ndarray | None = None
 
         # Projection cache (Optimized: simple dict, no LRU overhead)
@@ -252,40 +252,42 @@ class TreeBasis:
             self.ft_engine = None
             return
 
-        matrix = np.zeros((expected, expected), dtype=float)
         row_nodes = [idx for idx in range(self.node_count) if idx != self.root]
         node_to_row = {node: row for row, node in enumerate(row_nodes)}
         self.row_nodes = row_nodes
         self.node_to_row = node_to_row
         self.arc_to_pos = {}
 
+        # Build dense basis matrix for Forrest-Tomlin updates and inverse computation
+        # (build_lu() will convert to sparse internally for memory-efficient factorization)
+        self.basis_matrix = np.zeros((expected, expected), dtype=float)
         for col, arc_idx in enumerate(tree_arcs):
             arc = arcs[arc_idx]
             self.arc_to_pos[arc_idx] = col
             if arc.tail != self.root:
-                matrix[node_to_row[arc.tail], col] = 1.0
+                self.basis_matrix[node_to_row[arc.tail], col] = 1.0
             if arc.head != self.root:
-                matrix[node_to_row[arc.head], col] = -1.0
-
-        self.basis_matrix = matrix
+                self.basis_matrix[node_to_row[arc.head], col] = -1.0
 
         # Only compute dense inverse if explicitly requested (expensive O(n³) operation)
         if self.use_dense_inverse:
             try:
-                self.basis_inverse = np.linalg.inv(matrix)
+                self.basis_inverse = np.linalg.inv(self.basis_matrix)
             except np.linalg.LinAlgError:
                 self.basis_inverse = None
         else:
             self.basis_inverse = None
 
+        # ForrestTomlin uses dense matrix for column updates
         self.ft_engine = ForrestTomlin(
-            matrix,
+            self.basis_matrix,
             tolerance=self.tolerance,
             max_updates=self.ft_update_limit,
             norm_growth_limit=self.ft_norm_limit,
             use_jit=self.use_jit,
         )
-        self.lu_factors = build_lu(matrix)
+        # Pass dense matrix to build_lu - it will convert to sparse internally for memory efficiency
+        self.lu_factors = build_lu(self.basis_matrix)
 
     def _column_vector(self, arc: ArcState) -> np.ndarray:
         vec = np.zeros((self.node_count - 1,), dtype=float)
