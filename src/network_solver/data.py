@@ -481,9 +481,10 @@ class SolverOptions:
                 f"Tolerance must be positive, got {self.tolerance}. "
                 f"Tolerance controls numerical precision for feasibility and optimality checks."
             )
-        if self.pricing_strategy not in ("devex", "dantzig"):
+        if self.pricing_strategy not in ("devex", "dantzig", "candidate_list", "adaptive"):
             raise InvalidProblemError(
-                f"Invalid pricing strategy '{self.pricing_strategy}'. Must be 'devex' or 'dantzig'."
+                f"Invalid pricing strategy '{self.pricing_strategy}'. "
+                f"Must be 'devex', 'dantzig', 'candidate_list', or 'adaptive'."
             )
         if self.block_size is not None:
             if isinstance(self.block_size, str):
