@@ -386,6 +386,109 @@ def collect_cycle_numpy(
 
 
 # =============================================================================
+# Tree Adjacency List Building (Priority 1: 123s / 19.5% of total runtime)
+# =============================================================================
+
+
+@njit(cache=True)
+def _build_tree_adj_jit(
+    arc_tails: NDArray[np.int32],
+    arc_heads: NDArray[np.int32],
+    in_tree: NDArray[np.bool_],
+    num_nodes: int,
+) -> tuple[NDArray[np.int32], NDArray[np.int32]]:
+    """JIT-compiled tree adjacency list builder using CSR format.
+
+    This replaces the Python list-of-lists with a more efficient CSR representation.
+
+    Args:
+        arc_tails: Tail node for each arc
+        arc_heads: Head node for each arc
+        in_tree: Boolean flag for each arc
+        num_nodes: Number of nodes
+
+    Returns:
+        indices: Arc indices in flattened adjacency list
+        offsets: Start index for each node's adjacency (length: num_nodes+1)
+    """
+    num_arcs = len(arc_tails)
+
+    # Count degree for each node (tree arcs only)
+    degree = np.zeros(num_nodes, dtype=np.int32)
+    for i in range(num_arcs):
+        if in_tree[i]:
+            degree[arc_tails[i]] += 1
+            degree[arc_heads[i]] += 1
+
+    # Build offsets (cumulative sum)
+    offsets = np.zeros(num_nodes + 1, dtype=np.int32)
+    for i in range(num_nodes):
+        offsets[i + 1] = offsets[i] + degree[i]
+
+    # Allocate indices array
+    total_entries = offsets[num_nodes]
+    indices = np.empty(total_entries, dtype=np.int32)
+
+    # Fill indices (use current position tracker)
+    current = np.zeros(num_nodes, dtype=np.int32)
+    for i in range(num_arcs):
+        if in_tree[i]:
+            tail = arc_tails[i]
+            head = arc_heads[i]
+
+            # Add to tail's adjacency
+            idx = offsets[tail] + current[tail]
+            indices[idx] = i
+            current[tail] += 1
+
+            # Add to head's adjacency
+            idx = offsets[head] + current[head]
+            indices[idx] = i
+            current[head] += 1
+
+    return indices, offsets
+
+
+def build_tree_adj_jit(
+    arc_tails: NDArray[np.int32],
+    arc_heads: NDArray[np.int32],
+    in_tree: NDArray[np.bool_],
+    num_nodes: int,
+) -> list[list[int]]:
+    """Build tree adjacency list with JIT optimization.
+
+    Returns list-of-lists for compatibility with existing code.
+    """
+    indices, offsets = _build_tree_adj_jit(arc_tails, arc_heads, in_tree, num_nodes)
+
+    # Convert CSR back to list-of-lists for compatibility
+    tree_adj = []
+    for node in range(num_nodes):
+        start = offsets[node]
+        end = offsets[node + 1]
+        tree_adj.append(indices[start:end].tolist())
+
+    return tree_adj
+
+
+def build_tree_adj_numpy(
+    arc_tails: NDArray[np.int32],
+    arc_heads: NDArray[np.int32],
+    in_tree: NDArray[np.bool_],
+    num_nodes: int,
+) -> list[list[int]]:
+    """NumPy fallback for build_tree_adj (when Numba unavailable)."""
+    tree_adj = [[] for _ in range(num_nodes)]
+
+    for i in range(len(arc_tails)):
+        if in_tree[i]:
+            tree_adj[arc_tails[i]].append(i)
+            tree_adj[arc_heads[i]].append(i)
+
+    return tree_adj
+
+
+# =============================================================================
 # Public API
 # =============================================================================
 
@@ -396,3 +499,11 @@ def get_collect_cycle_function():
         return collect_cycle_jit
     else:
         return collect_cycle_numpy
+
+
+def get_build_tree_adj_function():
+    """Return the best available build_tree_adj implementation."""
+    if HAS_NUMBA:
+        return build_tree_adj_jit
+    else:
+        return build_tree_adj_numpy
