@@ -370,3 +370,270 @@ class DevexPricing(PricingStrategy):
         """Reset Devex weights to 1.0 and pricing block to 0."""
         self.weights.fill(1.0)
         self.pricing_block = 0
+
+
+class CandidateListPricing(PricingStrategy):
+    """Candidate list pricing: maintain a subset of promising arcs.
+
+    This strategy maintains a candidate list of arcs with good reduced costs
+    and primarily scans this smaller list. Periodically refreshes the list
+    with a full scan to ensure we don't miss improving arcs.
+
+    Expected benefit: Reduce pricing time by 50-70% on large problems by
+    scanning fewer arcs per iteration, with only a slight increase in total
+    iterations due to sub-optimal arc selection.
+
+    Attributes:
+        candidate_list: List of (arc_idx, direction) tuples for promising arcs.
+        list_size: Maximum number of candidates to maintain.
+        refresh_interval: Number of iterations between full scans.
+        iterations_since_refresh: Counter for when to trigger refresh.
+        minor_iterations_per_candidate: Number of iterations to check candidates
+            before doing a partial refresh.
+    """
+
+    def __init__(
+        self,
+        arc_count: int,
+        list_size: int = 100,
+        refresh_interval: int = 10,
+        minor_iterations_per_candidate: int = 3,
+    ):
+        """Initialize candidate list pricing.
+
+        Args:
+            arc_count: Total number of arcs in the network.
+            list_size: Maximum size of candidate list (default: 100).
+            refresh_interval: Iterations between full refreshes (default: 10).
+            minor_iterations_per_candidate: Number of quick candidate scans
+                before partial refresh (default: 3).
+        """
+        self.arc_count = arc_count
+        self.list_size = list_size
+        self.refresh_interval = refresh_interval
+        self.minor_iterations_per_candidate = minor_iterations_per_candidate
+        self.candidate_list: list[int] = []
+        self.iterations_since_refresh = 0
+        self.minor_iterations = 0
+
+    def select_entering_arc(
+        self,
+        arcs: list[ArcState],
+        basis: TreeBasis,
+        actual_arc_count: int,
+        allow_zero: bool,
+        tolerance: float,
+        solver: NetworkSimplexProtocol,
+    ) -> tuple[int, int] | None:
+        """Select entering arc from candidate list, refreshing periodically."""
+        # Quick scan of candidate list first
+        if self.candidate_list and self.minor_iterations < self.minor_iterations_per_candidate:
+            best = self._scan_candidates(arcs, basis, allow_zero, tolerance, solver)
+            if best is not None:
+                self.minor_iterations += 1
+                return best
+
+        # Time for a refresh
+        self.iterations_since_refresh += 1
+        self.minor_iterations = 0
+
+        # Full refresh if interval reached
+        if self.iterations_since_refresh >= self.refresh_interval or not self.candidate_list:
+            self._refresh_candidate_list(arcs, basis, actual_arc_count, tolerance, solver)
+            self.iterations_since_refresh = 0
+
+        # Scan refreshed candidates
+        best = self._scan_candidates(arcs, basis, allow_zero, tolerance, solver)
+        if best is not None:
+            return best
+
+        # If still no improving arc, force full refresh
+        if self.iterations_since_refresh > 0:
+            self._refresh_candidate_list(arcs, basis, actual_arc_count, tolerance, solver)
+            self.iterations_since_refresh = 0
+            return self._scan_candidates(arcs, basis, allow_zero, tolerance, solver)
+
+        return None
+
+    def _scan_candidates(
+        self,
+        arcs: list[ArcState],
+        basis: TreeBasis,
+        allow_zero: bool,
+        tolerance: float,
+        solver: NetworkSimplexProtocol,
+    ) -> tuple[int, int] | None:
+        """Scan candidate list for best arc (using Dantzig rule)."""
+        best: tuple[int, int] | None = None
+        best_rc = 0.0
+
+        for idx in self.candidate_list:
+            if idx >= len(arcs):
+                continue
+
+            arc = arcs[idx]
+            if arc.in_tree or arc.artificial:
+                continue
+
+            rc = arc.cost + basis.potential[arc.tail] - basis.potential[arc.head]
+
+            # Use cached residuals
+            forward_res = solver.forward_residuals[idx]
+            backward_res = solver.backward_residuals[idx]
+
+            # Check forward direction
+            if forward_res > tolerance and rc < -tolerance:
+                if best is None or rc < best_rc:
+                    best = (idx, 1)
+                    best_rc = rc
+            # Check backward direction
+            elif backward_res > tolerance and rc > tolerance:
+                if best is None or -rc < best_rc:
+                    best = (idx, -1)
+                    best_rc = -rc
+            # Check zero candidates if allowed
+            elif allow_zero and forward_res > tolerance and abs(rc) <= tolerance and best is None:
+                best = (idx, 1)
+            elif allow_zero and backward_res > tolerance and abs(rc) <= tolerance and best is None:
+                best = (idx, -1)
+
+        return best
+
+    def _refresh_candidate_list(
+        self,
+        arcs: list[ArcState],
+        basis: TreeBasis,
+        actual_arc_count: int,
+        tolerance: float,
+        solver: NetworkSimplexProtocol,
+    ) -> None:
+        """Perform full scan to refresh candidate list with top arcs."""
+        candidates: list[tuple[float, int]] = []
+
+        for idx in range(actual_arc_count):
+            arc = arcs[idx]
+            if arc.in_tree or arc.artificial:
+                continue
+
+            rc = arc.cost + basis.potential[arc.tail] - basis.potential[arc.head]
+
+            # Use cached residuals
+            forward_res = solver.forward_residuals[idx]
+            backward_res = solver.backward_residuals[idx]
+
+            # Collect arcs with good reduced costs
+            merit = 0.0
+            if (forward_res > tolerance and rc < -tolerance) or (
+                backward_res > tolerance and rc > tolerance
+            ):
+                merit = abs(rc)
+
+            if merit > tolerance:
+                candidates.append((merit, idx))
+
+        # Sort by merit and keep top N
+        candidates.sort(reverse=True)
+        self.candidate_list = [idx for (merit, idx) in candidates[: self.list_size]]
+
+    def reset(self) -> None:
+        """Reset candidate list and counters."""
+        self.candidate_list.clear()
+        self.iterations_since_refresh = 0
+        self.minor_iterations = 0
+
+
+class AdaptivePricing(PricingStrategy):
+    """Adaptive pricing: switches between strategies based on problem characteristics.
+
+    This strategy starts with candidate list pricing for quick improvements,
+    then switches to Devex pricing when the problem becomes harder (higher
+    degeneracy, fewer improving arcs found).
+
+    The adaptive strategy aims to combine the benefits of different pricing
+    methods throughout the solution process.
+
+    Attributes:
+        strategies: Dictionary of available pricing strategies.
+        current_strategy_name: Name of currently active strategy.
+        switch_threshold: Number of consecutive failed candidate searches
+            before switching to Devex.
+        failed_searches: Counter for consecutive failed candidate searches.
+    """
+
+    def __init__(
+        self,
+        arc_count: int,
+        candidate_list_size: int = 100,
+        devex_block_size: int = 1000,
+        switch_threshold: int = 5,
+    ):
+        """Initialize adaptive pricing with multiple strategies.
+
+        Args:
+            arc_count: Total number of arcs.
+            candidate_list_size: Size for candidate list strategy.
+            devex_block_size: Block size for Devex strategy.
+            switch_threshold: Failed searches before switching strategies.
+        """
+        self.strategies: dict[str, PricingStrategy] = {
+            "candidate_list": CandidateListPricing(arc_count, list_size=candidate_list_size),
+            "devex": DevexPricing(arc_count, block_size=devex_block_size),
+            "dantzig": DantzigPricing(),
+        }
+        self.current_strategy_name = "candidate_list"
+        self.switch_threshold = switch_threshold
+        self.failed_searches = 0
+        self.iteration = 0
+
+    def select_entering_arc(
+        self,
+        arcs: list[ArcState],
+        basis: TreeBasis,
+        actual_arc_count: int,
+        allow_zero: bool,
+        tolerance: float,
+        solver: NetworkSimplexProtocol,
+    ) -> tuple[int, int] | None:
+        """Select arc using current strategy, adaptively switching if needed."""
+        self.iteration += 1
+
+        # Get current strategy
+        current = self.strategies[self.current_strategy_name]
+
+        # Try to find entering arc
+        result = current.select_entering_arc(
+            arcs, basis, actual_arc_count, allow_zero, tolerance, solver
+        )
+
+        # Track success/failure
+        if result is None:
+            self.failed_searches += 1
+        else:
+            self.failed_searches = 0
+
+        # Consider switching strategy if repeated failures
+        if self.failed_searches >= self.switch_threshold:
+            self._switch_strategy()
+            self.failed_searches = 0
+
+        return result
+
+    def _switch_strategy(self) -> None:
+        """Switch to a different pricing strategy."""
+        # Simple strategy: candidate_list → devex → dantzig → candidate_list
+        if self.current_strategy_name == "candidate_list":
+            self.current_strategy_name = "devex"
+        elif self.current_strategy_name == "devex":
+            self.current_strategy_name = "dantzig"
+        else:
+            # Reset candidate list and try again
+            self.current_strategy_name = "candidate_list"
+            self.strategies["candidate_list"].reset()
+
+    def reset(self) -> None:
+        """Reset all strategies and counters."""
+        for strategy in self.strategies.values():
+            strategy.reset()
+        self.current_strategy_name = "candidate_list"
+        self.failed_searches = 0
+        self.iteration = 0

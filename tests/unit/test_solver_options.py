@@ -16,7 +16,7 @@ def test_solver_options_defaults():
     options = SolverOptions()
     assert options.max_iterations is None
     assert options.tolerance == 1e-6
-    assert options.pricing_strategy == "devex"
+    assert options.pricing_strategy == "adaptive"  # Phase 6: adaptive is now default
     assert options.block_size is None
     assert options.ft_update_limit == 64
 

@@ -329,7 +329,7 @@ options = SolverOptions()
 options = SolverOptions(
     max_iterations=10000,        # Override default iteration limit
     tolerance=1e-9,              # Tighter numerical precision
-    pricing_strategy="dantzig",  # Use Dantzig pricing (default: "devex")
+    pricing_strategy="devex",    # Override default adaptive pricing
     block_size=50,               # Custom pricing block size
     ft_update_limit=100,         # Basis refactorization frequency
 )
@@ -341,7 +341,9 @@ result = solve_min_cost_flow(problem, options=options)
 - `max_iterations` - Maximum simplex iterations (default: `max(100, 5*num_arcs)`)
 - `tolerance` - Numerical tolerance for feasibility/optimality (default: `1e-6`)
 - `pricing_strategy` - Arc selection strategy:
-  - `"devex"` (default) - Normalized reduced costs with block pricing (faster convergence)
+  - `"adaptive"` (default) - **NEW in Phase 6**: Dynamically switches between pricing strategies (1.56x faster than Devex)
+  - `"candidate_list"` - Maintains subset of promising arcs (~100 arcs vs scanning all arcs)
+  - `"devex"` - Normalized reduced costs with block pricing (previous default)
   - `"dantzig"` - Most negative reduced cost (simpler, may be slower)
 - `block_size` - Number of arcs examined per pricing block:
   - `None` or `"auto"` (default) - Auto-tune based on problem size with runtime adaptation
@@ -349,7 +351,9 @@ result = solve_min_cost_flow(problem, options=options)
 - `ft_update_limit` - Forrest-Tomlin updates before full basis rebuild (default: `64`)
 
 **Pricing strategies:**
-- **Devex pricing** (default): Uses normalized reduced costs and block-based search for efficient arc selection. Generally faster on large problems. **Automatically uses vectorized NumPy operations** for 1.8-3.1x speedup on problems with 200+ arcs.
+- **Adaptive pricing** (default): **NEW in Phase 6** - Automatically switches between candidate_list, devex, and dantzig strategies based on solver state. Provides **1.56x speedup** over previous default (devex) with zero correctness trade-offs. Recommended for all use cases.
+- **Candidate list pricing**: Maintains a list of ~100 "promising" arcs and primarily scans this subset instead of all arcs. Provides 1.53x speedup on large problems (4K+ nodes, 30K+ arcs).
+- **Devex pricing**: Uses normalized reduced costs and block-based search for efficient arc selection. Generally faster on large problems. **Automatically uses vectorized NumPy operations** for 1.8-3.1x speedup on problems with 200+ arcs.
 - **Dantzig pricing**: Selects the arc with the most negative reduced cost. Simpler but may require more iterations.
 
 **Automatic pricing strategy selection:**

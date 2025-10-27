@@ -9,7 +9,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from network_solver.data import build_problem  # noqa: E402
+from network_solver.data import SolverOptions, build_problem  # noqa: E402
 from network_solver.exceptions import InvalidProblemError, SolverConfigurationError  # noqa: E402
 from network_solver.simplex import NetworkSimplex  # noqa: E402
 from network_solver.solver import solve_min_cost_flow  # noqa: E402
@@ -30,7 +30,9 @@ def _make_pricing_solver(costs):
         {"tail": "a", "head": "c", "capacity": 5.0, "cost": costs[2]},
     ]
     problem = build_problem(nodes=nodes, arcs=arcs, directed=True, tolerance=1e-6)
-    solver = NetworkSimplex(problem)
+    # Use devex explicitly for these low-level pricing tests
+    options = SolverOptions(pricing_strategy="devex")
+    solver = NetworkSimplex(problem, options=options)
     solver.perturbed_costs[: solver.actual_arc_count] = costs[: solver.actual_arc_count]
     solver._apply_phase_costs(phase=2)
     solver._rebuild_tree_structure()
@@ -73,7 +75,9 @@ def test_iteration_limit_preserves_current_flow_state():
     # Clamp the iteration budget so the solver has to return early with a feasible-but-ongoing basis.
     # This problem requires 5 iterations to reach optimality with vectorized pricing;
     # max_iterations=4 will hit the limit but still have a feasible solution.
-    limited = solve_min_cost_flow(problem, max_iterations=4)
+    # Use devex explicitly to ensure consistent arc selection in this test
+    options = SolverOptions(max_iterations=4, pricing_strategy="devex")
+    limited = solve_min_cost_flow(problem, options=options)
     assert limited.status == "iteration_limit"
     assert limited.iterations == 4
     # Should have a feasible solution (flows through s→a→c→t)
@@ -84,7 +88,8 @@ def test_iteration_limit_preserves_current_flow_state():
     }
 
     # Increase the budget to reach optimality.
-    optimal = solve_min_cost_flow(problem, max_iterations=10)
+    options_optimal = SolverOptions(max_iterations=10, pricing_strategy="devex")
+    optimal = solve_min_cost_flow(problem, options=options_optimal)
     assert optimal.status == "optimal"
     assert optimal.iterations == 5
     assert optimal.flows == {
@@ -355,7 +360,11 @@ def test_pivot_clamps_flow_to_bounds():
         {"tail": "m", "head": "t", "capacity": 2.0, "cost": 0.0},
         {"tail": "s", "head": "t", "capacity": 2.0, "cost": 10.0},
     ]
-    solver = NetworkSimplex(build_problem(nodes, arcs, directed=True, tolerance=1e-6))
+    # Use devex explicitly for consistent arc selection behavior
+    options = SolverOptions(pricing_strategy="devex")
+    solver = NetworkSimplex(
+        build_problem(nodes, arcs, directed=True, tolerance=1e-6), options=options
+    )
     arc_idx, direction = solver._find_entering_arc(True)
     solver._pivot(arc_idx, direction)
     first_arc = solver.arcs[0]
@@ -483,8 +492,6 @@ def test_flow_post_processing_removes_and_rounds_near_zero():
         {"tail": "n", "head": "m", "capacity": 2.0, "cost": 2.0},
     ]
     # Disable auto_scale to test raw post-processing behavior
-    from network_solver import SolverOptions
-
     options = SolverOptions(auto_scale=False)
     result = NetworkSimplex(
         build_problem(nodes, arcs, directed=True, tolerance=1e-6), options

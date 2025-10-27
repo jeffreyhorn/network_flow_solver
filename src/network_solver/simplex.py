@@ -224,9 +224,26 @@ class NetworkSimplex:
             )
         elif pricing_strategy == "dantzig":
             self.pricing_strategy = DantzigPricing()
+        elif pricing_strategy == "candidate_list":
+            from .simplex_pricing import CandidateListPricing
+
+            self.pricing_strategy = CandidateListPricing(
+                arc_count=len(self.arcs),
+                list_size=100,  # Default candidate list size
+                refresh_interval=10,  # Refresh every 10 iterations
+            )
+        elif pricing_strategy == "adaptive":
+            from .simplex_pricing import AdaptivePricing
+
+            self.pricing_strategy = AdaptivePricing(
+                arc_count=len(self.arcs),
+                candidate_list_size=100,
+                devex_block_size=self.adaptive_tuner.block_size,
+            )
         else:
             raise SolverConfigurationError(
-                f"Unknown pricing strategy '{pricing_strategy}'. Valid options: 'devex', 'dantzig'."
+                f"Unknown pricing strategy '{pricing_strategy}'. "
+                f"Valid options: 'devex', 'dantzig', 'candidate_list', 'adaptive'."
             )
         self.original_costs = [arc.cost for arc in self.arcs]
         self.perturbed_costs = [arc.cost for arc in self.arcs]
