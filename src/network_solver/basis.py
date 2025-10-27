@@ -10,7 +10,6 @@ import numpy as np
 
 from .basis_lu import LUFactors, build_lu, reconstruct_matrix, solve_lu
 from .core.forrest_tomlin import ForrestTomlin
-from .jit_tree_ops import build_tree_adj_csr, get_collect_cycle_function
 
 if TYPE_CHECKING:
     from .simplex import ArcState

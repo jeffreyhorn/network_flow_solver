@@ -32,7 +32,6 @@ from .simplex_pricing import (
     DevexPricing,
     PricingStrategy,
 )
-from .jit_tree_ops import get_build_tree_adj_function
 
 PERTURB_EPS_BASE = 1e-10  # Base epsilon for lexicographic cost perturbation.
 PERTURB_GROWTH = 1.00001  # Slight growth per arc to break ties deterministically.

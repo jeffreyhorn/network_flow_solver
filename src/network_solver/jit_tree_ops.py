@@ -19,7 +19,6 @@ from numpy.typing import NDArray
 
 # Try to import Numba
 try:
-    import numba
     from numba import njit
 
     HAS_NUMBA = True
@@ -110,10 +109,7 @@ def _collect_cycle_bfs_jit(
             arc_tail = arc_tails[arc_idx]
             arc_head = arc_heads[arc_idx]
 
-            if arc_tail == node:
-                neighbor = arc_head
-            else:
-                neighbor = arc_tail
+            neighbor = arc_head if arc_tail == node else arc_tail
 
             # Skip if already visited
             if visited[neighbor]:
@@ -178,10 +174,7 @@ def _reconstruct_cycle_path_jit(
 
         # Determine sign based on arc direction
         # Positive if we traverse arc in tail→head direction
-        if arc_tails[arc_idx] == parent and arc_heads[arc_idx] == node:
-            sign = 1
-        else:
-            sign = -1
+        sign = 1 if arc_tails[arc_idx] == parent and arc_heads[arc_idx] == node else -1
 
         cycle_arcs[idx] = arc_idx
         cycle_signs[idx] = sign
@@ -243,7 +236,7 @@ def collect_cycle_jit(
     )
 
     # Convert to list of tuples for compatibility
-    return [(int(arc), int(sign)) for arc, sign in zip(cycle_arcs, cycle_signs)]
+    return [(int(arc), int(sign)) for arc, sign in zip(cycle_arcs, cycle_signs, strict=True)]
 
 
 # =============================================================================
@@ -351,10 +344,7 @@ def collect_cycle_numpy(
                 continue
 
             # Find neighbor
-            if arc_tails[arc_idx] == node:
-                neighbor = arc_heads[arc_idx]
-            else:
-                neighbor = arc_tails[arc_idx]
+            neighbor = arc_heads[arc_idx] if arc_tails[arc_idx] == node else arc_tails[arc_idx]
 
             if neighbor in prev:
                 continue
@@ -373,10 +363,7 @@ def collect_cycle_numpy(
         parent, arc_idx = prev[node]
 
         # Determine sign
-        if arc_tails[arc_idx] == parent and arc_heads[arc_idx] == node:
-            sign = 1
-        else:
-            sign = -1
+        sign = 1 if arc_tails[arc_idx] == parent and arc_heads[arc_idx] == node else -1
 
         path.append((arc_idx, sign))
         node = parent

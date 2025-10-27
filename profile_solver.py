@@ -14,8 +14,8 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from benchmarks.parsers.dimacs import parse_dimacs_file
-from src.network_solver.solver import solve_min_cost_flow
+from benchmarks.parsers.dimacs import parse_dimacs_file  # noqa: E402
+from src.network_solver.solver import solve_min_cost_flow  # noqa: E402
 
 
 def main():
@@ -41,7 +41,7 @@ def main():
     profiler.disable()
 
     # Print results
-    print(f"\nSolve completed:")
+    print("\nSolve completed:")
     print(f"  Status: {result.status}")
     print(f"  Objective: {result.objective}")
     print(f"  Iterations: {result.iterations}")
