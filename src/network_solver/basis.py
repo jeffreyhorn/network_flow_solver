@@ -141,36 +141,35 @@ class TreeBasis:
         else:
             self._in_tree_cache.fill(False)
 
-        # Mark tree arcs as True using tree_adj (already filtered)
-        for node_arcs in tree_adj:
-            for arc_idx in node_arcs:
-                self._in_tree_cache[arc_idx] = True
-
-        # Build CSR tree adjacency directly from tree_adj (much faster!)
-        total_entries = sum(len(node_arcs) for node_arcs in tree_adj)
-
-        # Allocate or reuse arrays
-        if (
-            self._tree_adj_indices_cache is None
-            or len(self._tree_adj_indices_cache) != total_entries
-        ):
-            self._tree_adj_indices_cache = np.empty(total_entries, dtype=np.int32)
-
+        # Pre-allocate CSR offsets array
         if (
             self._tree_adj_offsets_cache is None
             or len(self._tree_adj_offsets_cache) != self.node_count + 1
         ):
             self._tree_adj_offsets_cache = np.empty(self.node_count + 1, dtype=np.int32)
 
-        # Fill CSR structure directly from tree_adj
+        # Single pass: count entries, mark in_tree, and fill offsets
         offset = 0
         for node in range(self.node_count):
             self._tree_adj_offsets_cache[node] = offset
-            node_arcs = tree_adj[node]
-            for i, arc_idx in enumerate(node_arcs):
-                self._tree_adj_indices_cache[offset + i] = arc_idx
-            offset += len(node_arcs)
+            offset += len(tree_adj[node])
         self._tree_adj_offsets_cache[self.node_count] = offset
+        total_entries = offset
+
+        # Allocate indices array if needed
+        if (
+            self._tree_adj_indices_cache is None
+            or len(self._tree_adj_indices_cache) != total_entries
+        ):
+            self._tree_adj_indices_cache = np.empty(total_entries, dtype=np.int32)
+
+        # Single pass: fill CSR indices and mark in_tree
+        idx = 0
+        for node_arcs in tree_adj:
+            for arc_idx in node_arcs:
+                self._in_tree_cache[arc_idx] = True
+                self._tree_adj_indices_cache[idx] = arc_idx
+                idx += 1
 
     def collect_cycle(
         self, tree_adj: Sequence[Sequence[int]], arcs: Sequence[ArcState], tail: int, head: int
